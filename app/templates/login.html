@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Login - GapShap{% endblock %}
+
+{% block content %}
+<div class="flex-1 w-full min-h-screen md:min-h-0 overflow-y-auto flex flex-col items-center justify-center px-4 py-6 md:py-8">
+    <div class="glass-panel w-full max-w-4xl flex flex-col lg:flex-row rounded-3xl relative overflow-hidden p-0 shadow-2xl my-auto flex-shrink-0">
+        
+        <!-- Left Branding Panel (Hidden on Mobile) -->
+        <div class="hidden lg:flex flex-col justify-center w-5/12 p-10 xl:p-12 bg-white/5 border-r border-white/5 relative">
+            <!-- Decorative blobs -->
+            <div class="absolute -top-16 -left-16 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+            <div class="absolute -bottom-16 -right-16 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+            
+            <div class="relative z-10 flex flex-col h-full">
+                <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-8 shadow-xl border border-white/20">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                </div>
+                
+                <h1 class="text-4xl font-bold text-white mb-6 leading-tight tracking-tight">Connect Securely<br>with GapShap</h1>
+                <p class="text-[15px] font-medium text-indigo-100/70 leading-relaxed mb-auto">True End-to-End Encryption. Because your conversations belong to you and no one else. Messages cannot be read by anyone except you and your contact.</p>
+                
+                <div class="mt-12 flex items-center gap-3 text-xs font-semibold text-white/70 bg-black/20 px-5 py-3 w-max rounded-full border border-white/10 shadow-inner">
+                    <svg class="w-4 h-4 text-green-400 shadow-sm" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                    Crypto Based End-to-End Encryption 
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Form Panel -->
+        <div class="w-full lg:w-7/12 p-6 sm:p-8 md:p-10 xl:p-12 relative flex flex-col justify-center bg-slate-900/40">
+            <!-- Decorative blob -->
+            <div class="lg:hidden absolute -top-16 -right-16 w-32 h-32 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+            
+            <!-- Mobile Logo -->
+            <div class="lg:hidden flex justify-center mb-8 relative z-10">
+                <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center lg:items-start mb-8 relative z-10">
+                <h2 class="text-3xl font-bold text-white tracking-tight text-center lg:text-left">Welcome Back</h2>
+                <p class="text-sm font-medium text-indigo-200/60 mt-1.5 text-center lg:text-left">Sign in to securely access your end-to-end encrypted chats.</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6 relative z-10">
+                <div class="space-y-2">
+                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1" for="mobile">Mobile Number</label>
+                    <input type="text" id="mobile" required
+                        class="w-full glass-input text-[15px] font-medium placeholder-gray-500"
+                        placeholder="e.g. +1234567890">
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center ml-1">
+                        <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider" for="password">Password</label>
+                        <a href="/forgot-password" class="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors">Forgot?</a>
+                    </div>
+                    <input type="password" id="password" required
+                        class="w-full glass-input text-[15px] font-medium placeholder-gray-500"
+                        placeholder="••••••••••••">
+                </div>
+
+                <div id="errorMsg" class="text-[13px] font-semibold text-red-200 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center hidden shadow-inner"></div>
+
+                <button type="submit" id="submitBtn" class="primary-btn w-full mt-3 text-[15px] font-bold tracking-wide py-3">
+                    <span>Sign In</span>
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 flex flex-col items-center gap-3 relative z-10 border-t border-white/10">
+                <p class="text-sm font-medium text-gray-400">New around here? <a href="/register" class="text-indigo-400 hover:text-indigo-300 font-bold ml-1 transition-colors">Create an account</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ request.state.nonce }}">
+    function base64ToArrayBuffer(base64) {
+        const binary_string = window.atob(base64);
+        const len = binary_string.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    async function deriveWrappingKey(password, saltUint8) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            "raw",
+            enc.encode(password),
+            { name: "PBKDF2" },
+            false,
+            ["deriveBits", "deriveKey"]
+        );
+        return window.crypto.subtle.deriveKey(
+            {
+                name: "PBKDF2",
+                salt: saltUint8,
+                iterations: 310000,
+                hash: "SHA-256"
+            },
+            keyMaterial,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"]
+        );
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const mobile = document.getElementById('mobile').value;
+        const password = document.getElementById('password').value;
+        const btn = document.getElementById('submitBtn');
+        const errorMsg = document.getElementById('errorMsg');
+
+        if (!window.isSecureContext) {
+            errorMsg.innerText = 'Encryption requires a Secure Context (HTTPS or localhost).';
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = 'Authenticating...';
+        errorMsg.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile_number: mobile, password: password })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                try {
+                    // Decrypt the private key
+                    // Decrypt the private key via DEK
+                    if (data.encrypted_private_key && data.encrypted_dek && data.keys_salt) {
+                        const salt = new Uint8Array(base64ToArrayBuffer(data.keys_salt));
+                        const dekIv = new Uint8Array(base64ToArrayBuffer(data.dek_iv));
+                        const privKeyIv = new Uint8Array(base64ToArrayBuffer(data.priv_key_iv));
+                        
+                        const encryptedDek = base64ToArrayBuffer(data.encrypted_dek);
+                        const encryptedPrivKey = base64ToArrayBuffer(data.encrypted_private_key);
+
+                        // 1. Derive KEK from password
+                        const kek = await deriveWrappingKey(password, salt);
+
+                        // 2. Decrypt DEK using KEK
+                        const dekBuffer = await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: dekIv },
+                            kek,
+                            encryptedDek
+                        );
+                        
+                        // 3. Import DEK
+                        const dek = await window.crypto.subtle.importKey(
+                            "raw",
+                            dekBuffer,
+                            { name: "AES-GCM", length: 256 },
+                            false,
+                            ["decrypt"]
+                        );
+
+                        // 4. Decrypt Private Key using DEK
+                        const decryptedPrivKeyBuffer = await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: privKeyIv },
+                            dek,
+                            encryptedPrivKey
+                        );
+
+                        const dec = new TextDecoder();
+                        const privKeyStr = dec.decode(decryptedPrivKeyBuffer);
+
+                        sessionStorage.setItem('chat_priv_key', privKeyStr);
+                    } else {
+                        console.warn("Missing encryption data from server.");
+                    }
+                } catch (e) {
+                    console.error("Failed to decrypt private key:", e);
+                    showModal({
+                        title: "Decryption Failed",
+                        description: "Failed to decrypt your private key. This usually happens if you are not in a Secure Context (Localhost or HTTPS).",
+                        isAlert: true
+                    });
+                    btn.disabled = false;
+                    btn.innerText = 'Login';
+                    return; // Stop redirection
+                }
+
+                localStorage.setItem('current_user_id', data.user_id);
+                window.location.href = '/';
+            } else {
+                errorMsg.innerText = data.detail || 'Login failed';
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = 'Login';
+            }
+        } catch (err) {
+            errorMsg.innerText = 'Network error occurred';
+            errorMsg.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = 'Login';
+        }
+    });
+</script>
+{% endblock %}

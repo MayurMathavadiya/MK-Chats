@@ -1,0 +1,1818 @@
+{% extends "base.html" %}
+
+{% block title %}GapShap{% endblock %}
+
+{% block content %}
+<div
+    class="flex flex-row min-h-screen md:min-h-0 w-full max-w-[1400px] md:h-[90vh] glass-panel md:rounded-2xl shadow-2xl relative overflow-hidden">
+    <!-- Sidebar: Contacts -->
+    <div id="sidebar"
+        class="w-full md:w-80 lg:w-96 h-full border-r border-white/10 flex flex-col flex-shrink-0 z-30 absolute md:relative top-0 left-0 bg-slate-900/95 md:bg-transparent backdrop-blur-xl transition-transform duration-300">
+        <!-- Sidebar Header -->
+        <div class="p-6 md:p-8 flex flex-col gap-6">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    </div>
+                    <span class="font-bold text-white tracking-wide">Chats</span>
+                </div>
+                <!-- Current User Avatar -->
+                <div class="relative">
+                    <button id="profileDropdownBtn"
+                        class="w-10 h-10 rounded-full border-2 border-indigo-400 overflow-hidden shadow-lg cursor-pointer hover:border-white transition-colors focus:outline-none flex items-center justify-center bg-white/10">
+                        {% if user.profile_pic %}
+                        <img src="{{ user.profile_pic }}" alt="Profile" class="w-full h-full object-cover"
+                            id="topAvatarImg">
+                        <div class="w-full h-full flex items-center justify-center text-white font-bold hidden text-sm"
+                            id="topAvatarChar">{{ user.first_name[0] }}</div>
+                        {% else %}
+                        <img src="" alt="Profile" class="w-full h-full object-cover hidden" id="topAvatarImg">
+                        <div class="w-full h-full flex items-center justify-center text-white font-bold text-sm"
+                            id="topAvatarChar">{{ user.first_name[0] }}</div>
+                        {% endif %}
+                    </button>
+
+                    <!-- Profile Dropdown -->
+                    <div id="profileDropdown"
+                        class="absolute left-0 mt-3 w-56 glass-panel rounded-xl shadow-2xl py-2 hidden z-50 overflow-hidden border border-white/10">
+                        <div class="px-5 py-4 border-b border-white/10 bg-white/5">
+                            <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">My Account
+                            </p>
+                            <p class="text-sm font-bold text-white truncate" id="topUserNameLabel">{{ user.first_name }}
+                                {{ user.last_name }}</p>
+                        </div>
+                        <div class="flex flex-col p-1">
+                            <button id="profileEditBtn"
+                                class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all text-left">
+                                Edit Profile
+                            </button>
+                            <button id="logoutBtn"
+                                class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-all text-left">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative">
+                <input type="text" id="contactSearch" placeholder="Search conversations..."
+                    class="w-full glass-input text-sm pl-11" />
+                <svg class="w-4 h-4 text-gray-400 absolute left-4 top-3.5" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Contact List -->
+        <div id="contact-list" class="flex-1 overflow-y-auto px-4 pb-4 space-y-1">
+            <div class="text-center text-indigo-300 text-xs font-medium mt-10 animate-pulse">Syncing chats...</div>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col overflow-hidden relative min-h-0 bg-slate-900/50" id="chat-container">
+        <!-- Placeholder -->
+        <div id="no-chat-selected"
+            class="absolute inset-0 flex items-center justify-center z-0 bg-gradient-to-br from-indigo-900/40 to-slate-900/40">
+            <div
+                class="text-center p-6 sm:p-10 max-w-sm mx-4 glass-panel rounded-3xl shadow-2xl border border-white/10">
+                <div class="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-indigo-500/20 rounded-full">
+                    <svg class="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M8 12h.01M12 12h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-white mb-2">Your Messages</h2>
+                <p class="text-sm text-gray-400 leading-relaxed">Select a chat to start participating in the end-to-end
+                    encrypted conversation.</p>
+            </div>
+        </div>
+
+        <!-- Active Chat -->
+        <div id="active-chat" class="hidden flex flex-col flex-1 min-h-0">
+            <!-- Header -->
+            <div
+                class="px-4 sm:px-6 md:px-8 py-4 md:py-5 border-b border-white/5 flex items-center justify-between gap-3 z-10 flex-shrink-0 bg-white/5 backdrop-blur-md shadow-sm">
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <button id="backToSidebarBtn"
+                        class="md:hidden text-gray-400 hover:text-white p-2 -ml-2 transition-colors rounded-full relative z-20 hover:bg-white/10"
+                        title="Back to chats">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <div class="flex items-center gap-4 cursor-pointer group" id="chatHeaderInfo">
+                        <div class="relative">
+                            <div class="w-11 h-11 rounded-full border-2 border-transparent overflow-hidden flex items-center justify-center font-bold text-white text-base transition-all group-hover:border-indigo-400 bg-gradient-to-tr from-indigo-500 to-purple-600 shadow-md"
+                                id="chat-avatar-container">
+                                <img src="" alt="" class="w-full h-full object-cover hidden" id="chat-avatar-img">
+                                <span id="chat-avatar-char" class="text-lg text-white drop-shadow-md"></span>
+                            </div>
+                            <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-slate-900 rounded-full"
+                                id="chat-status-dot"></div>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-bold text-white text-[15px] leading-tight group-hover:text-indigo-300 transition-colors truncate"
+                                id="chat-name">Name</div>
+                            <div class="text-[11px] text-indigo-200/70 font-medium mt-1 flex items-center gap-1.5"
+                                id="chat-status-container">
+                                <span id="chat-status-text">Offline</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                    <div
+                        class="hidden md:flex items-center gap-2 text-xs text-indigo-300/80 font-medium px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        End-to-End Encrypted
+                    </div>
+                    <button id="clearChatBtn"
+                        class="p-2.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-all"
+                        title="Clear Chat">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messages-area"
+                class="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-4 flex flex-col min-h-0 bg-[#0f172a]/40 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz4KPC9zdmc+')]">
+                <!-- Messages appended here -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="px-4 md:px-8 pb-6 md:pb-8 pt-2 flex-shrink-0 bg-gradient-to-t from-slate-900 to-transparent">
+                <form id="messageForm" class="flex gap-3 items-end relative z-10">
+                    <button type="button" id="uploadBtnTrigger"
+                        class="w-12 h-12 flex-shrink-0 bg-white/10 hover:bg-white/20 text-indigo-200 hover:text-white transition-all rounded-full flex items-center justify-center shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </button>
+                    <input type="file" id="fileInput" class="hidden" accept="image/*,video/*">
+
+                    <div class="flex-1 min-w-0">
+                        <input type="text" id="msgInput" placeholder="Message..."
+                            class="w-full glass-input rounded-full py-3.5 px-5 mx-0 text-sm shadow-inner focus:ring-2 focus:ring-indigo-500/50">
+                    </div>
+
+                    <button type="submit"
+                        class="w-12 h-12 primary-btn rounded-full flex items-center justify-center p-0 flex-shrink-0 group">
+                        <svg class="w-5 h-5 transform group-hover:translate-x-0.5 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Blocked UI -->
+                <div id="blocked-ui-container"
+                    class="hidden min-h-14 items-center justify-center glass-panel rounded-3xl md:rounded-full px-4 md:px-6 py-3 mt-2 border-white/10 flex-col md:flex-row gap-2">
+                    <div id="blocked-by-me-msg"
+                        class="hidden flex flex-col sm:flex-row items-center justify-between gap-2 w-full">
+                        <span class="text-xs text-gray-400 font-semibold tracking-wide text-center sm:text-left">You
+                            blocked this contact</span>
+                        <button id="unblockNowBtn"
+                            class="text-xs bg-white text-slate-900 font-bold py-1.5 px-4 rounded-full hover:bg-gray-200 transition-colors shadow-sm">Unblock</button>
+                    </div>
+                    <div id="blocked-me-msg"
+                        class="hidden flex items-center gap-2 text-xs text-red-400 font-semibold tracking-wide bg-red-500/10 px-4 py-1.5 rounded-full text-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636">
+                            </path>
+                        </svg>
+                        Messaging Restricted
+                    </div>
+                </div>
+                <div id="uploadProgress"
+                    class="text-xs text-indigo-300 font-medium mt-3 hidden animate-pulse px-4 text-center">Encrypting
+                    and uploading media...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Menu Modal -->
+<div id="actionMenuModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-panel max-w-[280px] w-full p-6 text-center transform scale-95 transition-transform duration-200"
+        id="actionMenuContent">
+        <h3 class="text-sm font-bold text-white mb-6 tracking-wide">Message Actions</h3>
+        <div class="flex flex-col gap-3">
+            <button id="menuEditBtn"
+                class="w-full py-3 text-white hover:bg-white/10 font-semibold text-sm rounded-xl transition-all border border-white/10">
+                Edit Message
+            </button>
+            <button id="menuDeleteBtn"
+                class="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-sm rounded-xl transition-all border border-red-500/20">
+                Delete
+            </button>
+            <button id="menuCancelBtn"
+                class="w-full py-3 text-sm text-gray-400 hover:text-white font-medium mt-2">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Update Modal -->
+<div id="profileModal"
+    class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+    <div class="glass-panel p-6 sm:p-8 md:p-10 w-full max-w-sm rounded-3xl shadow-2xl transform scale-95 transition-all outline-none max-h-[90vh] overflow-y-auto"
+        id="profileModalContent">
+        <h3 class="text-xl font-bold mb-8 text-white text-center" id="profileModalTitle">Profile Settings</h3>
+
+        <form id="profileForm" class="space-y-6">
+            <div class="flex flex-col items-center mb-6">
+                <div class="relative group cursor-pointer" id="profilePicContainer">
+                    <div
+                        class="w-24 h-24 rounded-full border-[3px] border-indigo-500/30 overflow-hidden bg-white/5 flex items-center justify-center text-3xl text-white font-bold transition-all group-hover:border-indigo-400 shadow-lg">
+                        {% if user.profile_pic %}
+                        <img src="{{ user.profile_pic }}" alt="Profile" class="w-full h-full object-cover"
+                            id="modalProfileImg">
+                        <span class="hidden drop-shadow-md" id="modalProfileChar">{{ user.first_name[0] }}</span>
+                        {% else %}
+                        <img src="" alt="Profile" class="w-full h-full object-cover hidden" id="modalProfileImg">
+                        <span class="drop-shadow-md" id="modalProfileChar">{{ user.first_name[0] }}</span>
+                        {% endif %}
+                    </div>
+                    <div
+                        class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+                <input type="file" id="profilePicInput" class="hidden" accept="image/*">
+            </div>
+
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-gray-300 ml-1">First Name</label>
+                        <input type="text" id="profileFirstName" class="w-full glass-input py-2.5 px-4 text-sm"
+                            value="{{ user.first_name }}">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-gray-300 ml-1">Last Name</label>
+                        <input type="text" id="profileLastName" class="w-full glass-input py-2.5 px-4 text-sm"
+                            value="{{ user.last_name }}">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-gray-300 ml-1">Email</label>
+                    <div id="profileEmail"
+                        class="text-sm text-gray-400 bg-white/5 border border-white/5 p-3 rounded-lg">{{ user.email }}
+                    </div>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-gray-300 ml-1">Mobile</label>
+                    <div id="profileMobile"
+                        class="text-sm text-gray-400 bg-white/5 border border-white/5 p-3 rounded-lg">{{
+                        user.mobile_number }}</div>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-white/10 mt-6">
+                <button type="button" id="togglePasswordBtn"
+                    class="text-xs font-semibold text-indigo-300 hover:text-indigo-200 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                        </path>
+                    </svg>
+                    Update Password
+                </button>
+                <div id="passwordSection"
+                    class="hidden space-y-4 mt-5 bg-black/20 p-4 rounded-xl border border-white/5">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-gray-300">Current Password</label>
+                        <input type="password" id="oldPassword" class="w-full glass-input py-2 px-3 text-sm"
+                            placeholder="••••••••">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-gray-300">New Password</label>
+                        <input type="password" id="newPassword" class="w-full glass-input py-2 px-3 text-sm"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 mt-8">
+                <button type="submit" class="primary-btn w-full py-3" id="saveProfileBtn">Save Changes</button>
+                <button type="button" id="closeProfileModalBtn" class="secondary-btn w-full py-3">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Contact Profile Modal -->
+<div id="contactProfileModal"
+    class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+    <div class="glass-panel p-6 sm:p-8 md:p-10 w-full max-w-sm rounded-3xl shadow-2xl relative text-left transform scale-95 transition-all max-h-[90vh] overflow-y-auto"
+        id="contactProfileModalContent">
+        <div class="flex flex-col items-center mb-8 text-center">
+            <div class="relative w-28 h-28 mb-4">
+                <div class="w-full h-full rounded-full border-4 border-white/10 overflow-hidden bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-4xl text-white font-bold shadow-xl"
+                    id="cpModalAvatarContainer">
+                    <img src="" alt="" class="w-full h-full object-cover hidden" id="cpModalImg">
+                    <span id="cpModalChar" class="drop-shadow-md"></span>
+                </div>
+                <div class="absolute bottom-1 right-1 w-5 h-5 bg-gray-500 border-4 border-slate-900 rounded-full"
+                    id="cpStatusDot"></div>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1" id="cpModalName">Name</h3>
+            <p class="text-sm text-indigo-300 font-medium" id="cpModalMobile">+00 0000 0000</p>
+        </div>
+
+        <div
+            class="bg-indigo-500/10 border border-indigo-500/20 p-5 rounded-xl mb-8 flex flex-col items-center text-center">
+            <div class="flex items-center gap-2 text-sm font-semibold text-indigo-200 mb-2">
+                <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                Secure Connection
+            </div>
+            <p class="text-xs text-indigo-200/70 leading-relaxed">End-to-end encryption is active. Your messages and
+                media cannot be intercepted by the server or third parties.</p>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <button id="blockContactBtn"
+                class="w-full py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold rounded-xl border border-red-500/20 transition-all">
+                Block Contact
+            </button>
+            <button id="closeContactProfileBtn" class="secondary-btn w-full py-3.5">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts for WebCrypto, WebSockets, and UI -->
+<script nonce="{{ request.state.nonce }}">
+    const currentUserId = Number("{{ user.id }}");
+    let activeContactId = null;
+    let activeSharedKey = null; // CryptoKey object (AES-GCM derived from ECDH)
+    let myPrivateKey = null; // CryptoKey object (ECDH)
+    let socket = null;
+    let cachedContacts = [];
+    let temporaryPinnedContact = null;
+
+    // --- Utility: Base64/ArrayBuffer ---
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    function base64ToArrayBuffer(base64) {
+        const binary_string = window.atob(base64);
+        const len = binary_string.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    async function deriveWrappingKey(password, saltUint8) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            "raw",
+            enc.encode(password),
+            { name: "PBKDF2" },
+            false,
+            ["deriveBits", "deriveKey"]
+        );
+        return window.crypto.subtle.deriveKey(
+            {
+                name: "PBKDF2",
+                salt: saltUint8,
+                iterations: 310000,
+                hash: "SHA-256"
+            },
+            keyMaterial,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"]
+        );
+    }
+    function ab2str(buf) {
+        return String.fromCharCode.apply(null, new Uint8Array(buf));
+    }
+    function str2ab(str) {
+        let buf = new ArrayBuffer(str.length);
+        let bufView = new Uint8Array(buf);
+        for (let i = 0; i < str.length; i++) { bufView[i] = str.charCodeAt(i); }
+        return buf;
+    }
+    function encodeB64(buffer) { return window.btoa(ab2str(buffer)); }
+    function decodeB64(b64) { return str2ab(window.atob(b64)); }
+
+    // --- Crypto Initialization ---
+    async function initCrypto() {
+        if (!window.isSecureContext) {
+            showModal({
+                title: "Insecure Context",
+                description: "Web Crypto API requires a Secure Context (HTTPS or localhost).",
+                isAlert: true
+            });
+            return;
+        }
+
+        try {
+            const privKeyJwkStr = sessionStorage.getItem('chat_priv_key');
+            if (!privKeyJwkStr) {
+                console.warn("Private key not found in sessionStorage! Cannot decrypt messages.");
+                return;
+            }
+            const jwk = JSON.parse(privKeyJwkStr);
+            myPrivateKey = await window.crypto.subtle.importKey(
+                "jwk",
+                jwk,
+                { name: "ECDH", namedCurve: "P-256" },
+                false,
+                ["deriveKey", "deriveBits"]
+            );
+        } catch (e) { console.error("Crypto init error:", e); }
+    }
+
+    // --- Profile Modal Logic ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('profileEditBtn');
+        const picInput = document.getElementById('profilePicInput');
+        const picContainer = document.getElementById('profilePicContainer');
+        const modalImg = document.getElementById('modalProfileImg');
+        const modalChar = document.getElementById('modalProfileChar');
+
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const modal = document.getElementById('profileModal');
+                const content = document.getElementById('profileModalContent');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    if (content) content.classList.remove('scale-95');
+                }, 10);
+            });
+        }
+
+        if (picContainer) {
+            picContainer.addEventListener('click', () => picInput.click());
+        }
+
+        document.getElementById('togglePasswordBtn').addEventListener('click', () => {
+            const section = document.getElementById('passwordSection');
+            section.classList.toggle('hidden');
+        });
+
+        if (picInput) {
+            picInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (re) => {
+                        modalImg.src = re.target.result;
+                        modalImg.classList.remove('hidden');
+                        modalChar.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+        }
+
+        const form = document.getElementById('profileForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fName = document.getElementById('profileFirstName').value.trim();
+                const lName = document.getElementById('profileLastName').value.trim();
+                if (!fName || !lName) return;
+
+                const btn = form.querySelector('button[type="submit"]');
+                const oldText = btn.innerText;
+                btn.innerText = 'Saving...';
+
+                try {
+                    let b64Data = null;
+                    const file = picInput.files[0];
+                    if (file) {
+                        b64Data = await fileToBase64(file);
+                    }
+
+                    const updateData = { first_name: fName, last_name: lName };
+                    if (b64Data) updateData.profile_pic = b64Data;
+
+                    const res = await fetch('/api/profile', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updateData)
+                    });
+
+                    // Handle password change if fields are filled
+                    const oldPw = document.getElementById('oldPassword').value;
+                    const newPw = document.getElementById('newPassword').value;
+                    if (oldPw && newPw) {
+                        try {
+                            // 1. Get current encrypted DEK and IVs from current user data
+                            // We need to fetch current user's encrypted_dek if we don't have it.
+                            // Better: Fetch specialized profile data or use the one we got from login?
+                            // For simplicity, let's fetch current user info first.
+                            const profileRes = await fetch('/api/profile');
+                            const userData = await profileRes.json();
+
+                            const salt = new Uint8Array(base64ToArrayBuffer(userData.keys_salt));
+                            const dekIv = new Uint8Array(base64ToArrayBuffer(userData.dek_iv));
+                            const encryptedDek = base64ToArrayBuffer(userData.encrypted_dek);
+
+                            // 2. Derive old KEK
+                            const oldKek = await deriveWrappingKey(oldPw, salt);
+
+                            // 3. Decrypt DEK
+                            const dekBuffer = await window.crypto.subtle.decrypt(
+                                { name: "AES-GCM", iv: dekIv },
+                                oldKek,
+                                encryptedDek
+                            );
+
+                            // 4. Derive new KEK with NEW salt
+                            const newSalt = window.crypto.getRandomValues(new Uint8Array(16));
+                            const newKek = await deriveWrappingKey(newPw, newSalt);
+
+                            // 5. Re-encrypt DEK with new KEK
+                            const newDekIv = window.crypto.getRandomValues(new Uint8Array(12));
+                            const newEncryptedDekBuffer = await window.crypto.subtle.encrypt(
+                                { name: "AES-GCM", iv: newDekIv },
+                                newKek,
+                                dekBuffer
+                            );
+
+                            const pwPayload = {
+                                old_password: oldPw,
+                                new_password: newPw,
+                                encrypted_dek: arrayBufferToBase64(newEncryptedDekBuffer),
+                                dek_iv: arrayBufferToBase64(newDekIv),
+                                keys_salt: arrayBufferToBase64(newSalt)
+                            };
+
+                            const pwRes = await fetch('/api/profile/password', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(pwPayload)
+                            });
+
+                            if (!pwRes.ok) {
+                                const pwErr = await pwRes.json();
+                                throw new Error(pwErr.detail || "Password update failed");
+                            }
+                        } catch (pwErr) {
+                            console.error("Password change failed:", pwErr);
+                            alert("Profile updated, but password change failed: " + pwErr.message);
+                        }
+                    }
+
+                    if (res.ok) {
+                        const updatedUser = await res.json();
+                        updateProfileDisplay(updatedUser.first_name, updatedUser.last_name, updatedUser.profile_pic);
+                        closeProfileModal();
+                    } else {
+                        const err = await res.json();
+                        alert(err.detail || "Failed to update profile");
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    btn.innerText = oldText;
+                }
+            });
+        }
+
+        const closeBtn = document.getElementById('closeProfileModalBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeProfileModal);
+        }
+    });
+
+    window.closeProfileModal = function () {
+        const modal = document.getElementById('profileModal');
+        const content = document.getElementById('profileModalContent');
+        if (modal) modal.classList.add('opacity-0');
+        if (content) content.classList.add('scale-95');
+        setTimeout(() => {
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }, 200);
+    };
+
+    // Profile Dropdown Toggle
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('profileDropdown');
+        const btn = document.getElementById('profileDropdownBtn');
+
+        if (btn && btn.contains(e.target)) {
+            dropdown.classList.toggle('hidden');
+        } else if (dropdown && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+
+
+    // Update profile display in header
+    function updateProfileDisplay(firstName, lastName, profilePic = null) {
+        const topLabel = document.getElementById('topUserNameLabel');
+        const topChar = document.getElementById('topAvatarChar');
+        const topImg = document.getElementById('topAvatarImg');
+
+        if (topLabel) topLabel.innerText = firstName + ' ' + lastName;
+        if (topChar) topChar.innerText = firstName.charAt(0);
+
+        if (topImg) {
+            if (profilePic) {
+                topImg.src = profilePic;
+                topImg.classList.remove('hidden');
+                if (topChar) topChar.classList.add('hidden');
+            } else {
+                topImg.classList.add('hidden');
+                if (topChar) topChar.classList.remove('hidden');
+                // Ensure topChar is visible if no image
+            }
+        }
+    }
+
+
+    async function importContactPublicKey(b64Key) {
+        try {
+            const binaryDer = decodeB64(b64Key);
+            return await window.crypto.subtle.importKey(
+                "spki",
+                binaryDer,
+                { name: "ECDH", namedCurve: "P-256" },
+                false,
+                []
+            );
+        } catch (e) { console.error("Import public key error:", e); return null; }
+    }
+
+    async function deriveSharedSecret(contactPubKey) {
+        if (!myPrivateKey || !contactPubKey) return null;
+        return await window.crypto.subtle.deriveKey(
+            {
+                name: "ECDH",
+                public: contactPubKey
+            },
+            myPrivateKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"]
+        );
+    }
+
+    async function encryptText(text, sharedKey) {
+        if (!text) return null;
+        let enc = new TextEncoder();
+        let iv = window.crypto.getRandomValues(new Uint8Array(12));
+        let ciphertext = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            sharedKey,
+            enc.encode(text)
+        );
+        return encodeB64(iv) + ":" + encodeB64(ciphertext);
+    }
+
+    async function decryptText(payload, sharedKey) {
+        if (!payload || !sharedKey) return "[Decryption Failed]";
+        try {
+            let parts = payload.split(':');
+            if (parts.length !== 2) return "[Invalid Payload Format]";
+            let iv = decodeB64(parts[0]);
+            let buffer = decodeB64(parts[1]);
+
+            let decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv },
+                sharedKey,
+                buffer
+            );
+            let dec = new TextDecoder();
+            return dec.decode(decrypted);
+        } catch (e) {
+            console.error(e);
+            return "[Decryption Error]";
+        }
+    }
+
+    // --- WebSockets ---
+    function initWebSocket() {
+        socket = io();
+
+        socket.on('error', async (msg) => {
+            await showModal({
+                title: "Error",
+                description: msg.message,
+                isAlert: true
+            });
+        });
+
+        socket.on('presence', (msg) => {
+            const dot = document.getElementById(`contact-status-dot-${msg.user_id}`);
+            if (dot) {
+                dot.className = `absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${msg.is_online ? 'bg-green-500' : 'bg-gray-500'} border-2 border-slate-900 rounded-full transition-all`;
+            }
+            if (activeContactId === msg.user_id) {
+                const statusText = document.getElementById('chat-status-text');
+                const statusDot = document.getElementById('chat-status-dot');
+                if (statusText && statusDot) {
+                    if (msg.is_online) {
+                        statusText.innerText = 'Online';
+                        statusText.className = 'text-green-400 font-bold';
+                        statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-slate-900 rounded-full transition-all';
+                    } else {
+                        statusText.innerText = 'Offline';
+                        statusText.className = 'text-gray-400 font-medium';
+                        statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-slate-900 rounded-full transition-all';
+                    }
+                }
+            }
+        });
+
+        let windowTypingTimeouts = {};
+
+        socket.on('typing', (msg) => {
+            const senderId = msg.sender_id;
+
+            // 1. Update the sidebar preview
+            const previewEl = document.getElementById(`contact-${senderId}-preview`);
+            if (previewEl) {
+                if (msg.is_typing) {
+                    if (!previewEl.hasAttribute('data-original-text')) {
+                        previewEl.setAttribute('data-original-text', previewEl.innerHTML);
+                    }
+                    previewEl.innerHTML = `<div class="flex items-center gap-1"><span class="text-indigo-400 font-semibold opacity-90">typing</span><div class="flex items-center space-x-0.5 mt-1.5"><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div></div>`;
+                } else {
+                    if (previewEl.hasAttribute('data-original-text')) {
+                        previewEl.innerHTML = previewEl.getAttribute('data-original-text');
+                        previewEl.removeAttribute('data-original-text');
+                    }
+                }
+            }
+
+            // 2. Update the chat area if it's the active chat
+            if (senderId === activeContactId) {
+                const messagesArea = document.getElementById('messages-area');
+                let typingBubble = document.getElementById('typing-indicator-bubble');
+
+                if (msg.is_typing) {
+                    if (!typingBubble && messagesArea) {
+                        const contactName = document.getElementById('chat-name').innerText;
+                        const avatarChar = contactName.charAt(0);
+                        const typingHtml = `
+                            <div class="flex justify-start items-end gap-2.5 message-container" id="typing-indicator-bubble">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 mb-5">
+                                    ${window.activeContactData && window.activeContactData.profilePic ? `<img src="${window.activeContactData.profilePic}" class="w-full h-full object-cover rounded-full">` : avatarChar}
+                                </div>
+                                <div class="max-w-[75%] flex flex-col items-start relative">
+                                    <div class="bg-white text-slate-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 px-4 py-3 transition-all h-[42px] flex items-center justify-center">
+                                        <div class="flex items-center space-x-1">
+                                            <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                                            <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
+                                            <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        messagesArea.insertAdjacentHTML('beforeend', typingHtml);
+                        scrollToBottom();
+                    }
+
+                    clearTimeout(windowTypingTimeouts[senderId]);
+                    windowTypingTimeouts[senderId] = setTimeout(() => {
+                        let bubble = document.getElementById('typing-indicator-bubble');
+                        if (bubble) bubble.remove();
+                        if (previewEl && previewEl.hasAttribute('data-original-text')) {
+                            previewEl.innerHTML = previewEl.getAttribute('data-original-text');
+                            previewEl.removeAttribute('data-original-text');
+                        }
+                    }, 3000);
+                } else {
+                    if (typingBubble) typingBubble.remove();
+                    clearTimeout(windowTypingTimeouts[senderId]);
+                }
+            } else {
+                if (msg.is_typing) {
+                    clearTimeout(windowTypingTimeouts[senderId]);
+                    windowTypingTimeouts[senderId] = setTimeout(() => {
+                        if (previewEl && previewEl.hasAttribute('data-original-text')) {
+                            previewEl.innerHTML = previewEl.getAttribute('data-original-text');
+                            previewEl.removeAttribute('data-original-text');
+                        }
+                    }, 3000);
+                } else {
+                    clearTimeout(windowTypingTimeouts[senderId]);
+                }
+            }
+        });
+
+        socket.on('receive_message', async (msg) => {
+            if ((msg.sender_id === activeContactId && msg.receiver_id === currentUserId) ||
+                (msg.sender_id === currentUserId && msg.receiver_id === activeContactId)) {
+
+                let plainText = msg.content;
+                if (msg.content) {
+                    plainText = await decryptText(msg.content, activeSharedKey);
+                }
+
+                let plainFileData = msg.file_data;
+                if (msg.file_data) {
+                    plainFileData = await decryptText(msg.file_data, activeSharedKey);
+                }
+
+                // For own messages, find and update optimistic message instead of double-appending
+                if (msg.sender_id === currentUserId) {
+                    const optMsg = document.querySelector('.message-container.optimistic');
+                    if (optMsg) {
+                        optMsg.id = `msg-container-${msg.id}`;
+                        optMsg.dataset.msgId = msg.id;
+                        optMsg.classList.remove('optimistic');
+                        // Show buttons once ID is present and if within 1h
+                        updateActionsVisibility(optMsg, msg.created_at);
+
+                        if (window.pendingReadReceipts && window.pendingReadReceipts.has(msg.id)) {
+                            const iconDiv = optMsg.querySelector('.msg-status-icon');
+                            if (iconDiv) {
+                                iconDiv.innerHTML = '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>';
+                            }
+                            window.pendingReadReceipts.delete(msg.id);
+                        }
+                        if (document.getElementById('contactSearch').value.trim() === '') {
+                            loadContacts();
+                        }
+                        return;
+                    }
+                }
+                appendMessageUI(msg, plainText, plainFileData);
+
+                if (msg.sender_id === activeContactId && msg.sender_id !== currentUserId) {
+                    if (document.hasFocus()) {
+                        markChatAsRead(activeContactId);
+                    }
+                }
+            }
+            if (document.getElementById('contactSearch').value.trim() === '') {
+                loadContacts();
+            }
+        });
+
+        socket.on('edit', async (msg) => {
+            if ((msg.sender_id === activeContactId && msg.receiver_id === currentUserId) ||
+                (msg.sender_id === currentUserId && msg.receiver_id === activeContactId)) {
+                await updateMessageUI(msg);
+            }
+            if (document.getElementById('contactSearch').value.trim() === '') {
+                loadContacts();
+            }
+        });
+
+        socket.on('delete', (msg) => {
+            if ((msg.sender_id === activeContactId && msg.receiver_id === currentUserId) ||
+                (msg.sender_id === currentUserId && msg.receiver_id === activeContactId)) {
+                deleteMessageUI(msg.id);
+            }
+            if (document.getElementById('contactSearch').value.trim() === '') {
+                loadContacts();
+            }
+        });
+
+        socket.on('read_receipt', (msg) => {
+            if (!window.pendingReadReceipts) window.pendingReadReceipts = new Set();
+            const msgIds = msg.message_ids;
+            msgIds.forEach(id => {
+                const container = document.getElementById(`msg-container-${id}`);
+                if (container) {
+                    const iconDiv = container.querySelector('.msg-status-icon');
+                    if (iconDiv) {
+                        iconDiv.innerHTML = '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>';
+                    }
+                } else {
+                    window.pendingReadReceipts.add(id);
+                }
+            });
+        });
+
+        socket.on('disconnect', () => {
+            console.log("Socket.IO disconnected");
+        });
+    }
+
+    function markChatAsRead(contactId) {
+        if (socket && socket.connected) {
+            socket.emit('mark_read', { contact_id: contactId });
+
+            const contactEl = document.getElementById('contact-' + contactId);
+            if (contactEl) {
+                const badge = contactEl.querySelector('.bg-sky-500');
+                if (badge) badge.remove();
+            }
+        }
+    }
+
+    function updateActiveContactHighlight(contactId = null) {
+        document.querySelectorAll('.contact-item').forEach((el) => {
+            el.classList.remove('bg-white/10', 'shadow-md', 'mono-border');
+        });
+
+        if (contactId === null) return;
+
+        const contactEl = document.getElementById(`contact-${contactId}`);
+        if (contactEl) {
+            contactEl.classList.add('bg-white/10', 'shadow-md', 'mono-border');
+        }
+    }
+
+    function normalizeContactData(contact) {
+        if (!contact) return null;
+
+        return {
+            ...contact,
+            id: Number(contact.id),
+            first_name: contact.first_name || '',
+            last_name: contact.last_name || '',
+            mobile_number: contact.mobile_number || '',
+            public_key: contact.public_key || '',
+            profile_pic: contact.profile_pic || '',
+            unread_count: Number(contact.unread_count || 0),
+            blocked_by_me: Boolean(contact.blocked_by_me),
+            blocked_me: Boolean(contact.blocked_me),
+            is_online: Boolean(contact.is_online),
+        };
+    }
+
+    function getRenderedContacts(contactsArray) {
+        const normalizedContacts = (contactsArray || []).map(normalizeContactData);
+
+        if (!temporaryPinnedContact) {
+            return normalizedContacts;
+        }
+
+        const pinnedContactId = Number(temporaryPinnedContact.id);
+        if (normalizedContacts.some((contact) => Number(contact.id) === pinnedContactId)) {
+            return normalizedContacts;
+        }
+
+        return [normalizeContactData(temporaryPinnedContact), ...normalizedContacts];
+    }
+
+    async function resetContactListAfterSearch(selectedContact = null) {
+        const searchInput = document.getElementById('contactSearch');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        if (selectedContact) {
+            const normalizedSelectedContact = normalizeContactData(selectedContact);
+            const existingContact = cachedContacts.find(
+                (contact) => Number(contact.id) === Number(normalizedSelectedContact.id)
+            );
+            temporaryPinnedContact = existingContact ? null : normalizedSelectedContact;
+        } else {
+            temporaryPinnedContact = null;
+        }
+
+        await renderContactList(cachedContacts);
+
+        if (selectedContact) {
+            updateActiveContactHighlight(Number(selectedContact.id));
+        }
+    }
+
+    // --- UI Interactions ---
+    async function selectUser(id, name, pubKeyB64, mobile = null, profilePic = null, blockedByMe = false, blockedMe = false) {
+        activeContactId = id;
+
+        document.getElementById('no-chat-selected').classList.add('hidden');
+        document.getElementById('active-chat').classList.remove('hidden');
+        document.getElementById('chat-name').innerText = name;
+
+        if (window.innerWidth < 768) {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+        }
+
+        const avatarImg = document.getElementById('chat-avatar-img');
+        const avatarChar = document.getElementById('chat-avatar-char');
+        if (profilePic) {
+            avatarImg.src = profilePic;
+            avatarImg.classList.remove('hidden');
+            avatarChar.classList.add('hidden');
+        } else {
+            avatarImg.classList.add('hidden');
+            avatarChar.innerText = name.charAt(0);
+            avatarChar.classList.remove('hidden');
+        }
+
+        // Store active contact info for profile card
+        window.activeContactData = { id, name, mobile, profilePic, pubKeyB64, blockedByMe, blockedMe };
+
+        // Update Blocking UI
+        const msgForm = document.getElementById('messageForm');
+        const blockedUi = document.getElementById('blocked-ui-container');
+        const blockedByMeMsg = document.getElementById('blocked-by-me-msg');
+        const blockedMeMsg = document.getElementById('blocked-me-msg');
+        const blockBtnModal = document.getElementById('blockContactBtn');
+
+        if (blockedByMe || blockedMe) {
+            msgForm.classList.add('hidden');
+            blockedUi.classList.remove('hidden');
+            blockedUi.classList.add('flex');
+
+            if (blockedByMe) {
+                blockedByMeMsg.classList.remove('hidden');
+                blockedMeMsg.classList.add('hidden');
+                blockBtnModal.innerText = 'Unblock Contact';
+                blockBtnModal.classList.replace('text-red-400', 'text-teal-400');
+            } else {
+                blockedMeMsg.classList.remove('hidden');
+                blockedByMeMsg.classList.add('hidden');
+                blockBtnModal.innerText = 'Block Contact';
+                blockBtnModal.classList.replace('text-teal-400', 'text-red-400');
+            }
+        } else {
+            msgForm.classList.remove('hidden');
+            blockedUi.classList.add('hidden');
+            blockedUi.classList.remove('flex');
+            blockBtnModal.innerText = 'Block Contact';
+            blockBtnModal.classList.replace('text-teal-400', 'text-red-400');
+        }
+
+        const statusText = document.getElementById('chat-status-text');
+        const statusDot = document.getElementById('chat-status-dot');
+        const contactDot = document.getElementById(`contact-status-dot-${id}`);
+        let isOnline = false;
+        if (contactDot && contactDot.classList.contains('bg-green-500')) {
+            isOnline = true;
+        }
+
+        if (statusText && statusDot) {
+            if (isOnline) {
+                statusText.innerText = 'Online';
+                statusText.className = 'text-green-400 font-bold';
+                statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-slate-900 rounded-full transition-all';
+            } else {
+                statusText.innerText = 'Offline';
+                statusText.className = 'text-gray-400 font-medium';
+                statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-slate-900 rounded-full transition-all';
+            }
+        }
+
+        // Keep only the selected contact highlighted.
+        updateActiveContactHighlight(id);
+
+        // Save to localStorage for persistence
+        localStorage.setItem('activeContactId', id);
+        localStorage.setItem('activeContactName', name);
+        localStorage.setItem('activeContactPubKey', pubKeyB64);
+
+        // Import their public key and derive shared secret
+        try {
+            if (!pubKeyB64 || pubKeyB64 === "null") {
+                console.warn("User has no public key yet.");
+                activeSharedKey = null;
+            } else {
+                let contactPubKey = await importContactPublicKey(pubKeyB64);
+                activeSharedKey = await deriveSharedSecret(contactPubKey);
+            }
+        } catch (e) { console.error("Key derivation failed", e); }
+
+        // Fetch history
+        document.getElementById('messages-area').innerHTML = '<div class="text-center text-gray-500 text-sm mt-4">Loading history...</div>';
+
+        try {
+            const res = await fetch('/api/messages/' + id);
+            const history = await res.json();
+            document.getElementById('messages-area').innerHTML = '';
+
+            for (let msg of history) {
+                let plainText = msg.content;
+                if (msg.content) {
+                    plainText = await decryptText(msg.content, activeSharedKey);
+                }
+                let plainFileData = msg.file_data;
+                if (msg.file_data) {
+                    plainFileData = await decryptText(msg.file_data, activeSharedKey);
+                }
+                appendMessageUI(msg, plainText, plainFileData);
+            }
+            scrollToBottom();
+            markChatAsRead(id);
+        } catch (e) { console.error(e); }
+    }
+
+    document.getElementById('backToSidebarBtn').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('-translate-x-full');
+        localStorage.removeItem('activeContactId');
+        localStorage.removeItem('activeContactName');
+        localStorage.removeItem('activeContactPubKey');
+        activeContactId = null;
+        updateActiveContactHighlight();
+    });
+
+    document.getElementById('contact-list').addEventListener('click', async (e) => {
+        const item = e.target.closest('.contact-item');
+        if (item) {
+            const id = parseInt(item.getAttribute('data-contact-id'));
+            const name = item.getAttribute('data-contact-name');
+            const firstName = item.getAttribute('data-contact-first-name');
+            const lastName = item.getAttribute('data-contact-last-name');
+            const pubKey = item.getAttribute('data-contact-pubkey');
+            const mobile = item.getAttribute('data-contact-mobile');
+            const profilePic = item.getAttribute('data-contact-pic');
+            const blockedByMe = item.getAttribute('data-contact-blocked-by-me') === 'true';
+            const blockedMe = item.getAttribute('data-contact-blocked-me') === 'true';
+            await resetContactListAfterSearch({
+                id,
+                first_name: firstName,
+                last_name: lastName,
+                public_key: pubKey,
+                mobile_number: mobile,
+                profile_pic: profilePic,
+                blocked_by_me: blockedByMe,
+                blocked_me: blockedMe,
+            });
+            selectUser(id, name, pubKey, mobile, profilePic, blockedByMe, blockedMe);
+        }
+    });
+
+    async function renderContactList(contactsArray) {
+        const listDiv = document.getElementById('contact-list');
+        listDiv.innerHTML = '';
+        const contactsToRender = getRenderedContacts(contactsArray);
+
+        if (!contactsToRender || contactsToRender.length === 0) {
+            listDiv.innerHTML = '<div class="text-center text-gray-500 text-xs mt-8">No contacts found</div>';
+            return;
+        }
+
+        for (let contact of contactsToRender) {
+            if (activeContactId === contact.id) contact.unread_count = 0;
+            let lastMsgText = "Click to start chatting";
+            let timeStr = "";
+
+            if (contact.last_message) {
+                try {
+                    let contactPubKey = await importContactPublicKey(contact.public_key);
+                    let tempSharedKey = await deriveSharedSecret(contactPubKey);
+                    let plain = await decryptText(contact.last_message, tempSharedKey);
+                    lastMsgText = plain ? plain : (contact.last_message.includes(':') ? "Secure message" : "Encrypted media");
+                } catch (e) {
+                    lastMsgText = "Encrypted message";
+                }
+            } else if (contact.last_message_at) {
+                lastMsgText = "Attachment";
+            }
+
+            if (contact.last_message_at) {
+                let d = new Date(contact.last_message_at + (contact.last_message_at.endsWith('Z') ? '' : 'Z'));
+                timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            const isOnline = contact.is_online;
+            const nameSafely = escapeHtml(contact.first_name) + ' ' + escapeHtml(contact.last_name);
+            const profilePic = contact.profile_pic || "";
+
+            const html = `
+            <div id="contact-${contact.id}" data-contact-id="${contact.id}" data-contact-name="${nameSafely}"
+                data-contact-first-name="${escapeHtml(contact.first_name)}"
+                data-contact-last-name="${escapeHtml(contact.last_name)}"
+                data-contact-pubkey="${contact.public_key}" data-contact-mobile="${escapeHtml(contact.mobile_number)}"
+                data-contact-pic="${profilePic}"
+                data-contact-blocked-by-me="${contact.blocked_by_me}"
+                data-contact-blocked-me="${contact.blocked_me}"
+                class="contact-item group flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-white/5 mx-2 rounded-xl ${activeContactId === contact.id ? 'bg-white/10 shadow-md' : ''}">
+                <div class="relative flex-shrink-0">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden group-hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all bg-gradient-to-tr from-indigo-500 to-purple-600">
+                        ${profilePic ? `<img src="${profilePic}" class="w-full h-full object-cover">` : escapeHtml(contact.first_name).charAt(0)}
+                    </div>
+                    <div id="contact-status-dot-${contact.id}" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${isOnline ? 'bg-green-500' : 'bg-gray-500'} border-2 border-slate-900 rounded-full transition-all"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="text-[15px] font-bold text-white truncate">${nameSafely}</h3>
+                        <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap ml-2">${timeStr}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="text-[13px] text-gray-400 font-medium truncate pr-2" id="contact-${contact.id}-preview">${escapeHtml(lastMsgText)}</div>
+                        ${contact.unread_count > 0 ? `<div class="bg-sky-500 text-white text-[10px] font-bold h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 ml-2">${contact.unread_count}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+            `;
+            listDiv.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    async function loadContacts() {
+        try {
+            const res = await fetch('/api/contacts');
+            if (res.ok) {
+                const contacts = (await res.json()).map(normalizeContactData);
+                cachedContacts = contacts;
+                if (temporaryPinnedContact && cachedContacts.some((contact) => Number(contact.id) === Number(temporaryPinnedContact.id))) {
+                    temporaryPinnedContact = null;
+                }
+                await renderContactList(cachedContacts);
+            }
+        } catch (e) { console.error("Error loading contacts", e); }
+    }
+
+    let searchTimeout = null;
+    function setupSearch() {
+        const searchInput = document.getElementById('contactSearch');
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            searchTimeout = setTimeout(async () => {
+                const listDiv = document.getElementById('contact-list');
+                if (query.length === 0) {
+                    listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8 animate-pulse">Loading contacts...</div>';
+                    await loadContacts();
+                    return;
+                }
+
+                try {
+                    listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8">Searching...</div>';
+                    const res = await fetch('/api/contacts/search?query=' + encodeURIComponent(query));
+                    if (res.ok) {
+                        const results = (await res.json()).map(normalizeContactData);
+                        await renderContactList(results);
+                    }
+                } catch (err) { console.error(err); }
+            }, 300);
+        });
+    }
+
+    function appendMessageUI(msg, plainText, plainFileData = null) {
+        const area = document.getElementById('messages-area');
+        if (!area) return;
+
+        const isMe = msg.sender_id === currentUserId;
+        const contactName = document.getElementById('chat-name').innerText;
+        const avatarChar = contactName.charAt(0);
+
+        let fileHtml = '';
+        if (plainFileData) {
+            if (msg.file_type && msg.file_type.startsWith('image/')) {
+                fileHtml = `<div class="mt-3 rounded-xl border border-white/10 overflow-hidden shadow-sm bg-black/20"><a href="${plainFileData}" target="_blank"><img src="${plainFileData}" class="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"></a></div>`;
+            } else if (msg.file_type && msg.file_type.startsWith('video/')) {
+                fileHtml = `<video src="${plainFileData}" controls class="max-w-full mt-3 rounded-xl border border-white/10 shadow-sm bg-black/20"></video>`;
+            } else {
+                fileHtml = `<a href="${plainFileData}" target="_blank" class="flex items-center gap-3 p-3 bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-indigo-100 mt-3 hover:bg-white/20 transition-all shadow-sm">
+                    <div class="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                    </div>
+                    Encrypted File
+                </a>`;
+            }
+        }
+
+        let createdAt = msg.created_at;
+        if (typeof createdAt === 'string' && !createdAt.includes('Z') && !createdAt.includes('+')) {
+            createdAt += 'Z';
+        }
+        const dateObj = new Date(createdAt);
+        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const canEditOrDelete = isMe && msg.id && (new Date() - dateObj < 3600000);
+
+        const html = `
+            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2.5 message-container ${!msg.id ? 'optimistic' : ''}" 
+                 id="${msg.id ? `msg-container-${msg.id}` : ''}"
+                 data-msg-id="${msg.id || ''}"
+                 data-created-at="${createdAt}">
+                 
+                ${!isMe ? `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 mb-5">
+                    ${window.activeContactData && window.activeContactData.profilePic ? `<img src="${window.activeContactData.profilePic}" class="w-full h-full object-cover rounded-full">` : avatarChar}
+                </div>
+                ` : ''}
+
+                <div class="max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative">
+                    <div class="${isMe ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md border border-white/10' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'} px-5 py-3.5 transition-all w-full">
+                        ${plainText ? `<p class="text-[14px] leading-[1.6] message-content whitespace-pre-wrap">${escapeHtml(plainText)}</p>` : ''}
+                        ${fileHtml}
+                    </div>
+                    
+                    <div class="flex items-center gap-2 mt-1.5 px-1">
+                        ${msg.is_edited ? '<span class="text-[10px] text-gray-500 font-medium">Edited</span>' : '<span class="text-[10px] text-gray-500 font-medium hidden edited-flag">Edited</span>'}
+                        <div class="text-[10px] text-gray-400 font-semibold">${timeStr}</div>
+                        ${isMe ? `
+                        <div class="msg-status-icon text-sky-400" data-msg-id="${msg.id || ''}">
+                            ${msg.is_read ? '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>'
+                    : '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path></svg>'}
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    ${canEditOrDelete ? `
+                    <div class="absolute ${isMe ? '-left-12' : '-right-12'} top-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity action-buttons">
+                        <button class="btn-edit p-2 bg-slate-800 hover:bg-indigo-500 text-white rounded-full shadow-lg border border-white/10 transition-colors" title="Edit">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        area.insertAdjacentHTML('beforeend', html);
+        scrollToBottom();
+    }
+
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function scrollToBottom() {
+        const area = document.getElementById('messages-area');
+        // Adding a slight delay to ensure the DOM has painted the new elements
+        setTimeout(() => {
+            area.scrollTop = area.scrollHeight;
+        }, 50);
+    }
+
+    // Modal functions moved to base.html
+
+    // --- Action Menu Modal ---
+    let activeMenuMsgId = null;
+    function showActionMenu(msgId) {
+        activeMenuMsgId = msgId;
+        const modal = document.getElementById('actionMenuModal');
+        const content = document.getElementById('actionMenuContent');
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function hideActionMenu() {
+        const modal = document.getElementById('actionMenuModal');
+        const content = document.getElementById('actionMenuContent');
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            activeMenuMsgId = null;
+        }, 200);
+    }
+
+    document.getElementById('menuCancelBtn').addEventListener('click', hideActionMenu);
+    document.getElementById('menuEditBtn').addEventListener('click', () => {
+        const id = activeMenuMsgId;
+        hideActionMenu();
+        startEdit(id);
+    });
+    document.getElementById('menuDeleteBtn').addEventListener('click', () => {
+        const id = activeMenuMsgId;
+        hideActionMenu();
+        confirmDelete(id);
+    });
+
+    // --- Message Actions ---
+    async function startEdit(msgId) {
+        if (!msgId) return;
+        const container = document.getElementById(`msg-container-${msgId}`);
+        if (!container) return;
+        const contentEl = container.querySelector('.message-content');
+        const oldText = contentEl.innerText;
+
+        const newText = await showModal({
+            title: "Edit Message",
+            description: "Change your message content:",
+            placeholder: "New message content...",
+            value: oldText
+        });
+
+        if (newText !== null && newText.trim() !== "" && newText !== oldText) {
+            try {
+                const encryptedPayload = await encryptText(newText, activeSharedKey);
+                socket.emit('edit', {
+                    id: msgId,
+                    content: encryptedPayload
+                });
+            } catch (err) { console.error(err); }
+        }
+    }
+
+    async function confirmDelete(msgId) {
+        if (!msgId) return;
+        const result = await showModal({
+            title: "Delete Message",
+            description: "Are you sure you want to delete this message?"
+        });
+
+        if (result) {
+            socket.emit('delete', {
+                id: msgId
+            });
+        }
+    }
+
+    async function updateMessageUI(msg) {
+        const container = document.getElementById(`msg-container-${msg.id}`);
+        if (!container) return;
+
+        const contentEl = container.querySelector('.message-content');
+        const flagEl = container.querySelector('.edited-flag');
+
+        const plainText = await decryptText(msg.content, activeSharedKey);
+        contentEl.innerText = plainText;
+        if (flagEl) flagEl.classList.remove('hidden');
+    }
+
+    function deleteMessageUI(msgId) {
+        const container = document.getElementById(`msg-container-${msgId}`);
+        if (container) container.remove();
+    }
+
+    async function clearChat() {
+        if (!activeContactId) return;
+        const result = await showModal({
+            title: "Clear Chat",
+            description: "Clear your chat history with this contact? (Other user will still see the history)"
+        });
+
+        if (result) {
+            try {
+                const res = await fetch(`/api/chat/clear/${activeContactId}`, { method: 'POST' });
+                if (res.ok) {
+                    document.getElementById('messages-area').innerHTML = '';
+                }
+            } catch (e) { console.error(e); }
+        }
+    }
+
+    function updateActionsVisibility(container, createdAt) {
+        const buttons = container.querySelector('.action-buttons');
+        if (!buttons) return;
+
+        // Ensure createdAt has a timezone (Z) for UTC parsing if missing
+        if (typeof createdAt === 'string' && !createdAt.includes('Z') && !createdAt.includes('+')) {
+            createdAt += 'Z';
+        }
+
+        const isWithinWindow = new Date() - new Date(createdAt) < 3600000;
+        if (isWithinWindow) {
+            buttons.classList.remove('hidden');
+        } else {
+            buttons.classList.add('hidden');
+        }
+    }
+
+    // --- Sending Messages ---
+    let myTypingTimeout = null;
+    let lastTypingTime = 0;
+    const msgInputLine = document.getElementById('msgInput');
+    if (msgInputLine) {
+        msgInputLine.addEventListener('input', () => {
+            if (!activeContactId || !socket || !socket.connected) return;
+            const now = Date.now();
+            if (now - lastTypingTime > 1500) {
+                socket.emit('typing', { receiver_id: activeContactId, is_typing: true });
+                lastTypingTime = now;
+            }
+
+            clearTimeout(myTypingTimeout);
+            myTypingTimeout = setTimeout(() => {
+                socket.emit('typing', { receiver_id: activeContactId, is_typing: false });
+                lastTypingTime = 0;
+            }, 2000);
+        });
+    }
+
+    document.getElementById('messageForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+
+        if (!activeContactId) {
+            await showModal({ title: "Note", description: "No contact selected.", isAlert: true });
+            return;
+        }
+
+        if (!activeSharedKey) {
+            await showModal({
+                title: "Security Check",
+                description: "Cannot send secure message. Encryption keys are missing or invalid for this contact.",
+                isAlert: true
+            });
+            return;
+        }
+
+        if (!text) return;
+
+        // Optimistic UI
+        appendMessageUI({ sender_id: currentUserId, created_at: new Date().toISOString() }, text);
+
+        try {
+            const encryptedPayload = await encryptText(text, activeSharedKey);
+
+            socket.emit('send', {
+                receiver_id: activeContactId,
+                content: encryptedPayload
+            });
+
+            input.value = '';
+        } catch (err) {
+            console.error("Encryption/Send error:", err);
+            alert("An error occurred while encrypting the message.");
+        }
+    });
+
+    // --- File Handling (Base64 E2EE) ---
+    async function handleFileSelection(e) {
+        const file = e.target.files[0];
+        if (!file || !activeContactId || !activeSharedKey) return;
+
+        const prog = document.getElementById('uploadProgress');
+        prog.classList.remove('hidden');
+
+        try {
+            const b64Data = await fileToBase64(file);
+            // Encrypt the entire Base64 string
+            const encryptedFile = await encryptText(b64Data, activeSharedKey);
+
+            socket.emit('send', {
+                receiver_id: activeContactId,
+                content: null,
+                file_data: encryptedFile,
+                file_type: file.type
+            });
+
+            // Optimistic UI for file
+            appendMessageUI({
+                sender_id: currentUserId,
+                created_at: new Date().toISOString(),
+                file_type: file.type
+            }, null, b64Data);
+
+        } catch (err) {
+            console.error("File processing error:", err);
+            await showModal({ title: "Error", description: "Could not process file for secure transfer.", isAlert: true });
+        } finally {
+            prog.classList.add('hidden');
+            e.target.value = '';
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/logout', { method: 'POST' });
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = '/login';
+    }
+
+    // Init
+    document.addEventListener("DOMContentLoaded", async () => {
+        await initCrypto();
+        initWebSocket();
+        setupSearch();
+        await loadContacts();
+
+        // Mark read when returning to tab
+        window.addEventListener('focus', () => {
+            if (activeContactId) {
+                markChatAsRead(activeContactId);
+            }
+        });
+
+        // Attach secure event listeners
+        document.getElementById("logoutBtn").addEventListener("click", logout);
+        document.getElementById("clearChatBtn").addEventListener("click", clearChat);
+
+        document.getElementById("uploadBtnTrigger").addEventListener("click", () => {
+            document.getElementById("fileInput").click();
+        });
+
+        document.getElementById("fileInput").addEventListener("change", handleFileSelection);
+
+        // Global listener for message actions (Edit/Delete)
+        document.getElementById("messages-area").addEventListener("click", (e) => {
+            const editBtn = e.target.closest('.btn-edit');
+            const deleteBtn = e.target.closest('.btn-delete');
+
+            if (editBtn || deleteBtn) {
+                const container = (editBtn || deleteBtn).closest('.message-container');
+                const msgId = container.dataset.msgId;
+                if (!msgId) return;
+
+                if (editBtn) startEdit(msgId);
+                else if (deleteBtn) confirmDelete(msgId);
+            }
+        });
+
+        // Long Press Implementation
+        let longPressTimer = null;
+        const area = document.getElementById("messages-area");
+
+        const startLongPress = (e) => {
+            const container = e.target.closest('.message-container');
+            if (!container) return;
+
+            const buttons = container.querySelector('.action-buttons');
+            // Check if editable/deletable (action buttons div exists and is not hidden)
+            if (!buttons || buttons.classList.contains('hidden')) return;
+
+            const msgId = container.dataset.msgId;
+            if (!msgId) return;
+
+            // Visual feedback: sublte pulse
+            container.classList.add('scale-95', 'opacity-80', 'transition-all');
+
+            console.log("Starting long press timer for msg:", msgId);
+            longPressTimer = setTimeout(() => {
+                console.log("Long press triggered!");
+                showActionMenu(msgId);
+                container.classList.remove('scale-95', 'opacity-80');
+                longPressTimer = null;
+            }, 600);
+        };
+
+        const cancelLongPress = (e) => {
+            if (longPressTimer) {
+                console.log("Long press canceled.");
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+                const container = e.target.closest('.message-container');
+                if (container) container.classList.remove('scale-95', 'opacity-80');
+            }
+        };
+
+        area.addEventListener("mousedown", startLongPress);
+        area.addEventListener("touchstart", startLongPress, { passive: true });
+        area.addEventListener("mouseup", cancelLongPress);
+        area.addEventListener("mouseleave", cancelLongPress);
+        area.addEventListener("touchend", cancelLongPress);
+        area.addEventListener("mousemove", (e) => {
+            // Cancel if moved significantly
+            if (longPressTimer) cancelLongPress(e);
+        });
+        area.addEventListener("touchmove", cancelLongPress);
+        // Remove mousemove cancel to avoid jitter issues unless it's a drag
+
+        // Context Menu (Right Click) fallback
+        area.addEventListener("contextmenu", (e) => {
+            const container = e.target.closest('.message-container');
+            if (!container) return;
+
+            const buttons = container.querySelector('.action-buttons');
+            if (!buttons || buttons.classList.contains('hidden')) return;
+
+            const msgId = container.dataset.msgId;
+            e.preventDefault(); // Stop native menu
+            showActionMenu(msgId);
+        });
+
+        // Contact Profile Card Interactions
+        const chatHeader = document.getElementById('chatHeaderInfo');
+        if (chatHeader) {
+            chatHeader.addEventListener('click', showContactProfile);
+        }
+
+        document.getElementById('closeContactProfileBtn').addEventListener('click', () => {
+            const modal = document.getElementById('contactProfileModal');
+            const content = document.getElementById('contactProfileModalContent');
+            if (modal) modal.classList.add('opacity-0');
+            if (content) content.classList.add('scale-95');
+            setTimeout(() => {
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }, 200);
+        });
+
+        document.getElementById('blockContactBtn').addEventListener('click', blockActiveContact);
+        const unblockNowBtn = document.getElementById('unblockNowBtn');
+        if (unblockNowBtn) unblockNowBtn.addEventListener('click', blockActiveContact);
+
+        // RESTORE SESSION: Check localStorage
+        const savedId = localStorage.getItem('activeContactId');
+        const savedName = localStorage.getItem('activeContactName');
+        const savedPubKey = localStorage.getItem('activeContactPubKey');
+        if (savedId && savedName && savedPubKey) {
+            // Re-fetch mobile and pic from the list if possible, or just select
+            const contactEl = document.getElementById('contact-' + savedId);
+            if (contactEl) {
+                const mobile = contactEl.getAttribute('data-contact-mobile');
+                const profilePic = contactEl.getAttribute('data-contact-pic');
+                const blockedByMe = contactEl.getAttribute('data-contact-blocked-by-me') === 'true';
+                const blockedMe = contactEl.getAttribute('data-contact-blocked-me') === 'true';
+                selectUser(Number(savedId), savedName, savedPubKey, mobile, profilePic, blockedByMe, blockedMe);
+            } else {
+                selectUser(Number(savedId), savedName, savedPubKey);
+            }
+        }
+    });
+
+    function showContactProfile() {
+        if (!window.activeContactData) return;
+        const data = window.activeContactData;
+        const modal = document.getElementById('contactProfileModal');
+
+        document.getElementById('cpModalName').innerText = data.name;
+        document.getElementById('cpModalMobile').innerText = data.mobile || "N/A";
+
+        const avatarImg = document.getElementById('cpModalImg');
+        const avatarChar = document.getElementById('cpModalChar');
+        if (data.profilePic) {
+            avatarImg.src = data.profilePic;
+            avatarImg.classList.remove('hidden');
+            avatarChar.classList.add('hidden');
+        } else {
+            avatarImg.classList.add('hidden');
+            avatarChar.innerText = data.name.charAt(0);
+            avatarChar.classList.remove('hidden');
+        }
+
+        const cpStatusDot = document.getElementById('cpStatusDot');
+        const activeStatusDot = document.getElementById('chat-status-dot');
+        if (activeStatusDot && activeStatusDot.classList.contains('bg-green-500')) {
+            cpStatusDot.className = 'absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-slate-900 rounded-full';
+        } else {
+            cpStatusDot.className = 'absolute bottom-1 right-1 w-5 h-5 bg-gray-500 border-4 border-slate-900 rounded-full';
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            const content = document.getElementById('contactProfileModalContent');
+            if (content) content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    async function blockActiveContact() {
+        if (!window.activeContactData) return;
+        const contactId = window.activeContactData.id;
+        const isBlocked = window.activeContactData.blockedByMe;
+        const action = isBlocked ? 'unblock' : 'block';
+
+        if (confirm(`Are you sure you want to ${action} ${window.activeContactData.name}?`)) {
+            try {
+                const res = await fetch(`/api/contacts/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ blocked_contact_id: contactId })
+                });
+                if (res.ok) {
+                    alert(`Contact ${action}ed successfully.`);
+                    location.reload();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || `Failed to ${action} contact.`);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("An error occurred.");
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Register - GapShap{% endblock %}
+
+{% block content %}
+<div class="flex-1 w-full min-h-screen md:min-h-0 overflow-y-auto flex flex-col items-center justify-center px-4 py-6 md:py-8">
+    <div class="glass-panel w-full max-w-4xl flex flex-col lg:flex-row rounded-3xl relative overflow-hidden p-0 shadow-2xl my-auto flex-shrink-0">
+        
+        <!-- Left Branding Panel (Hidden on Mobile) -->
+        <div class="hidden lg:flex flex-col justify-center w-5/12 p-10 xl:p-12 bg-white/5 border-r border-white/5 relative">
+            <div class="absolute -top-16 -left-16 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+            <div class="absolute -bottom-16 -right-16 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+            
+            <div class="relative z-10 flex flex-col h-full">
+                <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-8 shadow-xl border border-white/20">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                </div>
+                
+                <h1 class="text-4xl font-bold text-white mb-6 leading-tight tracking-tight">Join the GapShap<br>Secure Network</h1>
+                <p class="text-[15px] font-medium text-indigo-100/70 leading-relaxed mb-auto">Create your cryptographic identity. Once registered, your device will generate unique encryption keys that never leave your browser.</p>
+                
+                <div class="mt-12 flex items-center gap-3 text-xs font-semibold text-white/70 bg-black/20 px-5 py-3 w-max rounded-full border border-white/10 shadow-inner">
+                    <svg class="w-4 h-4 text-green-400 shadow-sm" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                    Crypto Based End-to-End Encryption
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Form Panel -->
+        <div class="w-full lg:w-7/12 p-6 sm:p-8 md:p-10 xl:p-12 relative flex flex-col justify-center bg-slate-900/40">
+            <div class="lg:hidden absolute -top-16 -right-16 w-32 h-32 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+            
+            <div class="lg:hidden flex justify-center mb-8 relative z-10">
+                <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center lg:items-start mb-8 relative z-10">
+                <h2 class="text-3xl font-bold text-white tracking-tight text-center lg:text-left">Create Account</h2>
+                <p class="text-sm font-medium text-indigo-200/60 mt-1.5 text-center lg:text-left">Configure your secure chat identity.</p>
+            </div>
+
+            <form id="registerForm" class="space-y-5 relative z-10">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">First Name</label>
+                        <input type="text" id="firstName" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="First Name">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Last Name</label>
+                        <input type="text" id="lastName" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Last Name">
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Mobile Number</label>
+                    <input type="text" id="mobile" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Mobile Number">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Email</label>
+                    <input type="email" id="email" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Emai Address">
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Password</label>
+                    <input type="password" id="password" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Strong password">
+                </div>
+                
+                <div id="statusMsg" class="text-[13px] text-indigo-300 font-semibold text-center hidden animate-pulse bg-indigo-500/10 p-3 rounded-xl border border-indigo-500/20">Processing...</div>
+                <div id="errorMsg" class="text-[13px] font-semibold text-red-200 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center hidden shadow-inner"></div>
+                
+                <button type="submit" id="submitBtn" class="primary-btn w-full mt-3 text-[15px] font-bold tracking-wide py-3">
+                    <span>Construct Identity</span>
+                </button>
+            </form>
+            
+            <div class="mt-8 pt-6 flex flex-col items-center gap-3 relative z-10 border-t border-white/10">
+                <p class="text-sm font-medium text-gray-400">Already have an account? <a href="/login" class="text-indigo-400 hover:text-indigo-300 transition-colors ml-1 font-bold">Sign in here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success & Profile Pic Modal -->
+<div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 transition-all duration-300 opacity-0">
+    <div class="glass-panel p-6 sm:p-10 rounded-2xl w-full max-w-sm shadow-2xl relative text-center transform scale-95 transition-all" id="successModalContent">
+        <h3 class="text-xl font-bold mb-2 text-white">Success!</h3>
+        <p class="text-sm text-gray-400 mb-8">Account created successfully. Would you like to set a profile picture now?</p>
+        
+        <div class="flex flex-col items-center mb-8">
+            <div class="relative group cursor-pointer" id="regProfilePicContainer">
+                <div class="w-28 h-28 rounded-full border-4 border-indigo-500/30 overflow-hidden bg-white/5 flex items-center justify-center text-4xl text-white font-bold transition-all group-hover:bg-white/10 group-hover:border-indigo-400">
+                    <img src="" alt="Profile" class="w-full h-full object-cover hidden" id="regProfileImg">
+                    <span id="regProfileChar">?</span>
+                </div>
+                <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                </div>
+            </div>
+            <input type="file" id="regProfilePicInput" class="hidden" accept="image/*">
+            <p class="text-xs text-indigo-300 font-medium mt-4">Click to upload image</p>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <button id="saveProfilePicBtn" class="primary-btn w-full">
+                <span>Save Picture</span>
+            </button>
+            <button id="skipProfilePicBtn" class="secondary-btn w-full">
+                Skip for now
+            </button>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ request.state.nonce }}">
+    // Utility to convert ArrayBuffer to Base64
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    async function deriveWrappingKey(password, saltUint8) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            "raw",
+            enc.encode(password),
+            {name: "PBKDF2"},
+            false,
+            ["deriveBits", "deriveKey"]
+        );
+        return window.crypto.subtle.deriveKey(
+            {
+                name: "PBKDF2",
+                salt: saltUint8,
+                iterations: 310000,
+                hash: "SHA-256"
+            },
+            keyMaterial,
+            { name: "AES-GCM", length: 256 },
+            false,
+            [ "encrypt", "decrypt" ]
+        );
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const errorMsg = document.getElementById('errorMsg');
+        
+        if (!window.isSecureContext) {
+            errorMsg.innerText = 'Key generation requires a Secure Context (HTTPS or localhost).';
+            errorMsg.style.display = 'block';
+            btn.disabled = false;
+            return;
+        }
+
+        try {
+            statusMsg.innerText = "Generating ECDH Keys & Wrapping locally...";
+            statusMsg.classList.remove('hidden');
+            
+            // 1. Generate ECDH Key Pair
+            const keyPair = await window.crypto.subtle.generateKey(
+                { name: "ECDH", namedCurve: "P-256" },
+                true,
+                ["deriveKey", "deriveBits"]
+            );
+            
+            // Export Public Key to send to server
+            const exportedPubKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
+            const pubKeyBase64 = arrayBufferToBase64(exportedPubKey);
+            
+            // Export Private Key as JWK string
+            const exportedPrivKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+            const privKeyStr = JSON.stringify(exportedPrivKey);
+            
+            const password = document.getElementById('password').value;
+
+            // 2. Generate random DEK (Data Encryption Key)
+            const dek = await window.crypto.subtle.generateKey(
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+            const exportedDEK = await window.crypto.subtle.exportKey("raw", dek);
+            
+            // 3. Encrypt Private Key with DEK
+            const privKeyIv = window.crypto.getRandomValues(new Uint8Array(12));
+            const enc = new TextEncoder();
+            const encryptedPrivKeyBuffer = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: privKeyIv },
+                dek,
+                enc.encode(privKeyStr)
+            );
+
+            // 4. Derive KEK (Key Encryption Key) from password
+            const salt = window.crypto.getRandomValues(new Uint8Array(16));
+            const kek = await deriveWrappingKey(password, salt);
+            
+            // 5. Encrypt DEK with KEK
+            const dekIv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encryptedDekBuffer = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: dekIv },
+                kek,
+                exportedDEK
+            );
+
+            const encryptedPrivKeyB64 = arrayBufferToBase64(encryptedPrivKeyBuffer);
+            const encryptedDekB64 = arrayBufferToBase64(encryptedDekBuffer);
+            const saltB64 = arrayBufferToBase64(salt);
+            const privKeyIvB64 = arrayBufferToBase64(privKeyIv);
+            const dekIvB64 = arrayBufferToBase64(dekIv);
+
+            statusMsg.innerText = "Keys generated. Registering account...";
+            
+            // Step 2: Register user via API
+            const payload = {
+                first_name: document.getElementById('firstName').value,
+                last_name: document.getElementById('lastName').value,
+                mobile_number: document.getElementById('mobile').value,
+                email: document.getElementById('email').value,
+                password: password,
+                public_key: pubKeyBase64,
+                encrypted_private_key: encryptedPrivKeyB64,
+                encrypted_dek: encryptedDekB64,
+                keys_salt: saltB64,
+                dek_iv: dekIvB64,
+                priv_key_iv: privKeyIvB64
+            };
+            
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                // Store raw private key in sessionStorage for this session only!
+                sessionStorage.setItem('chat_priv_key', privKeyStr);
+                localStorage.setItem('current_user_id', data.id);
+                
+                // Show Profile Pic Modal
+                statusMsg.classList.add('hidden');
+                const modal = document.getElementById('successModal');
+                const modalContent = document.getElementById('successModalContent');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    modalContent.classList.remove('scale-95');
+                }, 10);
+                document.getElementById('regProfileChar').innerText = document.getElementById('firstName').value[0];
+            } else {
+                errorMsg.innerText = data.detail || 'Registration failed';
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                statusMsg.classList.add('hidden');
+            }
+            
+        } catch (err) {
+            console.error(err);
+            errorMsg.innerText = 'An error occurred during registration/key generation.';
+            errorMsg.style.display = 'block';
+            btn.disabled = false;
+            statusMsg.classList.add('hidden');
+        }
+    });
+
+    // Profile Pic Upload Logic in Modal
+    const regPicInput = document.getElementById('regProfilePicInput');
+    const regPicContainer = document.getElementById('regProfilePicContainer');
+    const regImg = document.getElementById('regProfileImg');
+    const regChar = document.getElementById('regProfileChar');
+
+    regPicContainer.addEventListener('click', () => regPicInput.click());
+
+    regPicInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (re) => {
+                regImg.src = re.target.result;
+                regImg.classList.remove('hidden');
+                regChar.classList.add('hidden');
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+
+    document.getElementById('skipProfilePicBtn').addEventListener('click', () => {
+        window.location.href = '/';
+    });
+
+    async function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    document.getElementById('saveProfilePicBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveProfilePicBtn');
+        const file = regPicInput.files[0];
+        if (!file) {
+            window.location.href = '/';
+            return;
+        }
+
+        btn.innerText = 'Archiving...';
+        btn.disabled = true;
+
+        try {
+            const b64Data = await fileToBase64(file);
+            const res = await fetch('/api/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile_pic: b64Data })
+            });
+            
+            if (res.ok) {
+                window.location.href = '/';
+            } else {
+                console.error("Profile update failed");
+                window.location.href = '/';
+            }
+        } catch (err) {
+            console.error(err);
+            window.location.href = '/';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GapShap{% endblock %}</title>
+    <script nonce="{{ request.state.nonce }}" src="https://cdn.tailwindcss.com"></script>
+    <script nonce="{{ request.state.nonce }}" src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            background-color: #344878;
+            /* Prevents transparent scrollbar tracks from revealing default white HTML background! */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-input {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f3f4f6;
+            border-radius: 0.75rem;
+            padding: 0.875rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .glass-input:focus {
+            outline: none;
+            border-color: rgba(167, 139, 250, 0.5);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        .primary-btn {
+            background: linear-gradient(to right, #6366f1, #a855f7);
+            color: white;
+            font-weight: 600;
+            padding: 0.875rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            border: none;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+        }
+
+        .primary-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-weight: 600;
+            padding: 0.875rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Webkit custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Transparent black thumb */
+            border-radius: 10px;
+            min-height: 40px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+            /* Darker transparent black */
+        }
+
+        /* Firefox fallback */
+        @-moz-document url-prefix() {
+            * {
+                scrollbar-color: rgba(0, 0, 0, 0.5) transparent;
+                scrollbar-width: thin;
+            }
+        }
+
+        .error-message {
+            display: none;
+            color: #f87171;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body class="antialiased flex items-center justify-center p-0 md:p-6 lg:p-10 min-h-screen">
+    {% block content %}
+    {% endblock %}
+
+    <!-- Global Custom Modal -->
+    <div id="customModal"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+        <div class="glass-panel max-w-sm w-full p-8 rounded-2xl transform scale-95 transition-transform duration-200 text-left"
+            id="modalContent">
+            <h3 class="text-xl font-bold text-white mb-2" id="modalTitle">Notice</h3>
+            <p class="text-gray-400 text-sm mb-6 leading-relaxed" id="modalDescription">System notice generated.</p>
+
+            <div id="modalInputContainer" class="hidden mb-6">
+                <textarea id="modalInput" class="w-full glass-input min-h-[120px] text-sm resize-none"
+                    placeholder="Type here..."></textarea>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button id="modalConfirmBtn" class="primary-btn w-full">Confirm</button>
+                <button id="modalCancelBtn" class="secondary-btn w-full">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script nonce="{{ request.state.nonce }}">
+        let modalResolve = null;
+
+        function showModal({ title, description, placeholder, value, isAlert = false }) {
+            const modal = document.getElementById('customModal');
+            const content = document.getElementById('modalContent');
+            const inputContainer = document.getElementById('modalInputContainer');
+            const input = document.getElementById('modalInput');
+
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalDescription').innerText = description;
+
+            if (placeholder || value !== undefined) {
+                inputContainer.classList.remove('hidden');
+                input.placeholder = placeholder || "Type here...";
+                input.value = value || "";
+            } else {
+                inputContainer.classList.add('hidden');
+            }
+
+            if (isAlert) {
+                document.getElementById('modalCancelBtn').classList.add('hidden');
+            } else {
+                document.getElementById('modalCancelBtn').classList.remove('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+            });
+        }
+
+        function hideModal() {
+            const modal = document.getElementById('customModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+            const input = document.getElementById('modalInput');
+            const val = input.value;
+            hideModal();
+            if (modalResolve) modalResolve(val || true);
+        });
+
+        document.getElementById('modalCancelBtn').addEventListener('click', () => {
+            hideModal();
+            if (modalResolve) modalResolve(null);
+        });
+    </script>
+</body>
+
+</html>
