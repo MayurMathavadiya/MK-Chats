@@ -16,7 +16,7 @@ async def send_password_reset_email(to_email: str, token: str, request_host: str
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Reset your GapShap Password</title>
+        <title>Reset your MK Chats Password</title>
     </head>
     <body style="margin: 0; padding: 0; background-color: #0f172a; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f172a; width: 100%;">
@@ -30,7 +30,7 @@ async def send_password_reset_email(to_email: str, token: str, request_host: str
                                 <table border="0" cellpadding="0" cellspacing="0" style="background-color: #334155; border-radius: 16px; margin-bottom: 24px; border: 1px solid #475569;">
                                     <tr>
                                         <td align="center" valign="middle" width="56" height="56">
-                                            <span style="color: #ffffff; font-weight: bold; font-size: 24px; display: block; line-height: 56px;">GS</span>
+                                            <span style="color: #ffffff; font-weight: bold; font-size: 24px; display: block; line-height: 56px;">MK</span>
                                         </td>
                                     </tr>
                                 </table>
@@ -38,7 +38,7 @@ async def send_password_reset_email(to_email: str, token: str, request_host: str
                                 <h1 style="margin: 0 0 16px 0; font-size: 24px; color: #ffffff; font-weight: 700;">Reset Your Password</h1>
                                 
                                 <p style="margin: 0 0 32px 0; font-size: 15px; line-height: 1.6; color: #cbd5e1;">
-                                    We received a request to reset your GapShap password. Click the button below to choose a new password and securely regenerate your End-to-End keys.
+                                    We received a request to reset your MK Chats password. Click the button below to choose a new password and securely regenerate your End-to-End keys.
                                 </p>
                                 
                                 <!-- Warning Box -->
@@ -46,7 +46,7 @@ async def send_password_reset_email(to_email: str, token: str, request_host: str
                                     <tr>
                                         <td style="padding: 16px; text-align: left;">
                                             <div style="color: #fca5a5; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">Important Security Notice</div>
-                                            <div style="margin: 0; font-size: 13px; color: #f8fafc; line-height: 1.5;">Because GapShap uses true End-to-End Encryption, resetting your password means you will generate entirely new encryption keys. Your previous chat history will become permanently unreadable.</div>
+                                            <div style="margin: 0; font-size: 13px; color: #f8fafc; line-height: 1.5;">Because MK Chats uses true End-to-End Encryption, resetting your password means you will generate entirely new encryption keys. Your previous chat history will become permanently unreadable.</div>
                                         </td>
                                     </tr>
                                 </table>
@@ -76,12 +76,12 @@ async def send_password_reset_email(to_email: str, token: str, request_host: str
     """
 
     msg = EmailMessage()
-    msg["Subject"] = "Reset your GapShap password"
+    msg["Subject"] = "Reset your MK Chats password"
     msg["From"] = settings.SMTP_FROM_EMAIL
     msg["To"] = to_email
     
     # Text fallback
-    msg.set_content(f"Visit this link to reset your GapShap password: {reset_link}\n\nWarning: Resetting your password will regenerate your encryption keys and make past messages unreadable.")
+    msg.set_content(f"Visit this link to reset your MK Chats password: {reset_link}\n\nWarning: Resetting your password will regenerate your encryption keys and make past messages unreadable.")
     
     # HTML Content
     msg.add_alternative(html_content, subtype="html")

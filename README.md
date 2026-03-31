@@ -1,6 +1,6 @@
-# GapShap
+# MK Chats
 
-GapShap is a FastAPI-based real-time chat application with server-rendered pages, REST APIs, and Socket.IO events for live messaging. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and presence updates.
+MK Chats is a FastAPI-based real-time chat application with server-rendered pages, REST APIs, and Socket.IO events for live messaging. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and presence updates.
 
 ## Tech Stack
 

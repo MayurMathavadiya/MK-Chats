@@ -1,0 +1,34 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mkChatsLogoTitle mkChatsLogoDesc">
+  <title id="mkChatsLogoTitle">MK Chats logo</title>
+  <desc id="mkChatsLogoDesc">Rounded square gradient badge with layered chat bubbles and MK lettering for MK Chats.</desc>
+  <defs>
+    <linearGradient id="mk-bg" x1="20" y1="14" x2="108" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
+    <linearGradient id="mk-bubble" x1="36" y1="34" x2="96" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6FF" stop-opacity="0.96"/>
+      <stop offset="1" stop-color="#C7D2FE" stop-opacity="0.82"/>
+    </linearGradient>
+    <filter id="mk-shadow" x="0" y="0" width="128" height="128" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="10"/>
+      <feGaussianBlur stdDeviation="10"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0588235 0 0 0 0 0.0941176 0 0 0 0 0.270588 0 0 0 0.35 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+  <g filter="url(#mk-shadow)">
+    <rect x="18" y="14" width="92" height="92" rx="26" fill="url(#mk-bg)"/>
+    <path d="M36 41C36 35.4772 40.4772 31 46 31H82C87.5228 31 92 35.4772 92 41V65C92 70.5228 87.5228 75 82 75H66L52 86V75H46C40.4772 75 36 70.5228 36 65V41Z" fill="url(#mk-bubble)"/>
+    <path d="M56 50V66" stroke="#4F46E5" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M56 50L64.5 58.5L73 50" stroke="#4F46E5" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M74 50V66" stroke="#7C3AED" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M74 58L84 50" stroke="#7C3AED" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="42" cy="39" r="5" fill="#FFFFFF" fill-opacity="0.2"/>
+    <circle cx="88" cy="85" r="4" fill="#FFFFFF" fill-opacity="0.16"/>
+  </g>
+</svg>
