@@ -377,6 +377,147 @@
     let socket = null;
     let cachedContacts = [];
     let temporaryPinnedContact = null;
+    let activeHistoryLoadToken = 0;
+
+    function getOfflineQueueStorageKey() {
+        return `offlineQueue:${currentUserId}`;
+    }
+
+    function getOfflineQueue() {
+        try {
+            const raw = localStorage.getItem(getOfflineQueueStorageKey());
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+            console.error("Failed to read offline queue", err);
+            return [];
+        }
+    }
+
+    function setOfflineQueue(queue) {
+        localStorage.setItem(getOfflineQueueStorageKey(), JSON.stringify(queue));
+    }
+
+    function enqueueOfflineMessage(item) {
+        const queue = getOfflineQueue();
+        queue.push(item);
+        setOfflineQueue(queue);
+    }
+
+    function getQueueSignature(item) {
+        return JSON.stringify([
+            Number(item.receiver_id),
+            item.content || '',
+            item.file_data || '',
+            item.file_type || ''
+        ]);
+    }
+
+    function removeOfflineMessageByPayload(msg) {
+        const msgSignature = JSON.stringify([
+            Number(msg.receiver_id),
+            msg.content || '',
+            msg.file_data || '',
+            msg.file_type || ''
+        ]);
+        const queue = getOfflineQueue();
+        const index = queue.findIndex((item) => getQueueSignature(item) === msgSignature);
+
+        if (index === -1) {
+            return null;
+        }
+
+        const [removedItem] = queue.splice(index, 1);
+        setOfflineQueue(queue);
+        return removedItem;
+    }
+
+    function getQueuedMessagesForContact(contactId) {
+        return getOfflineQueue()
+            .filter((item) => Number(item.receiver_id) === Number(contactId))
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+
+    function getPendingStatusIcon() {
+        return '<svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="9"></circle></svg>';
+    }
+
+    function buildQueuedMessagePayload(item) {
+        return {
+            id: null,
+            sender_id: currentUserId,
+            receiver_id: Number(item.receiver_id),
+            content: item.content || null,
+            file_data: item.file_data || null,
+            file_type: item.file_type || null,
+            is_deleted: false,
+            is_edited: false,
+            is_read: false,
+            created_at: item.created_at,
+            is_pending: true
+        };
+    }
+
+    function findOptimisticMessage() {
+        return document.querySelector('.message-container.optimistic');
+    }
+
+    function renderQueuedMessages(contactId) {
+        const area = document.getElementById('messages-area');
+        if (!area) return;
+
+        for (const queuedItem of getQueuedMessagesForContact(contactId)) {
+            appendMessageUI(
+                buildQueuedMessagePayload(queuedItem),
+                queuedItem.preview_text || null,
+                queuedItem.preview_file_data || null
+            );
+        }
+    }
+
+    function flushOfflineQueue() {
+        if (!socket || !socket.connected) return;
+
+        for (const queuedItem of getOfflineQueue()) {
+            socket.emit('send', {
+                receiver_id: Number(queuedItem.receiver_id),
+                content: queuedItem.content || null,
+                file_data: queuedItem.file_data || null,
+                file_type: queuedItem.file_type || null
+            });
+        }
+    }
+
+    function queueOutgoingMessage({
+        receiverId,
+        encryptedContent = null,
+        encryptedFileData = null,
+        fileType = null,
+        previewText = null,
+        previewFileData = null
+    }) {
+        const queuedItem = {
+            receiver_id: Number(receiverId),
+            content: encryptedContent,
+            file_data: encryptedFileData,
+            file_type: fileType,
+            preview_text: previewText,
+            preview_file_data: previewFileData,
+            created_at: new Date().toISOString()
+        };
+
+        enqueueOfflineMessage(queuedItem);
+
+        if (Number(activeContactId) === Number(receiverId)) {
+            appendMessageUI(
+                buildQueuedMessagePayload(queuedItem),
+                previewText,
+                previewFileData
+            );
+        }
+
+        flushOfflineQueue();
+    }
 
     // --- Utility: Base64/ArrayBuffer ---
     function arrayBufferToBase64(buffer) {
@@ -739,6 +880,14 @@
     function initWebSocket() {
         socket = io();
 
+        socket.on('connect', async () => {
+            flushOfflineQueue();
+
+            if (activeContactId) {
+                await loadMessageHistory(activeContactId);
+            }
+        });
+
         socket.on('error', async (msg) => {
             await showModal({
                 title: "Error",
@@ -863,16 +1012,25 @@
 
                 // For own messages, find and update optimistic message instead of double-appending
                 if (msg.sender_id === currentUserId) {
-                    const optMsg = document.querySelector('.message-container.optimistic');
+                    removeOfflineMessageByPayload(msg);
+
+                    const optMsg = findOptimisticMessage();
                     if (optMsg) {
                         optMsg.id = `msg-container-${msg.id}`;
                         optMsg.dataset.msgId = msg.id;
+                        optMsg.dataset.pending = 'false';
                         optMsg.classList.remove('optimistic');
                         // Show buttons once ID is present and if within 1h
                         updateActionsVisibility(optMsg, msg.created_at);
 
+                        const iconDiv = optMsg.querySelector('.msg-status-icon');
+                        if (iconDiv) {
+                            iconDiv.innerHTML = msg.is_read
+                                ? '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>'
+                                : '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path></svg>';
+                        }
+
                         if (window.pendingReadReceipts && window.pendingReadReceipts.has(msg.id)) {
-                            const iconDiv = optMsg.querySelector('.msg-status-icon');
                             if (iconDiv) {
                                 iconDiv.innerHTML = '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>';
                             }
@@ -1020,6 +1178,46 @@
     }
 
     // --- UI Interactions ---
+    async function loadMessageHistory(contactId) {
+        const loadToken = ++activeHistoryLoadToken;
+        const messagesArea = document.getElementById('messages-area');
+        messagesArea.innerHTML = '<div class="text-center text-gray-500 text-sm mt-4">Loading history...</div>';
+
+        try {
+            const res = await fetch('/api/messages/' + contactId);
+            const history = await res.json();
+
+            if (loadToken !== activeHistoryLoadToken || Number(contactId) !== Number(activeContactId)) {
+                return;
+            }
+
+            messagesArea.innerHTML = '';
+
+            for (let msg of history) {
+                let plainText = msg.content;
+                if (msg.content) {
+                    plainText = await decryptText(msg.content, activeSharedKey);
+                }
+                let plainFileData = msg.file_data;
+                if (msg.file_data) {
+                    plainFileData = await decryptText(msg.file_data, activeSharedKey);
+                }
+                appendMessageUI(msg, plainText, plainFileData);
+            }
+
+            renderQueuedMessages(contactId);
+            scrollToBottom();
+            markChatAsRead(contactId);
+        } catch (e) {
+            console.error(e);
+            if (loadToken !== activeHistoryLoadToken || Number(contactId) !== Number(activeContactId)) {
+                return;
+            }
+            messagesArea.innerHTML = '';
+            renderQueuedMessages(contactId);
+        }
+    }
+
     async function selectUser(id, name, pubKeyB64, mobile = null, profilePic = null, blockedByMe = false, blockedMe = false) {
         activeContactId = id;
 
@@ -1116,28 +1314,7 @@
             }
         } catch (e) { console.error("Key derivation failed", e); }
 
-        // Fetch history
-        document.getElementById('messages-area').innerHTML = '<div class="text-center text-gray-500 text-sm mt-4">Loading history...</div>';
-
-        try {
-            const res = await fetch('/api/messages/' + id);
-            const history = await res.json();
-            document.getElementById('messages-area').innerHTML = '';
-
-            for (let msg of history) {
-                let plainText = msg.content;
-                if (msg.content) {
-                    plainText = await decryptText(msg.content, activeSharedKey);
-                }
-                let plainFileData = msg.file_data;
-                if (msg.file_data) {
-                    plainFileData = await decryptText(msg.file_data, activeSharedKey);
-                }
-                appendMessageUI(msg, plainText, plainFileData);
-            }
-            scrollToBottom();
-            markChatAsRead(id);
-        } catch (e) { console.error(e); }
+        await loadMessageHistory(id);
     }
 
     document.getElementById('backToSidebarBtn').addEventListener('click', () => {
@@ -1314,11 +1491,18 @@
         const dateObj = new Date(createdAt);
         const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const canEditOrDelete = isMe && msg.id && (new Date() - dateObj < 3600000);
+        const isPending = Boolean(msg.is_pending);
+        const statusIcon = msg.is_read
+            ? '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>'
+            : isPending
+                ? getPendingStatusIcon()
+                : '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path></svg>';
 
         const html = `
             <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2.5 message-container ${!msg.id ? 'optimistic' : ''}" 
                  id="${msg.id ? `msg-container-${msg.id}` : ''}"
                  data-msg-id="${msg.id || ''}"
+                 data-pending="${isPending}"
                  data-created-at="${createdAt}">
                  
                 ${!isMe ? `
@@ -1338,8 +1522,7 @@
                         <div class="text-[10px] text-gray-400 font-semibold">${timeStr}</div>
                         ${isMe ? `
                         <div class="msg-status-icon text-sky-400" data-msg-id="${msg.id || ''}">
-                            ${msg.is_read ? '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>'
-                    : '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path></svg>'}
+                            ${statusIcon}
                         </div>
                         ` : ''}
                     </div>
@@ -1544,17 +1727,13 @@
 
         if (!text) return;
 
-        // Optimistic UI
-        appendMessageUI({ sender_id: currentUserId, created_at: new Date().toISOString() }, text);
-
         try {
             const encryptedPayload = await encryptText(text, activeSharedKey);
-
-            socket.emit('send', {
-                receiver_id: activeContactId,
-                content: encryptedPayload
+            queueOutgoingMessage({
+                receiverId: activeContactId,
+                encryptedContent: encryptedPayload,
+                previewText: text
             });
-
             input.value = '';
         } catch (err) {
             console.error("Encryption/Send error:", err);
@@ -1574,20 +1753,12 @@
             const b64Data = await fileToBase64(file);
             // Encrypt the entire Base64 string
             const encryptedFile = await encryptText(b64Data, activeSharedKey);
-
-            socket.emit('send', {
-                receiver_id: activeContactId,
-                content: null,
-                file_data: encryptedFile,
-                file_type: file.type
+            queueOutgoingMessage({
+                receiverId: activeContactId,
+                encryptedFileData: encryptedFile,
+                fileType: file.type,
+                previewFileData: b64Data
             });
-
-            // Optimistic UI for file
-            appendMessageUI({
-                sender_id: currentUserId,
-                created_at: new Date().toISOString(),
-                file_type: file.type
-            }, null, b64Data);
 
         } catch (err) {
             console.error("File processing error:", err);

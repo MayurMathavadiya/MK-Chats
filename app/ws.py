@@ -51,9 +51,13 @@ async def disconnect(sid):
         user_id = None
         
     if user_id:
+        
         db = SessionLocal()
         try:
-            user = db.query(models.User).filter(models.User.id == user_id).first()
+            
+            user = db.query(models.User).filter(
+                models.User.id == user_id
+            ).first()
             if user:
                 user.is_online = False
                 user.last_seen = datetime.now(timezone.utc)
@@ -66,6 +70,7 @@ async def disconnect(sid):
                     "user_id": user_id,
                     "is_online": False
                 })
+        
         finally:
             db.close()
 
@@ -109,6 +114,11 @@ async def send(sid, data):
             file_type=file_type
         )
         db.add(new_msg)
+        
+        receiver = db.query(models.User).filter(
+            models.User.id == receiver_id
+        ).first()
+
         db.commit()
         db.refresh(new_msg)
         
@@ -127,7 +137,9 @@ async def send(sid, data):
         
         receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
         if receiver and receiver.socket_sid:
-            await sio.emit('receive_message', out_payload, to=receiver.socket_sid)
+            await sio.emit(
+                'receive_message', out_payload, to=receiver.socket_sid
+            )
             
         await sio.emit('receive_message', out_payload, to=sid)
     finally:
@@ -178,9 +190,13 @@ async def mark_read(sid, data):
             "message_ids": msg_ids
         }
             
-        sender = db.query(models.User).filter(models.User.id == contact_id).first()
+        sender = db.query(models.User).filter(
+            models.User.id == contact_id
+        ).first()
         if sender and sender.socket_sid:
-            await sio.emit('read_receipt', receipt_payload, to=sender.socket_sid)
+            await sio.emit(
+                'read_receipt', receipt_payload, to=sender.socket_sid
+            )
     
     finally:
         db.close()
@@ -206,8 +222,8 @@ async def edit(sid, data):
         ).first()
 
         if msg:
-            time_diff = now_utc - msg.created_at.replace(tzinfo=timezone.utc)
-            if time_diff > timedelta(hours=1):
+            t_diff = now_utc - msg.created_at.replace(tzinfo=timezone.utc)
+            if t_diff > timedelta(hours=1):
                 err_payload = {
                     "action": "error", 
                     "message": "Cannot edit message after 1 hour"
@@ -300,7 +316,9 @@ async def typing(sid, data):
     
     db = SessionLocal()
     try:
-        receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
+        receiver = db.query(models.User).filter(
+            models.User.id == receiver_id
+        ).first()
         if receiver and receiver.socket_sid:
             await sio.emit('typing', {
                 "sender_id": user_id,

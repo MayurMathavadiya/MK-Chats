@@ -67,7 +67,7 @@ def register(
         value=f"Bearer {access_token}", 
         httponly=True,
         samesite="lax",
-        secure=False  # Switch to True in a production HTTPS environment
+        secure=True  # Switch to True in a production HTTPS environment
     )
     
     return new_user
@@ -98,7 +98,7 @@ def login(
         value=f"Bearer {access_token}", 
         httponly=True,
         samesite="lax",
-        secure=False  # Switch to True in a production HTTPS environment
+        secure=True  # Switch to True in a production HTTPS environment
     )
     
     return {
@@ -118,7 +118,7 @@ def logout(response: Response):
     response.delete_cookie(
         key="access_token",
         samesite="lax",
-        secure=False  # Switch to True in a production HTTPS environment
+        secure=True  # Switch to True in a production HTTPS environment
     )
     return {"msg": "Successfully logged out"}
 
