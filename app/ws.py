@@ -11,8 +11,8 @@ from app.core.database import SessionLocal
 sio = socketio.AsyncServer(async_mode='asgi')
 
 
-# Socket.IO app
-sio_app = socketio.ASGIApp(sio)
+# Socket.IO app served from the mount root in main.py
+sio_app = socketio.ASGIApp(sio, socketio_path='')
 
 
 @sio.event

@@ -13,13 +13,17 @@ from app.services import backgound_jobs
 from app.core.email import send_password_reset_email
 
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 
 # --- Auth Endpoint ---
 
 
-@router.post("/api/register", response_model=schemas.UserResponse)
+@router.post(
+    "/register", 
+    response_model=schemas.UserResponse, 
+    tags=[settings.AUTH_TAG]
+)
 def register(
     user: schemas.UserCreate, 
     response: Response, 
@@ -73,7 +77,7 @@ def register(
     return new_user
 
 
-@router.post("/api/login")
+@router.post("/login", tags=[settings.AUTH_TAG])
 def login(
     login_data: schemas.UserLogin, 
     response: Response, 
@@ -113,7 +117,7 @@ def login(
     }
 
 
-@router.post("/api/logout")
+@router.post("/logout", tags=[settings.AUTH_TAG])
 def logout(response: Response):
     response.delete_cookie(
         key="access_token",
@@ -126,7 +130,7 @@ def logout(response: Response):
 # --- Forgot Password Endpoints ---
 
 
-@router.post("/api/forgot-password")
+@router.post("/forgot-password", tags=[settings.AUTH_TAG])
 async def forgot_password(
     req: schemas.ForgotPasswordRequest,
     request: Request,
@@ -152,7 +156,7 @@ async def forgot_password(
         return {"msg": "Your email is not registered."}
 
 
-@router.post("/api/reset-password")
+@router.post("/reset-password", tags=[settings.AUTH_TAG])
 async def reset_password(
     req: schemas.ResetPasswordRequest,
     db: deps.db_session
@@ -192,13 +196,21 @@ async def reset_password(
 # --- Profile and User Search Endpoints ---
 
 
-@router.get("/api/profile", response_model=schemas.UserResponse)
+@router.get(
+    "/profile", 
+    response_model=schemas.UserResponse, 
+    tags=[settings.PROFILE_TAG]
+)
 def get_profile(request: Request, db: deps.db_session):
     user = deps.get_current_user(request, db)
     return user
 
 
-@router.patch("/api/profile", response_model=schemas.UserResponse)
+@router.patch(
+    "/profile", 
+    response_model=schemas.UserResponse, 
+    tags=[settings.PROFILE_TAG]
+)
 def update_profile(
     user_update: schemas.UserUpdate, 
     request: Request, 
@@ -219,7 +231,7 @@ def update_profile(
     return user
 
 
-@router.post("/api/profile/password")
+@router.post("/profile/password", tags=[settings.PROFILE_TAG])
 def update_password(
     pw_update: schemas.UserUpdatePassword, 
     request: Request, 
@@ -241,16 +253,22 @@ def update_password(
 # --- Contacts Endpoint ---
 
 
-@router.get("/api/contacts", response_model=List[schemas.ContactResponse])
+@router.get(
+    "/contacts", 
+    response_model=List[schemas.ContactResponse], 
+    tags=[settings.CONTACT_TAG]
+)
 def get_contacts(
     request: Request,
     db: deps.db_session,
+    query: str | None = None,
     limit: int = 20,
     offset: int = 0
 ):
     current_user = deps.get_current_user(request, db)
 
     limit = min(limit, 100)
+    search = f"%{query.strip()}%" if query and query.strip() else None
 
     # Identify the contact (other user)
     contact_case = case(
@@ -335,7 +353,7 @@ def get_contacts(
     blocked_by_me = aliased(models.BlockedUser)
     blocked_me = aliased(models.BlockedUser)
 
-    results = (
+    results_query = (
         db.query(
             models.User,
             last_message.c.content,
@@ -343,10 +361,6 @@ def get_contacts(
             func.coalesce(unread_subq.c.unread_count, 0),
             (blocked_by_me.id != None).label("blocked_by_me"),
             (blocked_me.id != None).label("blocked_me")
-        )
-        .join(
-            last_message,
-            last_message.c.contact_id == models.User.id
         )
         .outerjoin(
             unread_subq,
@@ -366,11 +380,27 @@ def get_contacts(
                 blocked_me.blocked_contact_id == current_user.id
             )
         )
-        .order_by(last_message.c.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-        .all()
     )
+
+    if search:
+        results_query = results_query.filter(
+            models.User.id != current_user.id,
+            or_(
+                models.User.mobile_number.ilike(search),
+                models.User.first_name.ilike(search),
+                models.User.last_name.ilike(search)
+            )
+        ).outerjoin(
+            last_message,
+            last_message.c.contact_id == models.User.id
+        ).order_by(last_message.c.created_at.desc(), models.User.first_name.asc(), models.User.last_name.asc())
+    else:
+        results_query = results_query.join(
+            last_message,
+            last_message.c.contact_id == models.User.id
+        ).order_by(last_message.c.created_at.desc())
+
+    results = results_query.limit(limit).offset(offset).all()
 
     contacts = []
     for user, last_msg, last_time, unread_cnt, by_me_flag, me_flag in results:
@@ -394,128 +424,7 @@ def get_contacts(
     return contacts
 
 
-@router.get("/api/contacts/search", response_model=List[schemas.ContactResponse])
-def search_users(query: str, request: Request, db: deps.db_session):
-
-    current = deps.get_current_user(request, db)
-    search = f"%{query}%"
-
-    # block aliases
-    blocked_by_me = aliased(models.BlockedUser)
-    blocked_me = aliased(models.BlockedUser)
-
-    # last message subquery
-    last_msg_subq = (
-        db.query(
-            models.Message.sender_id,
-            models.Message.receiver_id,
-            models.Message.content,
-            models.Message.created_at,
-            func.row_number().over(
-                partition_by=case(
-                    (models.Message.sender_id == current.id, 
-                     models.Message.receiver_id),
-                    else_=models.Message.sender_id
-                ),
-                order_by=models.Message.created_at.desc()
-            ).label("rn")
-        )
-        .filter(
-            or_(
-                models.Message.sender_id == current.id,
-                models.Message.receiver_id == current.id
-            ),
-            models.Message.is_deleted == False
-        )
-        .subquery()
-    )
-
-    # unread count
-    unread_subq = (
-        db.query(
-            models.Message.sender_id.label("contact_id"),
-            func.count(models.Message.id).label("unread_count")
-        )
-        .filter(
-            models.Message.receiver_id == current.id,
-            models.Message.is_read == False,
-            models.Message.is_deleted == False
-        )
-        .group_by(models.Message.sender_id)
-        .subquery()
-    )
-
-    results = (
-        db.query(
-            models.User,
-            last_msg_subq.c.content,
-            last_msg_subq.c.created_at,
-            func.coalesce(unread_subq.c.unread_count, 0),
-            (blocked_by_me.id != None).label("blocked_by_me"),
-            (blocked_me.id != None).label("blocked_me")
-        )
-        .outerjoin(
-            last_msg_subq,
-            and_(
-                last_msg_subq.c.rn == 1,
-                or_(
-                    last_msg_subq.c.sender_id == models.User.id,
-                    last_msg_subq.c.receiver_id == models.User.id
-                )
-            )
-        )
-        .outerjoin(
-            unread_subq,
-            unread_subq.c.contact_id == models.User.id
-        )
-        .outerjoin(
-            blocked_by_me,
-            and_(
-                blocked_by_me.user_id == current.id,
-                blocked_by_me.blocked_contact_id == models.User.id
-            )
-        )
-        .outerjoin(
-            blocked_me,
-            and_(
-                blocked_me.user_id == models.User.id,
-                blocked_me.blocked_contact_id == current.id
-            )
-        )
-        .filter(
-            models.User.id != current.id,
-            or_(
-                models.User.mobile_number.ilike(search),
-                models.User.first_name.ilike(search),
-                models.User.last_name.ilike(search)
-            )
-        )
-        .all()
-    )
-
-    contacts = []
-    for user, last_msg, last_time, unread, by_me, me in results:
-        contacts.append(
-            schemas.ContactResponse(
-                id=user.id,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                mobile_number=user.mobile_number,
-                profile_pic=user.profile_pic,
-                is_online=user.is_online,
-                last_message=last_msg,
-                last_message_at=last_time,
-                public_key=user.public_key,
-                blocked_by_me=by_me,
-                blocked_me=me,
-                unread_count=unread
-            )
-        )
-
-    return contacts
-
-
-@router.post("/api/contacts/block")
+@router.post("/contacts/block", tags=[settings.CONTACT_TAG])
 def block_user(
     block_req: schemas.BlockUserRequest, 
     request: Request, 
@@ -539,7 +448,7 @@ def block_user(
     return {"msg": "User blocked"}
 
 
-@router.post("/api/contacts/unblock")
+@router.post("/contacts/unblock", tags=[settings.CONTACT_TAG])
 def unblock_user(
     block_req: schemas.BlockUserRequest, 
     request: Request, 
@@ -557,8 +466,11 @@ def unblock_user(
 # --- Messages Endpoint ---
 
 
-
-@router.get("/api/messages/{contact_id}", response_model=List[schemas.MessageResponse])
+@router.get(
+    "/messages/{contact_id}", 
+    response_model=List[schemas.MessageResponse], 
+    tags=[settings.MESSAGE_TAG]
+)
 def get_messages(
     contact_id: int, 
     request: Request, 
@@ -607,45 +519,7 @@ def get_messages(
     return messages
 
 
-@router.patch("/api/messages/{message_id}", response_model=schemas.MessageResponse)
-def update_message(
-    message_id: int, 
-    message_update: schemas.MessageUpdate, 
-    request: Request, 
-    db: deps.db_session
-):
-    user = deps.get_current_user(request, db)
-    msg = db.query(models.Message).filter(
-        models.Message.id == message_id,
-        models.Message.sender_id == user.id
-    ).first()
-    
-    if not msg:
-        raise HTTPException(
-            status_code=404, 
-            detail="Message not found or not authorized"
-        )
-    
-    now_utc = datetime.now(timezone.utc)
-    
-    # Check 1-hour limit
-    t_diff = now_utc - msg.created_at.replace(tzinfo=timezone.utc)
-    if t_diff > timedelta(hours=1):
-        raise HTTPException(
-            status_code=400, 
-            detail="Cannot edit message after 1 hour"
-        )
-    
-    msg.content = message_update.content
-    msg.is_edited = True
-    msg.edited_at = now_utc
-    
-    db.commit()
-    db.refresh(msg)
-    return msg
-
-
-@router.delete("/api/messages/{message_id}")
+@router.delete("/messages/{message_id}", tags=[settings.MESSAGE_TAG])
 def delete_message(message_id: int, request: Request, db: deps.db_session):
     user = deps.get_current_user(request, db)
     msg = db.query(models.Message).filter(
@@ -674,9 +548,7 @@ def delete_message(message_id: int, request: Request, db: deps.db_session):
     return {"msg": "Message deleted"}
 
 
-# --- Clear Chat Enpoint ---
-
-@router.post("/api/chat/clear/{contact_id}")
+@router.post("/messages/clear/{contact_id}", tags=[settings.MESSAGE_TAG])
 def clear_chat(
     contact_id: int, 
     request: Request, 

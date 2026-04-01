@@ -879,7 +879,9 @@
 
     // --- WebSockets ---
     function initWebSocket() {
-        socket = io();
+        socket = io({
+            path: '/socket.io'
+        });
 
         socket.on('connect', async () => {
             flushOfflineQueue();
@@ -1451,7 +1453,7 @@
 
                 try {
                     listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8">Searching...</div>';
-                    const res = await fetch('/api/contacts/search?query=' + encodeURIComponent(query));
+                    const res = await fetch('/api/contacts?query=' + encodeURIComponent(query));
                     if (res.ok) {
                         const results = (await res.json()).map(normalizeContactData);
                         await renderContactList(results);
@@ -1678,7 +1680,7 @@
 
         if (result) {
             try {
-                const res = await fetch(`/api/chat/clear/${activeContactId}`, { method: 'POST' });
+                const res = await fetch(`/api/messages/clear/${activeContactId}`, { method: 'POST' });
                 if (res.ok) {
                     document.getElementById('messages-area').innerHTML = '';
                 }

@@ -181,28 +181,38 @@ def test_reset_password_updates_credentials_and_deletes_messages(client, db_sess
     assert auth.verify_password("fresh-secret123", user.password_hash) is True
 
 
-def test_contacts_endpoints_return_contact_data(client, db_session, auth_cookie):
+def test_contacts_endpoint_returns_contact_data(client, db_session, auth_cookie):
     current_user = UserFactory()
     contact = UserFactory(first_name="Contact")
     MessageFactory(sender=contact, receiver=current_user, content="latest", is_read=False)
     BlockedUserFactory(user_id=current_user.id, blocked_contact_id=contact.id)
-
     db_session.commit()
-    
     authenticate_client(client, current_user.id, auth_cookie)
 
     contacts_response = client.get("/api/contacts")
-    search_response = client.get("/api/contacts/search", params={"query": "Contact"})
-
     contacts = contacts_response.json()
-    search_results = search_response.json()
 
     assert contacts_response.status_code == 200
     assert contacts[0]["id"] == contact.id
     assert contacts[0]["blocked_by_me"] is True
     assert contacts[0]["unread_count"] == 1
+
+
+def test_contacts_search_returns_matching_users_without_history(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    contact = UserFactory(first_name="Contact")
+    searchable_only_user = UserFactory(first_name="Contactless", last_name="User")
+    MessageFactory(sender=contact, receiver=current_user, content="latest", is_read=False)
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    search_response = client.get("/api/contacts", params={"query": "Contact"})
+
     assert search_response.status_code == 200
-    assert search_results[0]["id"] == contact.id
+
+    search_result_ids = [item["id"] for item in search_response.json()]
+    assert contact.id in search_result_ids
+    assert searchable_only_user.id in search_result_ids
 
 
 def test_block_and_unblock_contact(client, db_session, auth_cookie):
@@ -265,7 +275,7 @@ def test_get_messages_respects_chat_clear(client, db_session, auth_cookie):
     assert response.json()[0]["id"] != old_message.id
 
 
-def test_update_and_delete_message_apply_one_hour_rule(client, db_session, auth_cookie):
+def test_delete_message_applies_one_hour_rule(client, db_session, auth_cookie):
     current_user = UserFactory()
     contact = UserFactory()
     fresh_message = MessageFactory(sender=current_user, receiver=contact)
@@ -277,20 +287,9 @@ def test_update_and_delete_message_apply_one_hour_rule(client, db_session, auth_
     db_session.commit()
     authenticate_client(client, current_user.id, auth_cookie)
 
-    update_response = client.patch(
-        f"/api/messages/{fresh_message.id}",
-        json={"content": "updated"},
-    )
-    old_update_response = client.patch(
-        f"/api/messages/{stale_message.id}",
-        json={"content": "too-late"},
-    )
     delete_response = client.delete(f"/api/messages/{fresh_message.id}")
     old_delete_response = client.delete(f"/api/messages/{stale_message.id}")
 
-    assert update_response.status_code == 200
-    assert update_response.json()["content"] == "updated"
-    assert old_update_response.status_code == 400
     assert delete_response.status_code == 200
     assert old_delete_response.status_code == 400
 
@@ -316,7 +315,7 @@ def test_clear_chat_creates_clear_record_and_schedules_cleanup(
         fake_delete_cleared_messages
     )
 
-    response = client.post(f"/api/chat/clear/{contact.id}")
+    response = client.post(f"/api/messages/clear/{contact.id}")
 
     clear_record = db_session.query(models.ChatClear).filter_by(
         user_id=current_user.id,

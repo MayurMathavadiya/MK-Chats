@@ -110,6 +110,38 @@
         );
     }
 
+    function resetLoginUi() {
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('submitBtn');
+        const errorMsg = document.getElementById('errorMsg');
+
+        if (form) {
+            form.reset();
+        }
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Sign In</span>';
+        }
+
+        if (errorMsg) {
+            errorMsg.innerText = '';
+            errorMsg.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('pageshow', (event) => {
+        const navigationEntry = performance.getEntriesByType('navigation')[0];
+        const isHistoryRestore = event.persisted || navigationEntry?.type === 'back_forward';
+
+        if (!isHistoryRestore) {
+            return;
+        }
+
+        resetLoginUi();
+        window.location.replace('/');
+    });
+
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const mobile = document.getElementById('mobile').value;
@@ -188,23 +220,23 @@
                         isAlert: true
                     });
                     btn.disabled = false;
-                    btn.innerText = 'Login';
+                    btn.innerHTML = '<span>Sign In</span>';
                     return; // Stop redirection
                 }
 
                 localStorage.setItem('current_user_id', data.user_id);
-                window.location.href = '/';
+                window.location.replace('/');
             } else {
                 errorMsg.innerText = data.detail || 'Login failed';
                 errorMsg.style.display = 'block';
                 btn.disabled = false;
-                btn.innerText = 'Login';
+                btn.innerHTML = '<span>Sign In</span>';
             }
         } catch (err) {
             errorMsg.innerText = 'Network error occurred';
             errorMsg.style.display = 'block';
             btn.disabled = false;
-            btn.innerText = 'Login';
+            btn.innerHTML = '<span>Sign In</span>';
         }
     });
 </script>

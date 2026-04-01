@@ -126,16 +126,15 @@ Useful routes:
 ### Contacts
 
 - `GET /api/contacts`
-- `GET /api/contacts/search?query=...`
+- `GET /api/contacts?query=...`
 - `POST /api/contacts/block`
 - `POST /api/contacts/unblock`
 
 ### Messages
 
 - `GET /api/messages/{contact_id}`
-- `PATCH /api/messages/{message_id}`
 - `DELETE /api/messages/{message_id}`
-- `POST /api/chat/clear/{contact_id}`
+- `POST /api/messages/clear/{contact_id}`
 
 ## Socket.IO Events
 

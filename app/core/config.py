@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     SMTP_USERNAME: str
     SMTP_PASSWORD: str
     SMTP_FROM_EMAIL: str
+    AUTH_TAG: str = "Auth"
+    PROFILE_TAG: str = "Profile"
+    CONTACT_TAG: str = "Contacts"
+    MESSAGE_TAG: str = "Messages"
+    WEB_TAG: str = "Web Pages"
 
     model_config = ConfigDict(
         env_file=".env"
