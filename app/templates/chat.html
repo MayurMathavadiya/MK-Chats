@@ -306,13 +306,41 @@
                     class="hidden space-y-4 mt-5 bg-black/20 p-4 rounded-xl border border-white/5">
                     <div class="space-y-1.5">
                         <label class="block text-xs font-semibold text-gray-300">Current Password</label>
-                        <input type="password" id="oldPassword" class="w-full glass-input py-2 px-3 text-sm"
-                            placeholder="••••••••">
+                        <div class="password-input-wrap">
+                            <input type="password" id="oldPassword" class="w-full glass-input py-2 px-3 text-sm"
+                                placeholder="••••••••">
+                            <button type="button" class="password-toggle-btn" data-password-toggle="oldPassword"
+                                aria-label="Show password" aria-pressed="false">
+                                <svg class="password-toggle-icon" data-password-toggle-show fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    <circle cx="12" cy="12" r="3" stroke-width="1.8" />
+                                </svg>
+                                <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                        d="M3 3l18 18M10.585 10.587A2 2 0 0012 16a2 2 0 001.414-.586M9.88 5.09A9.77 9.77 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.741 9.741 0 01-4.132 5.207M6.228 6.228A9.744 9.744 0 002.458 12c1.274 4.057 5.064 7 9.542 7a9.77 9.77 0 005.09-1.42" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="space-y-1.5">
                         <label class="block text-xs font-semibold text-gray-300">New Password</label>
-                        <input type="password" id="newPassword" class="w-full glass-input py-2 px-3 text-sm"
-                            placeholder="••••••••">
+                        <div class="password-input-wrap">
+                            <input type="password" id="newPassword" class="w-full glass-input py-2 px-3 text-sm"
+                                placeholder="••••••••">
+                            <button type="button" class="password-toggle-btn" data-password-toggle="newPassword"
+                                aria-label="Show password" aria-pressed="false">
+                                <svg class="password-toggle-icon" data-password-toggle-show fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    <circle cx="12" cy="12" r="3" stroke-width="1.8" />
+                                </svg>
+                                <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                        d="M3 3l18 18M10.585 10.587A2 2 0 0012 16a2 2 0 001.414-.586M9.88 5.09A9.77 9.77 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.741 9.741 0 01-4.132 5.207M6.228 6.228A9.744 9.744 0 002.458 12c1.274 4.057 5.064 7 9.542 7a9.77 9.77 0 005.09-1.42" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -75,6 +75,47 @@
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
         }
 
+        .password-input-wrap {
+            position: relative;
+        }
+
+        .password-input-wrap .glass-input {
+            padding-right: 3.75rem;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            top: 50%;
+            right: 0.875rem;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: rgba(199, 210, 254, 0.85);
+            padding: 0.25rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .password-toggle-btn:hover {
+            color: white;
+        }
+
+        .password-toggle-btn svg {
+            width: 1.1rem;
+            height: 1.1rem;
+            display: block;
+        }
+
+        .password-toggle-icon.is-hidden {
+            display: none;
+        }
+
+        .password-toggle-btn:focus-visible {
+            outline: 2px solid rgba(99, 102, 241, 0.6);
+            outline-offset: 2px;
+            border-radius: 9999px;
+        }
+
         .primary-btn {
             background: linear-gradient(to right, #6366f1, #a855f7);
             color: white;
@@ -241,6 +282,44 @@
             hideModal();
             if (modalResolve) modalResolve(null);
         });
+
+        function initPasswordToggles() {
+            document.querySelectorAll('[data-password-toggle]').forEach((btn) => {
+                if (btn.dataset.passwordToggleBound === 'true') {
+                    return;
+                }
+
+                btn.dataset.passwordToggleBound = 'true';
+                const inputId = btn.getAttribute('data-password-toggle');
+                const input = document.getElementById(inputId);
+                if (!input) {
+                    return;
+                }
+
+                const showIcon = btn.querySelector('[data-password-toggle-show]');
+                const hideIcon = btn.querySelector('[data-password-toggle-hide]');
+
+                function syncPasswordToggleIcons() {
+                    const passwordHidden = input.type === 'password';
+                    btn.setAttribute('aria-label', passwordHidden ? 'Show password' : 'Hide password');
+                    btn.setAttribute('aria-pressed', String(!passwordHidden));
+
+                    if (showIcon && hideIcon) {
+                        showIcon.classList.toggle('is-hidden', !passwordHidden);
+                        hideIcon.classList.toggle('is-hidden', passwordHidden);
+                    }
+                }
+
+                syncPasswordToggleIcons();
+
+                btn.addEventListener('click', () => {
+                    input.type = input.type === 'password' ? 'text' : 'password';
+                    syncPasswordToggleIcons();
+                });
+            });
+        }
+
+        initPasswordToggles();
     </script>
 </body>
 
