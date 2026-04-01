@@ -3,12 +3,16 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}MK Chats{% endblock %}</title>
     <script nonce="{{ request.state.nonce }}" src="https://cdn.tailwindcss.com"></script>
     <script nonce="{{ request.state.nonce }}" src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --app-height: 100dvh;
+        }
+
         html {
             background-color: #344878;
             /* Prevents transparent scrollbar tracks from revealing default white HTML background! */
@@ -20,10 +24,31 @@
             color: #f3f4f6;
             margin: 0;
             padding: 0;
-            min-height: 100vh;
-            min-height: 100dvh;
+            min-height: var(--app-height);
             overflow-x: hidden;
             overflow-y: auto;
+        }
+
+        .mobile-app-shell {
+            min-height: var(--app-height);
+            height: var(--app-height);
+        }
+
+        @media (min-width: 768px) {
+            .mobile-app-shell {
+                min-height: 0;
+                height: 90vh;
+            }
+        }
+
+        .chat-input-safe-padding {
+            padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
+        }
+
+        @media (min-width: 768px) {
+            .chat-input-safe-padding {
+                padding-bottom: 2rem;
+            }
         }
 
         .glass-panel {
@@ -121,7 +146,7 @@
     </style>
 </head>
 
-<body class="antialiased flex items-center justify-center p-0 md:p-6 lg:p-10 min-h-screen">
+<body class="antialiased flex items-stretch md:items-center justify-center p-0 md:p-6 lg:p-10 min-h-screen">
     {% block content %}
     {% endblock %}
 
@@ -146,6 +171,19 @@
     </div>
 
     <script nonce="{{ request.state.nonce }}">
+        function syncAppHeight() {
+            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            document.documentElement.style.setProperty('--app-height', `${Math.round(viewportHeight)}px`);
+        }
+
+        syncAppHeight();
+        window.addEventListener('resize', syncAppHeight);
+        window.addEventListener('orientationchange', syncAppHeight);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncAppHeight);
+            window.visualViewport.addEventListener('scroll', syncAppHeight);
+        }
+
         let modalResolve = null;
 
         function showModal({ title, description, placeholder, value, isAlert = false }) {

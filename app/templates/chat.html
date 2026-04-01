@@ -4,7 +4,7 @@
 
 {% block content %}
 <div
-    class="flex flex-row min-h-screen md:min-h-0 w-full max-w-[1400px] md:h-[90vh] glass-panel md:rounded-2xl shadow-2xl relative overflow-hidden">
+    class="mobile-app-shell flex flex-row w-full max-w-[1400px] glass-panel md:rounded-2xl shadow-2xl relative overflow-hidden">
     <!-- Sidebar: Contacts -->
     <div id="sidebar"
         class="w-full md:w-80 lg:w-96 h-full border-r border-white/10 flex flex-col flex-shrink-0 z-30 absolute md:relative top-0 left-0 bg-slate-900/95 md:bg-transparent backdrop-blur-xl transition-transform duration-300">
@@ -37,7 +37,7 @@
 
                     <!-- Profile Dropdown -->
                     <div id="profileDropdown"
-                        class="absolute left-0 mt-3 w-56 glass-panel rounded-xl shadow-2xl py-2 hidden z-50 overflow-hidden border border-white/10">
+                        class="absolute right-0 top-full mt-3 w-56 max-w-[calc(100vw-2rem)] glass-panel rounded-xl shadow-2xl py-2 hidden z-50 overflow-hidden border border-white/10">
                         <div class="px-5 py-4 border-b border-white/10 bg-white/5">
                             <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">My Account
                             </p>
@@ -155,7 +155,8 @@
             </div>
 
             <!-- Input Area -->
-            <div class="px-4 md:px-8 pb-6 md:pb-8 pt-2 flex-shrink-0 bg-gradient-to-t from-slate-900 to-transparent">
+            <div id="chat-input-area"
+                class="chat-input-safe-padding px-4 md:px-8 pb-6 md:pb-8 pt-2 flex-shrink-0 bg-gradient-to-t from-slate-900 to-transparent">
                 <form id="messageForm" class="flex gap-3 items-end relative z-10">
                     <button type="button" id="uploadBtnTrigger"
                         class="w-12 h-12 flex-shrink-0 bg-white/10 hover:bg-white/20 text-indigo-200 hover:text-white transition-all rounded-full flex items-center justify-center shadow-sm">
@@ -1555,6 +1556,23 @@
         }, 50);
     }
 
+    function keepActiveChatVisible(forceScroll = false) {
+        const activeChat = document.getElementById('active-chat');
+        const input = document.getElementById('msgInput');
+
+        if (!activeChat || activeChat.classList.contains('hidden') || !input) {
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            input.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+
+            if (forceScroll || document.activeElement === input) {
+                scrollToBottom();
+            }
+        });
+    }
+
     // Modal functions moved to base.html
 
     // --- Action Menu Modal ---
@@ -1800,6 +1818,20 @@
 
         document.getElementById("fileInput").addEventListener("change", handleFileSelection);
 
+        const msgInput = document.getElementById('msgInput');
+        if (msgInput) {
+            msgInput.addEventListener('focus', () => {
+                keepActiveChatVisible(true);
+                setTimeout(() => keepActiveChatVisible(true), 250);
+            });
+        }
+
+        window.addEventListener('resize', () => keepActiveChatVisible(false));
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => keepActiveChatVisible(true));
+            window.visualViewport.addEventListener('scroll', () => keepActiveChatVisible(false));
+        }
+
         // Global listener for message actions (Edit/Delete)
         document.getElementById("messages-area").addEventListener("click", (e) => {
             const editBtn = e.target.closest('.btn-edit');
@@ -1917,6 +1949,8 @@
                 selectUser(Number(savedId), savedName, savedPubKey);
             }
         }
+
+        keepActiveChatVisible(false);
     });
 
     function showContactProfile() {
