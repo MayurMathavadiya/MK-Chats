@@ -172,4 +172,4 @@ pytest
 
 - Authentication is stored in an `access_token` cookie.
 - Some cookie settings in the code are currently development-friendly and should be hardened for production.
-- The application expects valid SMTP credentials if you want the forgot-password flow to send email successfully.
+- The application expects valid SMTP credentials if you want the forgot-password flow to send email successfully. 
