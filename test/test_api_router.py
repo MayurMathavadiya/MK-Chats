@@ -27,6 +27,10 @@ def authenticate_client(client, user_id, auth_cookie):
     client.cookies.set("access_token", auth_cookie(user_id))
 
 
+def authenticate_client_with_bearer(client, user_id, access_token):
+    client.headers["Authorization"] = f"Bearer {access_token(user_id)}"
+
+
 def test_register_creates_user_and_sets_cookie(client):
     response = client.post("/api/register", json=register_payload())
 
@@ -87,6 +91,17 @@ def test_get_and_update_profile(client, db_session, auth_cookie):
     assert patch_response.status_code == 200
     assert patch_response.json()["first_name"] == "After"
     assert patch_response.json()["profile_pic"] == "avatar-data"
+
+
+def test_profile_endpoints_accept_bearer_token(client, db_session, access_token):
+    user = UserFactory(first_name="Bearer", last_name="User")
+    db_session.commit()
+    authenticate_client_with_bearer(client, user.id, access_token)
+
+    response = client.get("/api/profile")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == user.id
 
 
 def test_update_password_requires_correct_old_password(client, db_session, auth_cookie):

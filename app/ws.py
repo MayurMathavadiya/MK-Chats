@@ -16,8 +16,10 @@ sio_app = socketio.ASGIApp(sio, socketio_path='')
 
 
 @sio.event
-async def connect(sid, environ):
-    user_id = deps.get_user_id_from_environ(environ)
+async def connect(sid, environ, auth=None):
+    user_id = deps.get_current_websocket_user_id(
+        environ=environ, socket_auth=auth
+    )
     if not user_id:
         return False # Reject connection
         
