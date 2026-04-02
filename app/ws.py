@@ -88,6 +88,7 @@ async def send(sid, data):
     content = data.get("content")
     file_data = data.get("file_data")
     file_type = data.get("file_type")
+    reply_to_id = data.get("reply_to_id")
     
     db = SessionLocal()
     try:
@@ -113,7 +114,8 @@ async def send(sid, data):
             receiver_id=receiver_id,
             content=content,
             file_data=file_data,
-            file_type=file_type
+            file_type=file_type,
+            reply_to_id=reply_to_id
         )
         db.add(new_msg)
         
@@ -132,6 +134,7 @@ async def send(sid, data):
             "content": content,
             "file_data": file_data,
             "file_type": file_type,
+            "reply_to_id": reply_to_id,
             "is_deleted": False,
             "is_edited": False,
             "created_at": new_msg.created_at.replace(tzinfo=timezone.utc).isoformat()

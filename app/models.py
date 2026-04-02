@@ -56,6 +56,8 @@ class Message(Base):
     edited_at = Column(DateTime, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
 
     # Relationships
     sender = relationship(
@@ -68,6 +70,11 @@ class Message(Base):
         "User", 
         foreign_keys=[receiver_id], 
         back_populates="messages_received"
+    )
+
+    reply_to = relationship(
+        "Message", 
+        remote_side=[id]
     )
 
 
