@@ -36,14 +36,23 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-def get_current_user_id_from_cookie(request: Request) -> Optional[int]:
-    token = request.cookies.get("access_token")
+def normalize_bearer_token(token: Optional[str]) -> Optional[str]:
     if not token:
         return None
+
+    token = token.strip()
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
+
+    return token or None
+
+
+def decode_user_id_from_token(token: Optional[str]) -> Optional[int]:
+    token = normalize_bearer_token(token)
+    if not token:
+        return None
+
     try:
-        # Strip Bearer if present
-        if token.startswith("Bearer "):
-            token = token[7:]
         payload = jwt.decode(
             token, 
             settings.SECRET_KEY, 
@@ -58,3 +67,12 @@ def get_current_user_id_from_cookie(request: Request) -> Optional[int]:
     
     except JWTError:
         return None
+
+
+def get_current_user_id(request: Request) -> Optional[int]:
+    access_token = (
+        request.headers.get("Authorization") or request.cookies.get("access_token")
+    )
+    
+    return decode_user_id_from_token(access_token)
+

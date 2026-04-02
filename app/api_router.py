@@ -268,7 +268,6 @@ def get_contacts(
     current_user = deps.get_current_user(request, db)
 
     limit = min(limit, 100)
-    search = f"%{query.strip()}%" if query and query.strip() else None
 
     # Identify the contact (other user)
     contact_case = case(
@@ -382,18 +381,19 @@ def get_contacts(
         )
     )
 
-    if search:
+    if query:
+        # Strictly match only mobile number
         results_query = results_query.filter(
             models.User.id != current_user.id,
-            or_(
-                models.User.mobile_number.ilike(search),
-                models.User.first_name.ilike(search),
-                models.User.last_name.ilike(search)
-            )
+            models.User.mobile_number == query
         ).outerjoin(
             last_message,
             last_message.c.contact_id == models.User.id
-        ).order_by(last_message.c.created_at.desc(), models.User.first_name.asc(), models.User.last_name.asc())
+        ).order_by(
+            last_message.c.created_at.desc(), 
+            models.User.first_name.asc(), 
+            models.User.last_name.asc()
+        )
     else:
         results_query = results_query.join(
             last_message,

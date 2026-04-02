@@ -112,6 +112,7 @@ class MessageBase(BaseModel):
     content: Optional[str] = None
     file_data: Optional[str] = None
     file_type: Optional[str] = None
+    reply_to_id: Optional[int] = None
 
 
 class MessageCreate(MessageBase):

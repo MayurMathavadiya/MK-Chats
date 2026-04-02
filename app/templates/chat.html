@@ -15,7 +15,8 @@
                 <div class="flex items-center gap-3">
                     <div
                         class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <img src="/static/branding/mk-chats-logo.svg" alt="MK Chats logo" class="w-5 h-5 object-contain">
+                        <img src="/static/branding/mk-chats-logo.svg" alt="MK Chats logo"
+                            class="w-5 h-5 object-contain">
                     </div>
                     <span class="font-bold text-white tracking-wide">MK Chats</span>
                 </div>
@@ -157,6 +158,24 @@
             <!-- Input Area -->
             <div id="chat-input-area"
                 class="chat-input-safe-padding px-4 md:px-8 pb-6 md:pb-8 pt-2 flex-shrink-0 bg-gradient-to-t from-slate-900 to-transparent">
+                <!-- Reply Preview -->
+                <div id="reply-preview-container"
+                    class="hidden mb-2 relative z-10 w-full flex items-center justify-between">
+                    <div
+                        class="flex-1 bg-black/40 border-l-4 border-indigo-400 rounded-r-xl p-2.5 flex flex-col min-w-0 pr-8 shadow-inner">
+                        <span class="text-indigo-400 font-bold text-[11px] mb-0.5" id="reply-preview-title">Replying to
+                            message</span>
+                        <span class="text-gray-300 text-sm truncate" id="reply-preview-text"></span>
+                    </div>
+                    <button type="button" onclick="cancelReply()"
+                        class="absolute right-3 text-gray-400 hover:text-white p-1.5 rounded-full bg-black/50 hover:bg-black/70 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
                 <form id="messageForm" class="flex gap-3 items-end relative z-10">
                     <button type="button" id="uploadBtnTrigger"
                         class="w-12 h-12 flex-shrink-0 bg-white/10 hover:bg-white/20 text-indigo-200 hover:text-white transition-all rounded-full flex items-center justify-center shadow-sm">
@@ -217,6 +236,10 @@
         id="actionMenuContent">
         <h3 class="text-sm font-bold text-white mb-6 tracking-wide">Message Actions</h3>
         <div class="flex flex-col gap-3">
+            <button id="menuReplyBtn"
+                class="w-full py-3 text-white hover:bg-white/10 font-semibold text-sm rounded-xl transition-all border border-white/10">
+                Reply to Message
+            </button>
             <button id="menuEditBtn"
                 class="w-full py-3 text-white hover:bg-white/10 font-semibold text-sm rounded-xl transition-all border border-white/10">
                 Edit Message
@@ -311,12 +334,14 @@
                                 placeholder="••••••••">
                             <button type="button" class="password-toggle-btn" data-password-toggle="oldPassword"
                                 aria-label="Show password" aria-pressed="false">
-                                <svg class="password-toggle-icon" data-password-toggle-show fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="password-toggle-icon" data-password-toggle-show fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     <circle cx="12" cy="12" r="3" stroke-width="1.8" />
                                 </svg>
-                                <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                                         d="M3 3l18 18M10.585 10.587A2 2 0 0012 16a2 2 0 001.414-.586M9.88 5.09A9.77 9.77 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.741 9.741 0 01-4.132 5.207M6.228 6.228A9.744 9.744 0 002.458 12c1.274 4.057 5.064 7 9.542 7a9.77 9.77 0 005.09-1.42" />
                                 </svg>
@@ -330,12 +355,14 @@
                                 placeholder="••••••••">
                             <button type="button" class="password-toggle-btn" data-password-toggle="newPassword"
                                 aria-label="Show password" aria-pressed="false">
-                                <svg class="password-toggle-icon" data-password-toggle-show fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="password-toggle-icon" data-password-toggle-show fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     <circle cx="12" cy="12" r="3" stroke-width="1.8" />
                                 </svg>
-                                <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                                         d="M3 3l18 18M10.585 10.587A2 2 0 0012 16a2 2 0 001.414-.586M9.88 5.09A9.77 9.77 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.741 9.741 0 01-4.132 5.207M6.228 6.228A9.744 9.744 0 002.458 12c1.274 4.057 5.064 7 9.542 7a9.77 9.77 0 005.09-1.42" />
                                 </svg>
@@ -370,7 +397,7 @@
                     id="cpStatusDot"></div>
             </div>
             <h3 class="text-xl font-bold text-white mb-1" id="cpModalName">Name</h3>
-            <p class="text-sm text-indigo-300 font-medium" id="cpModalMobile">+00 0000 0000</p>
+            <p class="text-sm text-indigo-300 font-medium" id="cpModalMobile">00 0000 0000</p>
         </div>
 
         <div
@@ -407,6 +434,7 @@
     let cachedContacts = [];
     let temporaryPinnedContact = null;
     let activeHistoryLoadToken = 0;
+    let currentReplyToId = null;
 
     function getOfflineQueueStorageKey() {
         return `offlineQueue:${currentUserId}`;
@@ -438,7 +466,8 @@
             Number(item.receiver_id),
             item.content || '',
             item.file_data || '',
-            item.file_type || ''
+            item.file_type || '',
+            item.reply_to_id || null
         ]);
     }
 
@@ -447,7 +476,8 @@
             Number(msg.receiver_id),
             msg.content || '',
             msg.file_data || '',
-            msg.file_type || ''
+            msg.file_type || '',
+            msg.reply_to_id || null
         ]);
         const queue = getOfflineQueue();
         const index = queue.findIndex((item) => getQueueSignature(item) === msgSignature);
@@ -479,6 +509,7 @@
             content: item.content || null,
             file_data: item.file_data || null,
             file_type: item.file_type || null,
+            reply_to_id: item.reply_to_id || null,
             is_deleted: false,
             is_edited: false,
             is_read: false,
@@ -512,7 +543,8 @@
                 receiver_id: Number(queuedItem.receiver_id),
                 content: queuedItem.content || null,
                 file_data: queuedItem.file_data || null,
-                file_type: queuedItem.file_type || null
+                file_type: queuedItem.file_type || null,
+                reply_to_id: queuedItem.reply_to_id || null
             });
         }
     }
@@ -523,7 +555,8 @@
         encryptedFileData = null,
         fileType = null,
         previewText = null,
-        previewFileData = null
+        previewFileData = null,
+        replyToId = null
     }) {
         const queuedItem = {
             receiver_id: Number(receiverId),
@@ -532,6 +565,7 @@
             file_type: fileType,
             preview_text: previewText,
             preview_file_data: previewFileData,
+            reply_to_id: replyToId,
             created_at: new Date().toISOString()
         };
 
@@ -1223,6 +1257,7 @@
             }
 
             messagesArea.innerHTML = '';
+            window.lastMessageDateString = null; // Reset date tracker for new chat history
 
             for (let msg of history) {
                 let plainText = msg.content;
@@ -1515,19 +1550,74 @@
             }
         }
 
+        let repliedHtml = '';
+        if (msg.reply_to_id) {
+            let repliedText = "Original message";
+            let repliedTitle = "Message";
+            let repliedMsgEl = document.getElementById(`msg-container-${msg.reply_to_id}`);
+            if (repliedMsgEl) {
+                if (repliedMsgEl.classList.contains('justify-end')) {
+                    repliedTitle = "You";
+                } else {
+                    const chatName = document.getElementById('chat-name');
+                    if (chatName) repliedTitle = chatName.innerText.split(' ')[0];
+                }
+
+                let textEl = repliedMsgEl.querySelector('.message-content');
+                if (textEl) {
+                    repliedText = textEl.innerText;
+                } else if (repliedMsgEl.querySelector('img') || repliedMsgEl.querySelector('video')) {
+                    repliedText = "Media Attachment";
+                }
+            }
+
+            const replyBg = isMe ? 'bg-black/20 hover:bg-black/30 w-full' : 'bg-slate-100 hover:bg-slate-200 w-full';
+            const replyBorder = isMe ? 'border-white/50' : 'border-indigo-500';
+            const replyLabelText = isMe ? 'text-indigo-200' : 'text-indigo-600';
+            const replyBodyText = isMe ? 'text-gray-200' : 'text-slate-600';
+
+            repliedHtml = `
+            <div class="mb-2 ${replyBg} border-l-4 ${replyBorder} rounded-r-lg p-2 cursor-pointer text-xs ${replyBodyText} truncate transition-colors reply-quote-block" data-target-id="${msg.reply_to_id}">
+                <div class="font-bold text-[10px] ${replyLabelText} mb-0.5">${escapeHtml(repliedTitle)}</div>
+                <div class="truncate max-w-full opacity-90">${escapeHtml(repliedText)}</div>
+            </div>`;
+        }
+
         let createdAt = msg.created_at;
         if (typeof createdAt === 'string' && !createdAt.includes('Z') && !createdAt.includes('+')) {
             createdAt += 'Z';
         }
         const dateObj = new Date(createdAt);
         const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Render Date Separator
+        const dateStr = dateObj.toDateString();
+        if (window.lastMessageDateString !== dateStr) {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            let friendlyDate = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+            if (dateStr === today.toDateString()) friendlyDate = 'Today';
+            else if (dateStr === yesterday.toDateString()) friendlyDate = 'Yesterday';
+
+            const dateHtml = `
+            <div class="flex justify-center w-full my-5 date-separator-marker">
+                <div class="bg-black/30 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-semibold text-white/80 shadow-sm tracking-wide">
+                    ${friendlyDate}
+                </div>
+            </div>`;
+            area.insertAdjacentHTML('beforeend', dateHtml);
+            window.lastMessageDateString = dateStr;
+        }
+
         const canEditOrDelete = isMe && msg.id && (new Date() - dateObj < 3600000);
         const isPending = Boolean(msg.is_pending);
         const statusIcon = msg.is_read
-            ? '<svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>'
+            ? '<svg class="w-4 h-4 text-sky-400 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path><path d="M22 6l-9 9"></path></svg>'
             : isPending
                 ? getPendingStatusIcon()
-                : '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path></svg>';
+                : '<svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L7 17l-4-4"></path></svg>';
 
         const html = `
             <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2.5 message-container ${!msg.id ? 'optimistic' : ''}" 
@@ -1537,25 +1627,28 @@
                  data-created-at="${createdAt}">
                  
                 ${!isMe ? `
-                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 mb-5">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 mb-3">
                     ${window.activeContactData && window.activeContactData.profilePic ? `<img src="${window.activeContactData.profilePic}" class="w-full h-full object-cover rounded-full">` : avatarChar}
                 </div>
                 ` : ''}
 
-                <div class="max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative">
-                    <div class="${isMe ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md border border-white/10' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'} px-5 py-3.5 transition-all w-full">
-                        ${plainText ? `<p class="text-[14px] leading-[1.6] message-content whitespace-pre-wrap">${escapeHtml(plainText)}</p>` : ''}
-                        ${fileHtml}
-                    </div>
-                    
-                    <div class="flex items-center gap-2 mt-1.5 px-1">
-                        ${msg.is_edited ? '<span class="text-[10px] text-gray-500 font-medium">Edited</span>' : '<span class="text-[10px] text-gray-500 font-medium hidden edited-flag">Edited</span>'}
-                        <div class="text-[10px] text-gray-400 font-semibold">${timeStr}</div>
-                        ${isMe ? `
-                        <div class="msg-status-icon text-sky-400" data-msg-id="${msg.id || ''}">
-                            ${statusIcon}
+                <div class="max-w-[80%] flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative">
+                    <div class="message-bubble ${isMe ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md border border-white/10' : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100'} px-4 pt-3 pb-1.5 transition-all w-full flex flex-col min-w-0 overflow-hidden relative">
+                        ${repliedHtml}
+                        <div class="flex flex-col gap-1 w-full relative z-10 break-words">
+                            ${plainText ? `<span class="text-[14px] leading-[1.6] message-content whitespace-pre-wrap">${escapeHtml(plainText)}</span>` : ''}
+                            ${fileHtml}
                         </div>
-                        ` : ''}
+                        
+                        <div class="flex items-center justify-end gap-1 mt-0.5 -mb-0.5 relative z-10 pl-6 ${isMe ? 'text-white/80' : 'text-slate-500'}">
+                            ${msg.is_edited ? '<span class="text-[9px] font-medium mr-1 uppercase tracking-wider opacity-80">Edited</span>' : '<span class="text-[9px] font-medium mr-1 uppercase tracking-wider hidden edited-flag opacity-80">Edited</span>'}
+                            <span class="text-[10px] font-bold tracking-wide ${isMe ? 'opacity-90' : 'opacity-100'}">${timeStr}</span>
+                            ${isMe ? `
+                            <div class="msg-status-icon opacity-100 drop-shadow-sm flex items-center" data-msg-id="${msg.id || ''}">
+                                ${statusIcon}
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
 
                     ${canEditOrDelete ? `
@@ -1585,6 +1678,61 @@
             area.scrollTop = area.scrollHeight;
         }, 50);
     }
+
+    window.scrollToMessage = function (targetId) {
+        console.log('Attempting to scroll to message:', targetId);
+        let msgEl = document.getElementById(`msg-container-${targetId}`);
+        if (msgEl) {
+            msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Instantly apply a soft background color with NO layout shifting margins
+            msgEl.classList.add('transition-colors', 'duration-500');
+            msgEl.style.backgroundColor = 'rgba(129, 140, 248, 0.15)';
+            msgEl.style.borderRadius = '8px';
+
+            // Remove it smoothly after 1 second
+            setTimeout(() => {
+                msgEl.style.backgroundColor = 'transparent';
+
+                setTimeout(() => {
+                    msgEl.classList.remove('transition-colors', 'duration-500');
+                    msgEl.style.backgroundColor = '';
+                    msgEl.style.borderRadius = '';
+                }, 500); // wait for fade out to complete
+            }, 1000);
+        } else {
+            console.log('Message element not found in DOM.');
+        }
+    };
+
+    window.cancelReply = function () {
+        currentReplyToId = null;
+        document.getElementById('reply-preview-container').classList.add('hidden');
+        document.getElementById('reply-preview-text').innerText = '';
+    };
+
+    window.triggerReplyMode = function (container) {
+        if (!container) return;
+        let msgId = container.dataset.msgId;
+        if (!msgId) return;
+        let contentEl = container.querySelector('.message-content');
+        let text = contentEl ? contentEl.innerText : "Media Attachment";
+
+        let repliedTitle = "Message";
+        if (container.classList.contains('justify-end')) {
+            repliedTitle = "You";
+        } else {
+            const chatName = document.getElementById('chat-name');
+            if (chatName) repliedTitle = chatName.innerText.split(' ')[0];
+        }
+
+        currentReplyToId = Number(msgId);
+        const titleEl = document.getElementById('reply-preview-title');
+        if (titleEl) titleEl.innerText = repliedTitle;
+        document.getElementById('reply-preview-text').innerText = text;
+        document.getElementById('reply-preview-container').classList.remove('hidden');
+        document.getElementById('msgInput').focus();
+    };
 
     function keepActiveChatVisible(forceScroll = false) {
         const activeChat = document.getElementById('active-chat');
@@ -1631,6 +1779,12 @@
     }
 
     document.getElementById('menuCancelBtn').addEventListener('click', hideActionMenu);
+    document.getElementById('menuReplyBtn').addEventListener('click', () => {
+        const id = activeMenuMsgId;
+        hideActionMenu();
+        const container = document.getElementById(`msg-container-${id}`);
+        if (container) triggerReplyMode(container);
+    });
     document.getElementById('menuEditBtn').addEventListener('click', () => {
         const id = activeMenuMsgId;
         hideActionMenu();
@@ -1780,9 +1934,11 @@
             queueOutgoingMessage({
                 receiverId: activeContactId,
                 encryptedContent: encryptedPayload,
-                previewText: text
+                previewText: text,
+                replyToId: currentReplyToId
             });
             input.value = '';
+            cancelReply();
         } catch (err) {
             console.error("Encryption/Send error:", err);
             alert("An error occurred while encrypting the message.");
@@ -1862,8 +2018,15 @@
             window.visualViewport.addEventListener('scroll', () => keepActiveChatVisible(false));
         }
 
-        // Global listener for message actions (Edit/Delete)
+        // Global listener for click events in the messages area
         document.getElementById("messages-area").addEventListener("click", (e) => {
+            const quoteBlock = e.target.closest('.reply-quote-block');
+            if (quoteBlock) {
+                const targetId = quoteBlock.dataset.targetId;
+                if (targetId) window.scrollToMessage(targetId);
+                return;
+            }
+
             const editBtn = e.target.closest('.btn-edit');
             const deleteBtn = e.target.closest('.btn-delete');
 
@@ -1914,16 +2077,98 @@
             }
         };
 
-        area.addEventListener("mousedown", startLongPress);
-        area.addEventListener("touchstart", startLongPress, { passive: true });
-        area.addEventListener("mouseup", cancelLongPress);
-        area.addEventListener("mouseleave", cancelLongPress);
-        area.addEventListener("touchend", cancelLongPress);
-        area.addEventListener("mousemove", (e) => {
-            // Cancel if moved significantly
-            if (longPressTimer) cancelLongPress(e);
+        // Swipe-to-reply Implementation
+        let touchStartX = 0;
+        let touchContainer = null;
+
+        area.addEventListener("touchstart", (e) => {
+            const container = e.target.closest('.message-container');
+            if (!container) return;
+
+            // Ignore touches on the reply snippet to prevent false animations
+            if (e.target.closest('.reply-quote-block')) return;
+
+            touchStartX = e.changedTouches[0].screenX;
+            touchContainer = container;
+
+            // Maintain long press
+            startLongPress(e);
+        }, { passive: true });
+
+        area.addEventListener("touchmove", (e) => {
+            // Cancel long press
+            cancelLongPress(e);
+
+            if (!touchContainer) return;
+            let diffX = e.changedTouches[0].screenX - touchStartX;
+
+            // Allow slight movement visual feedback
+            if (Math.abs(diffX) < 80) {
+                touchContainer.style.transform = `translateX(${diffX}px)`;
+            }
+
+            if (diffX > 60 || diffX < -60) {
+                triggerReplyMode(touchContainer);
+                touchContainer.style.transform = '';
+                touchContainer = null;
+            }
+        }, { passive: true });
+
+        const endTouch = (e) => {
+            cancelLongPress(e);
+            if (touchContainer) {
+                touchContainer.style.transform = '';
+                touchContainer = null;
+            }
+        };
+
+        area.addEventListener("touchend", endTouch);
+        area.addEventListener("touchcancel", endTouch);
+
+        let isMouseDown = false;
+        let mouseContainer = null;
+
+        area.addEventListener("mousedown", (e) => {
+            const container = e.target.closest('.message-container');
+            if (container) {
+                // Ignore clicks on the reply snippet
+                if (e.target.closest('.reply-quote-block')) return;
+
+                isMouseDown = true;
+                touchStartX = e.clientX;
+                mouseContainer = container;
+            }
+            startLongPress(e);
         });
-        area.addEventListener("touchmove", cancelLongPress);
+
+        area.addEventListener("mousemove", (e) => {
+            if (longPressTimer) cancelLongPress(e);
+            if (!isMouseDown || !mouseContainer) return;
+
+            let diffX = e.clientX - touchStartX;
+            if (Math.abs(diffX) < 80) {
+                mouseContainer.style.transform = `translateX(${diffX}px)`;
+            }
+
+            if (diffX > 60 || diffX < -60) {
+                triggerReplyMode(mouseContainer);
+                mouseContainer.style.transform = '';
+                mouseContainer = null;
+                isMouseDown = false;
+            }
+        });
+
+        const endMouse = (e) => {
+            cancelLongPress(e);
+            isMouseDown = false;
+            if (mouseContainer) {
+                mouseContainer.style.transform = '';
+                mouseContainer = null;
+            }
+        };
+
+        area.addEventListener("mouseup", endMouse);
+        area.addEventListener("mouseleave", endMouse);
         // Remove mousemove cancel to avoid jitter issues unless it's a drag
 
         // Context Menu (Right Click) fallback

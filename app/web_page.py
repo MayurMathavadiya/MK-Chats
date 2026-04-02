@@ -12,7 +12,7 @@ router = APIRouter(tags=[settings.WEB_TAG])
 @router.get("/", response_class=HTMLResponse)
 def read_root(request: Request, db: deps.db_session):
     """Render the Home page for authenticated users or redirect to login."""
-    user_id = auth.get_current_user_id_from_cookie(request)
+    user_id = auth.get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login")
     
@@ -28,7 +28,7 @@ def read_root(request: Request, db: deps.db_session):
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, db: deps.db_session):
     """Render the login page, redirecting authenticated users to the Home page."""
-    user_id = auth.get_current_user_id_from_cookie(request)
+    user_id = auth.get_current_user_id(request)
     if user_id:
         
         user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -47,7 +47,7 @@ def login_page(request: Request, db: deps.db_session):
 @router.get("/register", response_class=HTMLResponse)
 def register_page(request: Request, db: deps.db_session):
     """Render the registration page, redirecting authenticated users to the Home page."""
-    user_id = auth.get_current_user_id_from_cookie(request)
+    user_id = auth.get_current_user_id(request)
     if user_id:
         
         user = db.query(models.User).filter(models.User.id == user_id).first()

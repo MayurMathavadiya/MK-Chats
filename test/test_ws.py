@@ -42,6 +42,37 @@ def test_connect_and_disconnect_update_presence(db_session, monkeypatch, testing
     assert emitted[1][0] == "presence"
 
 
+def test_connect_accepts_token_from_socket_auth(db_session, monkeypatch, testing_session_factory):
+    user = UserFactory()
+    db_session.commit()
+    emitted = []
+    session_store = {}
+
+    @asynccontextmanager
+    async def fake_session(sid):
+        session = session_store.setdefault(sid, {})
+        yield session
+
+    async def fake_emit(event, payload, to=None):
+        emitted.append((event, payload, to))
+
+    monkeypatch.setattr(ws, "SessionLocal", testing_session_factory)
+    monkeypatch.setattr(ws.sio, "session", fake_session)
+    monkeypatch.setattr(ws.sio, "emit", fake_emit)
+
+    asyncio.run(ws.connect("sid-auth", {}, {"token": f"Bearer invalid"}))
+    user_token = ws.deps.auth.create_access_token({'sub': str(user.id)})
+    rejected = asyncio.run(ws.connect("sid-2", {}, {"token": f"Bearer {user_token}"}))
+
+    db_session.expire_all()
+    refreshed_user = db_session.query(models.User).filter_by(id=user.id).first()
+
+    assert rejected is None
+    assert refreshed_user.is_online is True
+    assert session_store["sid-2"]["user_id"] == user.id
+    assert emitted[-1][0] == "presence"
+
+
 def test_send_emits_error_when_users_are_blocked(db_session, monkeypatch, testing_session_factory):
     sender = UserFactory(socket_sid="sender-sid")
     receiver = UserFactory(socket_sid="receiver-sid")
