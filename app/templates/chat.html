@@ -7,7 +7,7 @@
     class="mobile-app-shell flex flex-row w-full max-w-[1400px] glass-panel md:rounded-2xl shadow-2xl relative overflow-hidden">
     <!-- Sidebar: Contacts -->
     <div id="sidebar"
-        class="w-full md:w-80 lg:w-96 h-full border-r border-white/10 flex flex-col flex-shrink-0 z-30 absolute md:relative top-0 left-0 bg-slate-900/95 md:bg-transparent backdrop-blur-xl transition-transform duration-300">
+        class="w-full md:w-80 lg:w-96 h-full border-r border-white/10 flex flex-col flex-shrink-0 z-30 absolute md:relative top-0 left-0 bg-slate-900/95 md:bg-transparent backdrop-blur-xl transition-transform duration-300 md:translate-x-0">
         <!-- Sidebar Header -->
         <div class="p-6 md:p-8 flex flex-col gap-6">
             <div class="flex justify-between items-center">
@@ -103,7 +103,7 @@
                 class="px-4 sm:px-6 md:px-8 py-4 md:py-5 border-b border-white/5 flex items-center justify-between gap-3 z-10 flex-shrink-0 bg-white/5 backdrop-blur-md shadow-sm">
                 <div class="flex items-center gap-3 sm:gap-4 min-w-0">
                     <button id="backToSidebarBtn"
-                        class="md:hidden text-gray-400 hover:text-white p-2 -ml-2 transition-colors rounded-full relative z-20 hover:bg-white/10"
+                        class="md:hidden text-gray-400 hover:text-white p-3 -m-3 transition-colors rounded-full relative z-20 hover:bg-white/10 leading-[0]"
                         title="Back to chats">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -628,120 +628,15 @@
     let activeHistoryLoadToken = 0;
     let currentReplyToId = null;
 
-    function getOfflineQueueStorageKey() {
-        return `offlineQueue:${currentUserId}`;
-    }
-
-    function getOfflineQueue() {
-        try {
-            const raw = localStorage.getItem(getOfflineQueueStorageKey());
-            const parsed = raw ? JSON.parse(raw) : [];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (err) {
-            console.error("Failed to read offline queue", err);
-            return [];
-        }
-    }
-
-    function setOfflineQueue(queue) {
-        localStorage.setItem(getOfflineQueueStorageKey(), JSON.stringify(queue));
-    }
-
-    function enqueueOfflineMessage(item) {
-        const queue = getOfflineQueue();
-        queue.push(item);
-        setOfflineQueue(queue);
-    }
-
-    function getQueueSignature(item) {
-        return JSON.stringify([
-            Number(item.receiver_id),
-            item.content || '',
-            item.file_data || '',
-            item.file_type || '',
-            item.reply_to_id || null
-        ]);
-    }
-
-    function removeOfflineMessageByPayload(msg) {
-        const msgSignature = JSON.stringify([
-            Number(msg.receiver_id),
-            msg.content || '',
-            msg.file_data || '',
-            msg.file_type || '',
-            msg.reply_to_id || null
-        ]);
-        const queue = getOfflineQueue();
-        const index = queue.findIndex((item) => getQueueSignature(item) === msgSignature);
-
-        if (index === -1) {
-            return null;
-        }
-
-        const [removedItem] = queue.splice(index, 1);
-        setOfflineQueue(queue);
-        return removedItem;
-    }
-
-    function getQueuedMessagesForContact(contactId) {
-        return getOfflineQueue()
-            .filter((item) => Number(item.receiver_id) === Number(contactId))
-            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    }
-
     function getPendingStatusIcon() {
         return '<svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"></path><circle cx="12" cy="12" r="9"></circle></svg>';
     }
 
-    function buildQueuedMessagePayload(item) {
-        return {
-            id: null,
-            sender_id: currentUserId,
-            receiver_id: Number(item.receiver_id),
-            content: item.content || null,
-            file_data: item.file_data || null,
-            file_type: item.file_type || null,
-            reply_to_id: item.reply_to_id || null,
-            is_deleted: false,
-            is_edited: false,
-            is_read: false,
-            created_at: item.created_at,
-            is_pending: true
-        };
-    }
-
     function findOptimisticMessage() {
-        return document.querySelector('.message-container.optimistic');
+        return document.querySelector('.message-container.optimistic[data-pending="true"]');
     }
 
-    function renderQueuedMessages(contactId) {
-        const area = document.getElementById('messages-area');
-        if (!area) return;
-
-        for (const queuedItem of getQueuedMessagesForContact(contactId)) {
-            appendMessageUI(
-                buildQueuedMessagePayload(queuedItem),
-                queuedItem.preview_text || null,
-                queuedItem.preview_file_data || null
-            );
-        }
-    }
-
-    function flushOfflineQueue() {
-        if (!socket || !socket.connected) return;
-
-        for (const queuedItem of getOfflineQueue()) {
-            socket.emit('send', {
-                receiver_id: Number(queuedItem.receiver_id),
-                content: queuedItem.content || null,
-                file_data: queuedItem.file_data || null,
-                file_type: queuedItem.file_type || null,
-                reply_to_id: queuedItem.reply_to_id || null
-            });
-        }
-    }
-
-    function queueOutgoingMessage({
+    function sendOutgoingMessage({
         receiverId,
         encryptedContent = null,
         encryptedFileData = null,
@@ -750,28 +645,39 @@
         previewFileData = null,
         replyToId = null
     }) {
-        const queuedItem = {
+        const createdAt = new Date().toISOString();
+        const pendingMsg = {
+            id: null,
+            sender_id: currentUserId,
             receiver_id: Number(receiverId),
             content: encryptedContent,
             file_data: encryptedFileData,
             file_type: fileType,
-            preview_text: previewText,
-            preview_file_data: previewFileData,
             reply_to_id: replyToId,
-            created_at: new Date().toISOString()
+            is_deleted: false,
+            is_edited: false,
+            is_read: false,
+            created_at: createdAt,
+            is_pending: true
         };
-
-        enqueueOfflineMessage(queuedItem);
 
         if (Number(activeContactId) === Number(receiverId)) {
             appendMessageUI(
-                buildQueuedMessagePayload(queuedItem),
+                pendingMsg,
                 previewText,
                 previewFileData
             );
         }
 
-        flushOfflineQueue();
+        if (socket && socket.connected) {
+            socket.emit('send', {
+                receiver_id: Number(receiverId),
+                content: encryptedContent,
+                file_data: encryptedFileData,
+                file_type: fileType,
+                reply_to_id: replyToId
+            });
+        }
     }
 
     // --- Utility: Base64/ArrayBuffer ---
@@ -1138,8 +1044,6 @@
         });
 
         socket.on('connect', async () => {
-            flushOfflineQueue();
-
             if (activeContactId) {
                 await loadMessageHistory(activeContactId);
             }
@@ -1269,8 +1173,6 @@
 
                 // For own messages, find and update optimistic message instead of double-appending
                 if (msg.sender_id === currentUserId) {
-                    removeOfflineMessageByPayload(msg);
-
                     const optMsg = findOptimisticMessage();
                     if (optMsg) {
                         optMsg.id = `msg-container-${msg.id}`;
@@ -1463,7 +1365,6 @@
                 appendMessageUI(msg, plainText, plainFileData);
             }
 
-            renderQueuedMessages(contactId);
             scrollToBottom();
             markChatAsRead(contactId);
         } catch (e) {
@@ -1472,7 +1373,6 @@
                 return;
             }
             messagesArea.innerHTML = '';
-            renderQueuedMessages(contactId);
         }
     }
 
@@ -1576,15 +1476,24 @@
         await loadMessageHistory(id);
     }
 
-    document.getElementById('backToSidebarBtn').addEventListener('click', () => {
+    const handleBackToSidebar = (e) => {
+        if (e) e.preventDefault();
         document.getElementById('sidebar').classList.remove('-translate-x-full');
         localStorage.removeItem('activeContactId');
         localStorage.removeItem('activeContactName');
         localStorage.removeItem('activeContactPubKey');
         activeContactId = null;
         document.getElementById('callContactBtn').classList.add('hidden');
+        document.getElementById('active-chat').classList.add('hidden');
+        document.getElementById('no-chat-selected').classList.remove('hidden');
         updateActiveContactHighlight();
-    });
+    };
+
+    const backBtn = document.getElementById('backToSidebarBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', handleBackToSidebar);
+        backBtn.addEventListener('touchstart', handleBackToSidebar, { passive: false });
+    }
 
     document.getElementById('contact-list').addEventListener('click', async (e) => {
         const item = e.target.closest('.contact-item');
@@ -1936,11 +1845,14 @@
             return;
         }
 
+        // On mobile, scrollIntoView can sometimes cause the whole body to jump if not handled carefully
         requestAnimationFrame(() => {
-            input.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-
             if (forceScroll || document.activeElement === input) {
-                scrollToBottom();
+                // Use a more stable scroll approach for mobile
+                const area = document.getElementById('messages-area');
+                if (area) {
+                    area.scrollTop = area.scrollHeight;
+                }
             }
         });
     }
@@ -2125,7 +2037,7 @@
 
         try {
             const encryptedPayload = await encryptText(text, activeSharedKey);
-            queueOutgoingMessage({
+            sendOutgoingMessage({
                 receiverId: activeContactId,
                 encryptedContent: encryptedPayload,
                 previewText: text,
@@ -2151,7 +2063,7 @@
             const b64Data = await fileToBase64(file);
             // Encrypt the entire Base64 string
             const encryptedFile = await encryptText(b64Data, activeSharedKey);
-            queueOutgoingMessage({
+            sendOutgoingMessage({
                 receiverId: activeContactId,
                 encryptedFileData: encryptedFile,
                 fileType: file.type,
@@ -2306,6 +2218,7 @@
 
         // Swipe-to-reply Implementation
         let touchStartX = 0;
+        let touchStartY = 0;
         let touchContainer = null;
 
         area.addEventListener("touchstart", (e) => {
@@ -2316,6 +2229,7 @@
             if (e.target.closest('.reply-quote-block')) return;
 
             touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
             touchContainer = container;
 
             // Maintain long press
@@ -2328,6 +2242,13 @@
 
             if (!touchContainer) return;
             let diffX = e.changedTouches[0].screenX - touchStartX;
+            let diffY = e.changedTouches[0].screenY - touchStartY; // We need to define touchStartY
+
+            // If movement is predominantly vertical, don't trigger reply
+            if (Math.abs(diffY) > Math.abs(diffX)) {
+                touchContainer.style.transform = '';
+                return;
+            }
 
             // Allow slight movement visual feedback
             if (Math.abs(diffX) < 80) {
@@ -2450,6 +2371,9 @@
             } else {
                 selectUser(Number(savedId), savedName, savedPubKey);
             }
+        } else {
+            document.getElementById('active-chat').classList.add('hidden');
+            document.getElementById('no-chat-selected').classList.remove('hidden');
         }
 
         keepActiveChatVisible(false);
