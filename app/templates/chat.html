@@ -2157,6 +2157,25 @@
             window.visualViewport.addEventListener('scroll', () => keepActiveChatVisible(false));
         }
 
+        // Presence: Explicitly disconnect on window unload for faster offline detection
+        window.addEventListener('beforeunload', () => {
+            if (socket && typeof socket.disconnect === 'function') {
+                socket.disconnect();
+            }
+        });
+
+        // Presence: Fast-reconnect when user returns to the tab
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                if (socket && !socket.connected) {
+                    socket.connect();
+                }
+                if (activeContactId) {
+                    markChatAsRead(activeContactId);
+                }
+            }
+        });
+
         // Global listener for click events in the messages area
         document.getElementById("messages-area").addEventListener("click", (e) => {
             const quoteBlock = e.target.closest('.reply-quote-block');
