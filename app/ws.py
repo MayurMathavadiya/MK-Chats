@@ -146,6 +146,24 @@ async def send(sid, data):
 
 
 @sio.event
+async def sync_presence(sid, data):
+    """Broadcasts a request for all active clients to verify their presence."""
+    await sio.emit('request_presence', {"requested_by": sid})
+
+
+@sio.event
+async def reply_presence(sid, data):
+    """Receives a presence confirmation from a client and broadcasts it to everyone."""
+    user_id = data.get("user_id")
+    if user_id:
+        await sio.emit('presence', {
+            "action": "presence",
+            "user_id": user_id,
+            "is_online": True
+        })
+
+
+@sio.event
 async def mark_read(sid, data):
     session = await sio.get_session(sid)
     user_id = session.get("user_id")
