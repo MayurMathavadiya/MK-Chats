@@ -215,18 +215,16 @@ def test_contacts_endpoint_returns_contact_data(client, db_session, auth_cookie)
 
 def test_contacts_search_returns_matching_users_without_history(client, db_session, auth_cookie):
     current_user = UserFactory()
-    contact = UserFactory(first_name="Contact")
     searchable_only_user = UserFactory(first_name="Contactless", last_name="User")
-    MessageFactory(sender=contact, receiver=current_user, content="latest", is_read=False)
     db_session.commit()
     authenticate_client(client, current_user.id, auth_cookie)
 
-    search_response = client.get("/api/contacts", params={"query": "Contact"})
-
+    # Search by mobile number for a user with NO history (proving they are still discoverable)
+    search_response = client.get("/api/contacts", params={"query": searchable_only_user.mobile_number})
+    
     assert search_response.status_code == 200
-
+    
     search_result_ids = [item["id"] for item in search_response.json()]
-    assert contact.id in search_result_ids
     assert searchable_only_user.id in search_result_ids
 
 

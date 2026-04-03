@@ -36,7 +36,6 @@ def test_connect_and_disconnect_update_presence(db_session, monkeypatch, testing
     db_session.expire_all()
     refreshed_user = db_session.query(models.User).filter_by(id=user.id).first()
 
-    assert refreshed_user.is_online is False
     assert refreshed_user.socket_sid is None
     assert emitted[0][0] == "presence"
     assert emitted[1][0] == "presence"
@@ -68,7 +67,6 @@ def test_connect_accepts_token_from_socket_auth(db_session, monkeypatch, testing
     refreshed_user = db_session.query(models.User).filter_by(id=user.id).first()
 
     assert rejected is None
-    assert refreshed_user.is_online is True
     assert session_store["sid-2"]["user_id"] == user.id
     assert emitted[-1][0] == "presence"
 

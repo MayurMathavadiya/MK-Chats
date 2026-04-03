@@ -20,7 +20,6 @@ class User(Base):
     dek_iv = Column(String, nullable=True) # IV for DEK encryption
     priv_key_iv = Column(String, nullable=True) # IV for Private Key encryption
     profile_pic = Column(Text, nullable=True) # Base64 encoded or URL
-    is_online = Column(Boolean, default=False)
     last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     is_deleted = Column(Boolean, default=False)

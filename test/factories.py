@@ -29,7 +29,6 @@ class UserFactory(BaseFactory):
     dek_iv = factory.Sequence(lambda n: f"dek-iv-{n}")
     priv_key_iv = factory.Sequence(lambda n: f"priv-key-iv-{n}")
     profile_pic = None
-    is_online = False
     is_active = True
     is_deleted = False
     socket_sid = None

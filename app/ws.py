@@ -8,7 +8,12 @@ from app.core.database import SessionLocal
 
 
 # Create the Socket.IO server
-sio = socketio.AsyncServer(async_mode='asgi')
+# Create the Socket.IO server with faster heartbeat (ping) settings
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    ping_timeout=10,    # How long to wait for a pong response
+    ping_interval=10   # How often to send a ping
+)
 
 
 # Socket.IO app served from the mount root in main.py
@@ -30,7 +35,6 @@ async def connect(sid, environ, auth=None):
     try:
         user = db.query(models.User).filter(models.User.id == user_id).first()
         if user:
-            user.is_online = True
             user.last_seen = datetime.now(timezone.utc)
             user.socket_sid = sid
             db.commit()
@@ -47,34 +51,24 @@ async def connect(sid, environ, auth=None):
 @sio.event
 async def disconnect(sid):
     try:
-        session = await sio.get_session(sid)
-        user_id = session.get('user_id')
-    except Exception:
-        user_id = None
-        
-    if user_id:
-        
         db = SessionLocal()
-        try:
+        user = db.query(models.User).filter(
+            models.User.socket_sid == sid
+        ).first()
+        if user:
+            user.last_seen = datetime.now(timezone.utc)
+            if user.socket_sid == sid:
+                user.socket_sid = None
+            db.commit()
             
-            user = db.query(models.User).filter(
-                models.User.id == user_id
-            ).first()
-            if user:
-                user.is_online = False
-                user.last_seen = datetime.now(timezone.utc)
-                if user.socket_sid == sid:
-                    user.socket_sid = None
-                db.commit()
-                
-                await sio.emit('presence', {
-                    "action": "presence",
-                    "user_id": user_id,
-                    "is_online": False
-                })
+            await sio.emit('presence', {
+                "action": "presence",
+                "user_id": user.id,
+                "is_online": False
+            })
         
-        finally:
-            db.close()
+    finally:
+        db.close()
 
 
 @sio.event

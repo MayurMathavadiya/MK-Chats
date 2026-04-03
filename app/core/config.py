@@ -21,8 +21,6 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     SMTP_FROM_EMAIL: str
 
-
-
     # Tags
     AUTH_TAG: str = "Auth"
     PROFILE_TAG: str = "Profile"

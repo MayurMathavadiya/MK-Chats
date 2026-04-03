@@ -16,6 +16,10 @@
         html {
             background-color: #344878;
             /* Prevents transparent scrollbar tracks from revealing default white HTML background! */
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
         }
 
         body {
@@ -24,9 +28,14 @@
             color: #f3f4f6;
             margin: 0;
             padding: 0;
+            height: var(--app-height);
+            width: 100%;
             min-height: var(--app-height);
-            overflow-x: hidden;
-            overflow-y: auto;
+            overflow: hidden;
+            overscroll-behavior: none;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
 
         .mobile-app-shell {
