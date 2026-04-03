@@ -332,3 +332,89 @@ async def typing(sid, data):
     
     finally:
         db.close()
+
+
+@sio.event
+async def webrtc_offer(sid, data):
+    session = await sio.get_session(sid)
+    user_id = session.get('user_id')
+    if not user_id:
+        return
+        
+    receiver_id = data.get("receiver_id")
+    offer = data.get("offer")
+    
+    db = SessionLocal()
+    try:
+        receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
+        if receiver and receiver.socket_sid:
+            await sio.emit('webrtc_offer', {
+                "sender_id": user_id,
+                "offer": offer
+            }, to=receiver.socket_sid)
+    finally:
+        db.close()
+
+
+@sio.event
+async def webrtc_answer(sid, data):
+    session = await sio.get_session(sid)
+    user_id = session.get('user_id')
+    if not user_id:
+        return
+        
+    receiver_id = data.get("receiver_id")
+    answer = data.get("answer")
+    
+    db = SessionLocal()
+    try:
+        receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
+        if receiver and receiver.socket_sid:
+            await sio.emit('webrtc_answer', {
+                "sender_id": user_id,
+                "answer": answer
+            }, to=receiver.socket_sid)
+    finally:
+        db.close()
+
+
+@sio.event
+async def webrtc_ice_candidate(sid, data):
+    session = await sio.get_session(sid)
+    user_id = session.get('user_id')
+    if not user_id:
+        return
+        
+    receiver_id = data.get("receiver_id")
+    candidate = data.get("candidate")
+    
+    db = SessionLocal()
+    try:
+        receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
+        if receiver and receiver.socket_sid:
+            await sio.emit('webrtc_ice_candidate', {
+                "sender_id": user_id,
+                "candidate": candidate
+            }, to=receiver.socket_sid)
+    finally:
+        db.close()
+
+
+@sio.event
+async def webrtc_end(sid, data):
+    session = await sio.get_session(sid)
+    user_id = session.get('user_id')
+    if not user_id:
+        return
+        
+    receiver_id = data.get("receiver_id")
+    
+    db = SessionLocal()
+    try:
+        receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
+        if receiver and receiver.socket_sid:
+            await sio.emit('webrtc_end', {
+                "sender_id": user_id
+            }, to=receiver.socket_sid)
+    finally:
+        db.close()

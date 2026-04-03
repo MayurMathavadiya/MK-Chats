@@ -4,13 +4,15 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case, func, or_, and_
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, status, Request, Response, \
-        HTTPException, BackgroundTasks
+        HTTPException, BackgroundTasks, Form
 
 from app import models, schemas
 from app.core import auth, deps
 from app.core.config import settings
 from app.services import backgound_jobs
 from app.core.email import send_password_reset_email
+
+
 
 
 router = APIRouter(prefix="/api")
@@ -584,3 +586,4 @@ def clear_chat(
         )
     
     return {"msg": "Chat cleared"}
+
