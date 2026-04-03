@@ -4,13 +4,17 @@ from sqlalchemy.orm import aliased
 from sqlalchemy import case, func, or_, and_
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, status, Request, Response, \
-        HTTPException, BackgroundTasks
+        HTTPException, BackgroundTasks, Form
 
 from app import models, schemas
 from app.core import auth, deps
 from app.core.config import settings
 from app.services import backgound_jobs
 from app.core.email import send_password_reset_email
+
+from twilio.jwt.access_token import AccessToken
+from twilio.jwt.access_token.grants import VoiceGrant
+from twilio.twiml.voice_response import VoiceResponse, Dial, Client
 
 
 router = APIRouter(prefix="/api")
@@ -584,3 +588,40 @@ def clear_chat(
         )
     
     return {"msg": "Chat cleared"}
+
+
+# --- Calling Endpoint ---
+
+
+@router.get("/call/token", tags=[settings.MESSAGE_TAG])
+def get_call_token(request: Request, db: deps.db_session):
+    user = deps.get_current_user(request, db)
+    
+    access_token = AccessToken(
+        settings.TWILIO_SID,
+        settings.TWILIO_API_KEY,
+        settings.TWILIO_SECRET,
+        identity=str(user.id)
+    )
+    
+    grant = VoiceGrant(
+        outgoing_application_sid=settings.TWILIO_TWIML_APP_SID,
+        incoming_allow=True
+    )
+    access_token.add_grant(grant)
+    
+    return {"token": access_token.to_jwt()}
+
+
+@router.post("/call/voice", tags=[settings.MESSAGE_TAG])
+async def handle_voice_webhook(To: str = Form(None)):
+    response = VoiceResponse()
+    if To:
+        dial = Dial()
+        dial.client(To)
+        response.append(dial)
+    else:
+        response.say("Target user not provided.")
+        
+    return Response(content=str(response), media_type="application/xml")
+

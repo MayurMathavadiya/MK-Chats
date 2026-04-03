@@ -23,9 +23,9 @@ class Settings(BaseSettings):
 
     # Twilio
     TWILIO_SID: str
-    TWILIO_AUTH_TOKEN: str
     TWILIO_API_KEY: str
     TWILIO_SECRET: str
+    TWILIO_TWIML_APP_SID: str
 
     # Tags
     AUTH_TAG: str = "Auth"

@@ -71,9 +71,9 @@ SMTP_USERNAME=your-email@example.com
 SMTP_PASSWORD=your-email-password-or-app-password
 SMTP_FROM_EMAIL=your-email@example.com
 TWILIO_SID=your-twilio-sid
-TWILIO_AUTH_TOKEN=your-twilio-auth
 TWILIO_API_KEY=your-twilio-api-key-sid
 TWILIO_SECRET=your-twilio-secret
+TWILIO_TWIML_APP_SID=your-twilio-twiml-app-sid
 ```
 
 ## Installation
