@@ -484,52 +484,127 @@
 </div>
 
 <!-- Scripts for WebCrypto, WebSockets, and UI -->
-<script src="https://sdk.twilio.com/js/voice/releases/2.12.0/twilio.js"></script>
 <script nonce="{{ request.state.nonce }}">
-    // Twilio Definitions
-    let twilioDevice = null;
-    let currentTwilioConnection = null;
+    // WebRTC Definitions
+    let peerConnection = null;
+    let localStream = null;
+    let remoteStream = null;
+    
+    // Add audio element to DOM for remote stream
+    const audioEl = document.createElement("audio");
+    audioEl.autoplay = true;
+    document.body.appendChild(audioEl);
 
-    async function initTwilioVoice() {
-        try {
-            const res = await fetch('/api/call/token');
-            if (!res.ok) return;
-            const data = await res.json();
+    const rtcConfig = {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    };
 
-            twilioDevice = new Twilio.Device(data.token, { codecPreferences: ['opus', 'pcmu'] });
-
-            twilioDevice.on('registered', () => console.log('Twilio Device Registered'));
-            twilioDevice.on('error', (err) => console.error('Twilio error:', err));
-
-            twilioDevice.on('incoming', connection => {
-                document.getElementById('incomingCallOverlay').classList.remove('hidden', 'opacity-0');
-                document.getElementById('incomingCallOverlay').classList.add('flex');
-                // Try to lookup user name if we can, otherwise just show incoming
-                const contactName = connection.parameters.From ? "Contact ID: " + connection.parameters.From : "Unknown Contact";
-                document.getElementById('incomingCallerName').innerText = contactName;
-
-                currentTwilioConnection = connection;
-
-                document.getElementById('acceptCallBtn').onclick = () => {
-                    connection.accept();
-                    document.getElementById('incomingCallOverlay').classList.add('hidden', 'opacity-0');
-                    document.getElementById('incomingCallOverlay').classList.remove('flex');
-                    showActiveCallOverlay("In call with " + contactName);
-                };
-
-                document.getElementById('rejectCallBtn').onclick = () => {
-                    connection.reject();
-                    document.getElementById('incomingCallOverlay').classList.add('hidden', 'opacity-0');
-                    document.getElementById('incomingCallOverlay').classList.remove('flex');
-                };
-
-                connection.on('disconnect', () => hideActiveCallOverlay());
-            });
-
-            twilioDevice.register();
-        } catch (err) {
-            console.error("Twilio setup failed", err);
+    async function initLocalStream() {
+        if (!localStream) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            } catch(e) {
+                console.error("Microphone access denied", e);
+                alert("Microphone access is required for calling.");
+                return false;
+            }
         }
+        return true;
+    }
+
+    function cleanupWebRTC() {
+        if(peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        if(localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+        audioEl.srcObject = null;
+        document.getElementById("muteCallBtn").innerText = "Mute";
+    }
+
+    function createPeerConnection(remoteUserId) {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate && socket) {
+                socket.emit("webrtc_ice_candidate", {
+                    receiver_id: remoteUserId,
+                    candidate: event.candidate
+                });
+            }
+        };
+
+        peerConnection.ontrack = (event) => {
+            remoteStream = event.streams[0];
+            audioEl.srcObject = remoteStream;
+            showActiveCallOverlay("In call...");
+        };
+
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+    }
+
+    function setupWebRTCSocketListeners() {
+        if (!socket) return;
+        
+        socket.on("webrtc_offer", async (data) => {
+            document.getElementById('incomingCallOverlay').classList.remove('hidden', 'opacity-0');
+            document.getElementById('incomingCallOverlay').classList.add('flex');
+            
+            document.getElementById('incomingCallerName').innerText = "Incoming Call from ID: " + data.sender_id;
+            
+            document.getElementById('acceptCallBtn').onclick = async () => {
+                document.getElementById('incomingCallOverlay').classList.add('hidden', 'opacity-0');
+                document.getElementById('incomingCallOverlay').classList.remove('flex');
+                
+                const hasMic = await initLocalStream();
+                if(!hasMic) return;
+                
+                createPeerConnection(data.sender_id);
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    socket.emit("webrtc_answer", { receiver_id: data.sender_id, answer: answer });
+                } catch(e) { console.error(e); }
+            };
+            
+            document.getElementById('rejectCallBtn').onclick = () => {
+                document.getElementById('incomingCallOverlay').classList.add('hidden', 'opacity-0');
+                document.getElementById('incomingCallOverlay').classList.remove('flex');
+                socket.emit("webrtc_end", { receiver_id: data.sender_id });
+            };
+        });
+        
+        socket.on("webrtc_answer", async (data) => {
+            if (peerConnection) {
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                } catch(e) { console.error(e); }
+            }
+        });
+        
+        socket.on("webrtc_ice_candidate", async (data) => {
+            if (peerConnection) {
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                } catch(e) { console.error(e); }
+            }
+        });
+        
+        socket.on("webrtc_end", (data) => {
+            cleanupWebRTC();
+            hideActiveCallOverlay();
+            const incomingOverlay = document.getElementById('incomingCallOverlay');
+            if(incomingOverlay) {
+                incomingOverlay.classList.remove('flex');
+                incomingOverlay.classList.add('hidden', 'opacity-0');
+            }
+        });
     }
 
     function showActiveCallOverlay(name) {
@@ -541,11 +616,8 @@
     function hideActiveCallOverlay() {
         document.getElementById('activeCallOverlay').classList.add('hidden');
         document.getElementById('activeCallOverlay').classList.remove('flex');
-        if (currentTwilioConnection) {
-            currentTwilioConnection.disconnect();
-            currentTwilioConnection = null;
-        }
     }
+
     const currentUserId = Number("{{ user.id }}");
     let activeContactId = null;
     let activeSharedKey = null; // CryptoKey object (AES-GCM derived from ECDH)
@@ -2108,7 +2180,7 @@
         initWebSocket();
         setupSearch();
         await loadContacts();
-        await initTwilioVoice();
+        setupWebRTCSocketListeners();
 
         // Mark read when returning to tab
         window.addEventListener('focus', () => {
@@ -2122,26 +2194,34 @@
         document.getElementById("clearChatBtn").addEventListener("click", clearChat);
 
         document.getElementById("callContactBtn").addEventListener("click", async () => {
-            if (!twilioDevice || !activeContactId) return;
+            if (!activeContactId || !socket) return;
+            const hasMic = await initLocalStream();
+            if(!hasMic) return;
+            
+            createPeerConnection(activeContactId);
             try {
-                const params = { To: String(activeContactId) };
-                currentTwilioConnection = await twilioDevice.connect({ params });
-                showActiveCallOverlay("Calling " + document.getElementById('chat-name').innerText);
-
-                currentTwilioConnection.on('disconnect', () => hideActiveCallOverlay());
-            } catch (e) {
-                console.error("Twilio connect error:", e);
-                alert("Failed to initiate call.");
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit("webrtc_offer", { receiver_id: activeContactId, offer: offer });
+                showActiveCallOverlay("Calling " + document.getElementById('chat-name').innerText + '...');
+            } catch(e) {
+                console.error("WebRTC offer error", e);
+                cleanupWebRTC();
+                hideActiveCallOverlay();
             }
         });
 
-        document.getElementById("endCallBtn").addEventListener("click", hideActiveCallOverlay);
+        document.getElementById("endCallBtn").addEventListener("click", () => {
+             hideActiveCallOverlay();
+             if (activeContactId && socket) socket.emit("webrtc_end", { receiver_id: activeContactId });
+             cleanupWebRTC();
+        });
 
         document.getElementById("muteCallBtn").addEventListener("click", (e) => {
-            if (currentTwilioConnection) {
-                const isMuted = currentTwilioConnection.isMuted();
-                currentTwilioConnection.mute(!isMuted);
-                e.target.innerText = !isMuted ? "Unmute" : "Mute";
+            if (localStream) {
+                localStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+                const isMuted = !localStream.getAudioTracks()[0].enabled;
+                e.target.innerText = isMuted ? "Unmute" : "Mute";
             }
         });
 

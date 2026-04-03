@@ -21,11 +21,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     SMTP_FROM_EMAIL: str
 
-    # Twilio
-    TWILIO_SID: str
-    TWILIO_API_KEY: str
-    TWILIO_SECRET: str
-    TWILIO_TWIML_APP_SID: str
+
 
     # Tags
     AUTH_TAG: str = "Auth"

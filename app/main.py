@@ -52,7 +52,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
             csp = (
                 f"default-src 'self'; "
-                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com https://cdn.socket.io https://sdk.twilio.com; "
+                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com https://cdn.socket.io; "
                 f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 f"font-src 'self' https://fonts.gstatic.com; "
                 f"img-src 'self' data: http: https: blob:; "
