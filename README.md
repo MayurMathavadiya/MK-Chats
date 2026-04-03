@@ -61,7 +61,7 @@ alembic/               Database migrations
 Create a `.env` file in the project root with the following values:
 
 ```env
-SQLALCHEMY_DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME
+SQLALCHEMY_DATABASE_URL=your-database-your
 SECRET_KEY=your-secret-key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
@@ -70,6 +70,10 @@ SMTP_PORT=587
 SMTP_USERNAME=your-email@example.com
 SMTP_PASSWORD=your-email-password-or-app-password
 SMTP_FROM_EMAIL=your-email@example.com
+TWILIO_SID=your-twilio-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth
+TWILIO_API_KEY=your-twilio-api-key-sid
+TWILIO_SECRET=your-twilio-secret
 ```
 
 ## Installation
@@ -170,6 +174,4 @@ pytest
 
 ## Notes
 
-- Authentication is stored in an `access_token` cookie.
-- Some cookie settings in the code are currently development-friendly and should be hardened for production.
-- The application expects valid SMTP credentials if you want the forgot-password flow to send email successfully.
+- Authentication is stored in an `access_token` cookie or in Header Authorization `bearer <token>`.

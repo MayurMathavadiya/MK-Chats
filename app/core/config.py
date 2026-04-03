@@ -5,15 +5,29 @@ from fastapi.templating import Jinja2Templates
 
 
 class Settings(BaseSettings):
+
+    # Database
     SQLALCHEMY_DATABASE_URL: str
+    
+    # Auth
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+    # Email
     SMTP_SERVER: str
     SMTP_PORT: int = 587
     SMTP_USERNAME: str
     SMTP_PASSWORD: str
     SMTP_FROM_EMAIL: str
+
+    # Twilio
+    TWILIO_SID: str
+    TWILIO_AUTH_TOKEN: str
+    TWILIO_API_KEY: str
+    TWILIO_SECRET: str
+
+    # Tags
     AUTH_TAG: str = "Auth"
     PROFILE_TAG: str = "Profile"
     CONTACT_TAG: str = "Contacts"
