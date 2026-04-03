@@ -1044,9 +1044,17 @@
         });
 
         socket.on('connect', async () => {
+            console.log("Socket.IO connected, syncing presence...");
+            socket.emit('sync_presence', {});
+            
             if (activeContactId) {
                 await loadMessageHistory(activeContactId);
             }
+        });
+
+        socket.on('request_presence', (msg) => {
+            console.log("Presence roll call requested, replying...");
+            socket.emit('reply_presence', { user_id: currentUserId });
         });
 
         socket.on('error', async (msg) => {
