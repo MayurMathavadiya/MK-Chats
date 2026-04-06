@@ -489,7 +489,7 @@
     let peerConnection = null;
     let localStream = null;
     let remoteStream = null;
-    
+
     // Add audio element to DOM for remote stream
     const audioEl = document.createElement("audio");
     audioEl.autoplay = true;
@@ -503,7 +503,7 @@
         if (!localStream) {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            } catch(e) {
+            } catch (e) {
                 console.error("Microphone access denied", e);
                 alert("Microphone access is required for calling.");
                 return false;
@@ -513,11 +513,11 @@
     }
 
     function cleanupWebRTC() {
-        if(peerConnection) {
+        if (peerConnection) {
             peerConnection.close();
             peerConnection = null;
         }
-        if(localStream) {
+        if (localStream) {
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
         }
@@ -527,7 +527,7 @@
 
     function createPeerConnection(remoteUserId) {
         peerConnection = new RTCPeerConnection(rtcConfig);
-        
+
         peerConnection.onicecandidate = (event) => {
             if (event.candidate && socket) {
                 socket.emit("webrtc_ice_candidate", {
@@ -550,57 +550,57 @@
 
     function setupWebRTCSocketListeners() {
         if (!socket) return;
-        
+
         socket.on("webrtc_offer", async (data) => {
             document.getElementById('incomingCallOverlay').classList.remove('hidden', 'opacity-0');
             document.getElementById('incomingCallOverlay').classList.add('flex');
-            
+
             document.getElementById('incomingCallerName').innerText = "Incoming Call from ID: " + data.sender_id;
-            
+
             document.getElementById('acceptCallBtn').onclick = async () => {
                 document.getElementById('incomingCallOverlay').classList.add('hidden', 'opacity-0');
                 document.getElementById('incomingCallOverlay').classList.remove('flex');
-                
+
                 const hasMic = await initLocalStream();
-                if(!hasMic) return;
-                
+                if (!hasMic) return;
+
                 createPeerConnection(data.sender_id);
                 try {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
                     socket.emit("webrtc_answer", { receiver_id: data.sender_id, answer: answer });
-                } catch(e) { console.error(e); }
+                } catch (e) { console.error(e); }
             };
-            
+
             document.getElementById('rejectCallBtn').onclick = () => {
                 document.getElementById('incomingCallOverlay').classList.add('hidden', 'opacity-0');
                 document.getElementById('incomingCallOverlay').classList.remove('flex');
                 socket.emit("webrtc_end", { receiver_id: data.sender_id });
             };
         });
-        
+
         socket.on("webrtc_answer", async (data) => {
             if (peerConnection) {
                 try {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                } catch(e) { console.error(e); }
+                } catch (e) { console.error(e); }
             }
         });
-        
+
         socket.on("webrtc_ice_candidate", async (data) => {
             if (peerConnection) {
                 try {
                     await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                } catch(e) { console.error(e); }
+                } catch (e) { console.error(e); }
             }
         });
-        
+
         socket.on("webrtc_end", (data) => {
             cleanupWebRTC();
             hideActiveCallOverlay();
             const incomingOverlay = document.getElementById('incomingCallOverlay');
-            if(incomingOverlay) {
+            if (incomingOverlay) {
                 incomingOverlay.classList.remove('flex');
                 incomingOverlay.classList.add('hidden', 'opacity-0');
             }
@@ -1040,13 +1040,14 @@
     // --- WebSockets ---
     function initWebSocket() {
         socket = io({
-            path: '/socket.io'
+            path: '/socket.io',
+            transports: ['polling']
         });
 
         socket.on('connect', async () => {
             console.log("Socket.IO connected, syncing presence...");
             socket.emit('sync_presence', {});
-            
+
             if (activeContactId) {
                 await loadMessageHistory(activeContactId);
             }
@@ -2116,15 +2117,15 @@
         document.getElementById("callContactBtn").addEventListener("click", async () => {
             if (!activeContactId || !socket) return;
             const hasMic = await initLocalStream();
-            if(!hasMic) return;
-            
+            if (!hasMic) return;
+
             createPeerConnection(activeContactId);
             try {
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 socket.emit("webrtc_offer", { receiver_id: activeContactId, offer: offer });
                 showActiveCallOverlay("Calling " + document.getElementById('chat-name').innerText + '...');
-            } catch(e) {
+            } catch (e) {
                 console.error("WebRTC offer error", e);
                 cleanupWebRTC();
                 hideActiveCallOverlay();
@@ -2132,9 +2133,9 @@
         });
 
         document.getElementById("endCallBtn").addEventListener("click", () => {
-             hideActiveCallOverlay();
-             if (activeContactId && socket) socket.emit("webrtc_end", { receiver_id: activeContactId });
-             cleanupWebRTC();
+            hideActiveCallOverlay();
+            if (activeContactId && socket) socket.emit("webrtc_end", { receiver_id: activeContactId });
+            cleanupWebRTC();
         });
 
         document.getElementById("muteCallBtn").addEventListener("click", (e) => {
