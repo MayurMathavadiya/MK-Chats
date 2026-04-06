@@ -11,8 +11,8 @@ from app.core.database import SessionLocal
 # Create the Socket.IO server with faster heartbeat (ping) settings
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    ping_timeout=10,    # How long to wait for a pong response
-    ping_interval=10   # How often to send a ping
+    ping_timeout=60,    # Increased for serverless environment cold starts
+    ping_interval=25
 )
 
 
