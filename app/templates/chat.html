@@ -216,7 +216,7 @@
         <!-- Conversation List Section -->
         <section id="sidebar"
             class="flex flex-col bg-surface-container-lowest border-r border-white/5 transition-all duration-300">
-            <div class="p-6 md:px-12">
+            <div class="p-6 md:px-6">
                 <div class="flex items-center gap-3 mb-6">
                     <button id="sidebarToggleBtn" class="text-slate-400 hover:text-white p-1">
                         <span class="material-symbols-outlined text-2xl">menu</span>
@@ -231,7 +231,7 @@
                 </div>
             </div>
 
-            <div id="contact-list" class="flex-1 overflow-y-auto px-3 md:px-12 space-y-1 custom-scrollbar">
+            <div id="contact-list" class="flex-1 overflow-y-auto px-3 md:px-6 space-y-1 custom-scrollbar">
                 <div class="text-center text-slate-500 text-xs mt-10">Syncing secure chats...</div>
             </div>
         </section>
@@ -270,7 +270,7 @@
                                     <span id="chat-avatar-char" class="text-sm text-white"></span>
                                 </div>
                                 <span
-                                    class="absolute bottom-0 right-0 w-3 h-3 bg-gray-500 border-2 border-surface-container rounded-full"
+                                    class="absolute bottom-0 right-0 w-3 h-3 bg-slate-600 border-2 border-slate-900 rounded-full transition-all"
                                     id="chat-status-dot"></span>
                             </div>
                             <div class="min-w-0 flex-1">
@@ -1549,14 +1549,12 @@
         const statusText = document.getElementById('currentUserStatusText');
 
         if (statusDot) {
-            statusDot.classList.toggle('bg-tertiary', isOnline);
-            statusDot.classList.toggle('bg-slate-600', !isOnline);
+            statusDot.className = `absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-kin_tertiary' : 'bg-slate-600'} border-2 border-kin_surf_lowest rounded-full transition-all`;
         }
 
         if (statusText) {
             statusText.innerText = isOnline ? 'Active Now' : 'Offline';
-            statusText.classList.toggle('text-tertiary', isOnline);
-            statusText.classList.toggle('text-slate-500', !isOnline);
+            statusText.className = `text-[10px] ${isOnline ? 'text-kin_tertiary' : 'text-slate-500'} uppercase font-bold tracking-widest truncate`;
         }
     }
 
@@ -1645,10 +1643,11 @@
 
     function updatePresenceUI(userId, isOnline) {
         const numericUserId = Number(userId);
-        const dot = document.getElementById(`contact-status-dot-${numericUserId}`);
-        if (dot) {
-            dot.className = `absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${isOnline ? 'bg-green-500' : 'bg-gray-500'} border-2 border-slate-900 rounded-full transition-all`;
-        }
+        
+        // Update all status dots for this user (handles search results, main list, etc.)
+        document.querySelectorAll(`.status-dot-user-${numericUserId}`).forEach((dot) => {
+            dot.className = `status-dot-user-${numericUserId} absolute bottom-0 right-0 w-3.5 h-3.5 ${isOnline ? 'bg-kin_tertiary' : 'bg-slate-600'} border-2 border-surface-container-lowest rounded-full transition-all`;
+        });
 
         cachedContacts = cachedContacts.map((contact) => (
             Number(contact.id) === numericUserId ? { ...contact, is_online: isOnline } : contact
@@ -1663,12 +1662,12 @@
             if (statusText && statusDot) {
                 if (isOnline) {
                     statusText.innerText = 'Online';
-                    statusText.className = 'text-green-400 font-bold';
-                    statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-slate-900 rounded-full transition-all';
+                    statusText.className = 'text-kin_tertiary font-bold';
+                    statusDot.className = 'absolute bottom-0 right-0 w-3.5 h-3.5 bg-kin_tertiary border-2 border-slate-900 rounded-full transition-all';
                 } else {
                     statusText.innerText = 'Offline';
-                    statusText.className = 'text-gray-400 font-medium';
-                    statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-slate-900 rounded-full transition-all';
+                    statusText.className = 'text-slate-400 font-medium';
+                    statusDot.className = 'absolute bottom-0 right-0 w-3.5 h-3.5 bg-slate-600 border-2 border-slate-900 rounded-full transition-all';
                 }
             }
         }
@@ -1691,13 +1690,12 @@
         const presenceState = presenceChannel.presenceState();
         const nextOnlineUsers = new Set();
 
-        Object.values(presenceState).forEach((entries) => {
-            (entries || []).forEach((entry) => {
-                const userId = Number(entry.user_id);
-                if (!Number.isNaN(userId)) {
-                    nextOnlineUsers.add(userId);
-                }
-            });
+        // More robust parsing using the presence key (user_id)
+        Object.keys(presenceState).forEach((key) => {
+            const userId = Number(key);
+            if (!Number.isNaN(userId)) {
+                nextOnlineUsers.add(userId);
+            }
         });
 
         syncOnlineUsers(nextOnlineUsers);
@@ -2481,18 +2479,18 @@
                 data-contact-pic="${profilePic}"
                 data-contact-blocked-by-me="${contact.blocked_by_me}"
                 data-contact-blocked-me="${contact.blocked_me}"
-                class="contact-item group flex items-center gap-4 p-4 md:px-12 cursor-pointer transition-all rounded-2xl mx-1
+                class="contact-item group flex items-center gap-4 p-4 md:px-6 cursor-pointer transition-all rounded-2xl mx-1
                 ${highlightClasses}">
                 <div class="relative flex-shrink-0">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden bg-gradient-to-tr from-kin_primary_container to-kin_primary shadow-sm">
                         ${profilePic ? `<img src="${profilePic}" class="w-full h-full object-cover">` : escapeHtml(contact.first_name).charAt(0)}
                     </div>
-                    <div id="contact-status-dot-${contact.id}" class="absolute bottom-0 right-0 w-3.5 h-3.5 ${isOnline ? 'bg-kin_tertiary' : 'bg-slate-600'} border-2 border-surface-container-lowest rounded-full transition-all"></div>
+                    <div class="status-dot-user-${contact.id} absolute bottom-0 right-0 w-3.5 h-3.5 ${isOnline ? 'bg-kin_tertiary' : 'bg-slate-600'} border-2 border-surface-container-lowest rounded-full transition-all"></div>
                 </div>
                 <div class="flex-1 text-left min-w-0">
-                    <div class="flex justify-between items-center mb-0.5">
-                        <span class="font-bold text-on-surface truncate tracking-tight">${nameSafely}</span>
-                        <span class="text-[10px] time-stamp ${(activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
+                    <div class="flex justify-between items-baseline mb-0.5 w-full">
+                        <span class="font-bold text-on-surface truncate tracking-tight flex-1 min-w-0 pr-4">${nameSafely}</span>
+                        <span class="text-[10px] time-stamp shrink-0 whitespace-nowrap ${ (activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <p class="text-xs text-on-surface-variant truncate pr-2 opacity-80" id="contact-${contact.id}-preview">${escapeHtml(lastMsgText)}</p>
