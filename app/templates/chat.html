@@ -3,57 +3,187 @@
 {% block title %}MK Chats{% endblock %}
 
 {% block content %}
-<div class="h-screen w-full flex bg-surface relative overflow-hidden font-inter">
+<style>
+    :root {
+        --navbar-expanded-w: 256px;
+        --navbar-collapsed-w: 80px;
+        --contact-list-w: 384px;
+        --transition-speed: 0.3s;
+        --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #side-navbar {
+        transition: width var(--transition-speed) var(--transition-timing),
+            transform var(--transition-speed) var(--transition-timing) !important;
+    }
+
+    #main-shell {
+        transition: padding-left var(--transition-speed) var(--transition-timing) !important;
+        padding-left: var(--navbar-expanded-w);
+        width: 100%;
+        display: flex;
+    }
+
+    /* Collapsed SideNavBar State */
+    body.sidebar-collapsed #side-navbar {
+        width: var(--navbar-collapsed-w) !important;
+    }
+
+    body.sidebar-collapsed #main-shell {
+        padding-left: var(--navbar-collapsed-w) !important;
+    }
+
+    body.sidebar-collapsed #side-navbar .sidebar-label,
+    body.sidebar-collapsed #side-navbar .sidebar-logo-text {
+        opacity: 0;
+        pointer-events: none;
+        display: none !important;
+    }
+
+    /* Pane Sizing and Transitions */
+    #sidebar {
+        width: var(--contact-list-w);
+        min-width: var(--contact-list-w);
+        transition: transform var(--transition-speed) var(--transition-timing),
+            width var(--transition-speed) var(--transition-timing);
+    }
+
+    @media (max-width: 1279px) {
+        #sidebar {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+    }
+
+    #chat-container {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Mobile Zone (<768px) */
+    @media (max-width: 767px) {
+        #side-navbar {
+            transform: translateX(-100%);
+            width: var(--navbar-expanded-w) !important;
+            z-index: 50;
+        }
+
+        body.sidebar-open #side-navbar {
+            transform: translateX(0);
+        }
+
+        #main-shell {
+            padding-left: 0 !important;
+        }
+
+        /* Mutual Exclusivity on Mobile */
+        body.chat-active #sidebar {
+            display: none !important;
+        }
+
+        body:not(.chat-active) #chat-container {
+            display: none !important;
+        }
+    }
+
+    /* Tablet/Small Laptop Zone (768px - 1280px) */
+    @media (min-width: 768px) and (max-width: 1279px) {
+        #main-shell {
+            padding-left: var(--navbar-collapsed-w) !important;
+        }
+
+        body:not(.sidebar-collapsed) #main-shell {
+            padding-left: var(--navbar-expanded-w) !important;
+        }
+
+        /* Mutual Exclusivity on Tablet to prevent cramped chat */
+        body.chat-active #sidebar {
+            display: none !important;
+        }
+
+        body:not(.chat-active) #chat-container {
+            display: none !important;
+        }
+    }
+
+    /* Large Desktop Zone (>1280px) */
+    @media (min-width: 1280px) {
+
+        /* On Desktop, everything is visible together */
+        #sidebar {
+            display: flex !important;
+        }
+
+        #chat-container {
+            display: flex !important;
+        }
+    }
+</style>
+<div class="fixed inset-0 h-[var(--app-height)] w-full flex bg-surface overflow-hidden font-inter">
     <!-- Bloom Effects -->
     <div class="fixed inset-0 pointer-events-none bloom-top-right z-0"></div>
     <div class="fixed inset-0 pointer-events-none bloom-bottom-left z-0"></div>
 
     <!-- SideNavBar (Left) -->
-    <aside
-        class="fixed left-0 top-0 h-full z-40 flex flex-col p-4 bg-slate-900/60 backdrop-blur-3xl w-20 md:w-64 border-r border-white/10 shadow-[0_0_40px_rgba(79,70,229,0.08)]">
+    <aside id="side-navbar"
+        class="fixed left-0 top-0 h-full z-[60] flex flex-col p-4 bg-slate-900/60 backdrop-blur-3xl w-64 border-r border-white/10 shadow-[0_0_40px_rgba(79,70,229,0.08)]">
         <div class="flex items-center gap-3 mb-10 px-2">
-            <div class="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <span class="material-symbols-outlined text-white text-2xl" style="font-variation-settings: 'FILL' 1;">security</span>
+            <div
+                class="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <span class="material-symbols-outlined text-white text-2xl"
+                    style="font-variation-settings: 'FILL' 1;">security</span>
             </div>
-            <div class="hidden md:block">
-                <h1 class="text-xl font-black tracking-tighter text-indigo-400 manrope">MK Chats</h1>
-                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Secure Session</p>
+            <div class="sidebar-logo-text min-w-0">
+                <h1 class="text-xl font-black tracking-tighter text-indigo-400 manrope truncate">MK Chats</h1>
+                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold truncate">Secure Session</p>
             </div>
         </div>
 
         <nav class="flex-1 space-y-2">
-            <a href="#" class="flex items-center gap-4 px-4 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl font-bold transition-all duration-300 scale-95 active:scale-90">
+            <a href="#"
+                class="flex items-center gap-4 px-4 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl font-bold transition-all duration-300 scale-95 active:scale-90">
                 <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">forum</span>
-                <span class="hidden md:block text-sm">Chats</span>
+                <span class="sidebar-label text-sm truncate">Chats</span>
             </a>
-            <button id="sidebarCallsBtn" type="button" class="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl scale-95 active:scale-90 text-left">
+            <button id="sidebarCallsBtn" type="button"
+                class="w-full flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl scale-95 active:scale-90 text-left">
                 <span class="material-symbols-outlined text-2xl">call</span>
-                <span class="hidden md:block text-sm">Calls</span>
+                <span class="sidebar-label text-sm truncate">Calls</span>
             </button>
-            <a href="#" class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl scale-95 active:scale-90">
+            <a href="#"
+                class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl scale-95 active:scale-90">
                 <span class="material-symbols-outlined text-2xl">contacts</span>
-                <span class="hidden md:block text-sm">Contacts</span>
+                <span class="sidebar-label text-sm truncate">Contacts</span>
             </a>
-            <a href="#" class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl scale-95 active:scale-90">
+            <a href="#"
+                class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl scale-95 active:scale-90">
                 <span class="material-symbols-outlined text-2xl">lock</span>
-                <span class="hidden md:block text-sm">Vault</span>
+                <span class="sidebar-label text-sm truncate">Vault</span>
             </a>
         </nav>
 
         <div class="mt-auto pt-4 border-t border-white/5">
-            <a href="javascript:void(0)" onclick="openProfileModal()" class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl mb-4 scale-95 active:scale-90">
+            <a href="javascript:void(0)" onclick="openProfileModal()"
+                class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl mb-4 scale-95 active:scale-90">
                 <span class="material-symbols-outlined text-2xl">settings</span>
-                <span class="hidden md:block text-sm">Settings</span>
+                <span class="sidebar-label text-sm truncate">Settings</span>
             </a>
             <div class="flex items-center gap-3 px-2 relative">
                 <div class="relative group cursor-pointer" id="profileDropdownBtn">
-                    <img src="{{ user.profile_pic or '' }}" alt="Profile" class="w-10 h-10 rounded-full border border-indigo-500/30 object-cover {% if not user.profile_pic %}hidden{% endif %}" id="topAvatarImg">
-                    <div class="w-10 h-10 rounded-full border border-indigo-500/30 bg-kin_surf_highest flex items-center justify-center text-kin_on_surface font-bold text-sm {% if user.profile_pic %}hidden{% endif %}" id="topAvatarChar">{{ user.first_name[0] }}</div>
-                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-slate-600 border-2 border-kin_surf_lowest rounded-full transition-colors" id="currentUserStatusDot"></span>
+                    <img src="{{ user.profile_pic or '' }}" alt="Profile"
+                        class="w-10 h-10 rounded-full border border-indigo-500/30 object-cover {% if not user.profile_pic %}hidden{% endif %}"
+                        id="topAvatarImg">
+                    <div class="w-10 h-10 rounded-full border border-indigo-500/30 bg-kin_surf_highest flex items-center justify-center text-kin_on_surface font-bold text-sm {% if user.profile_pic %}hidden{% endif %}"
+                        id="topAvatarChar">{{ user.first_name[0] }}</div>
+                    <span
+                        class="absolute bottom-0 right-0 w-3 h-3 bg-slate-600 border-2 border-kin_surf_lowest rounded-full transition-colors"
+                        id="currentUserStatusDot"></span>
                 </div>
-                <div class="hidden md:block min-w-0">
-                    <p class="text-sm font-bold text-on-surface truncate" id="topUserNameLabel">{{ user.first_name }} {{ user.last_name }}</p>
-                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest" id="currentUserStatusText">Connecting</p>
+                <div class="sidebar-label min-w-0">
+                    <p class="text-sm font-bold text-on-surface truncate" id="topUserNameLabel">{{ user.first_name }} {{
+                        user.last_name }}</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest truncate"
+                        id="currentUserStatusText">Connecting</p>
                 </div>
 
                 <!-- Profile Dropdown -->
@@ -61,7 +191,8 @@
                     class="absolute left-0 bottom-full mb-3 w-56 glass-panel rounded-xl shadow-2xl py-2 hidden z-50 overflow-hidden border border-white/10">
                     <div class="px-5 py-4 border-b border-white/5 bg-white/5">
                         <p class="text-[10px] text-kin_primary font-bold uppercase tracking-wider mb-1">Account</p>
-                        <p class="text-sm font-bold text-on-surface truncate">{{ user.first_name }} {{ user.last_name }}</p>
+                        <p class="text-sm font-bold text-on-surface truncate">{{ user.first_name }} {{ user.last_name }}
+                        </p>
                     </div>
                     <div class="p-1">
                         <button id="profileEditBtn" onclick="openProfileModal()"
@@ -81,19 +212,26 @@
     </aside>
 
     <!-- Main Content Layout -->
-    <main class="flex-1 ml-20 md:ml-64 flex overflow-hidden z-10">
+    <main id="main-shell" class="flex-1 flex overflow-hidden z-10 h-full">
         <!-- Conversation List Section -->
-        <section id="sidebar" class="w-80 md:w-96 flex flex-col bg-surface-container-lowest border-r border-white/5">
-            <div class="p-6">
-                <h2 class="manrope text-2xl font-bold mb-6 tracking-tight">Messages</h2>
+        <section id="sidebar"
+            class="flex flex-col bg-surface-container-lowest border-r border-white/5 transition-all duration-300">
+            <div class="p-6 md:px-12">
+                <div class="flex items-center gap-3 mb-6">
+                    <button id="sidebarToggleBtn" class="text-slate-400 hover:text-white p-1">
+                        <span class="material-symbols-outlined text-2xl">menu</span>
+                    </button>
+                    <h2 class="manrope text-2xl font-bold tracking-tight truncate flex-1">Messages</h2>
+                </div>
                 <div class="relative">
-                    <span class="material-symbols-outlined text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 text-xl">search</span>
+                    <span
+                        class="material-symbols-outlined text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 text-xl">search</span>
                     <input type="text" id="contactSearch" placeholder="Search conversations..."
                         class="w-full bg-kin_surf_highest border-none rounded-xl py-3 pl-10 pr-4 text-sm text-on-surface placeholder:text-slate-500 focus:ring-1 focus:ring-kin_primary/20 transition-all" />
                 </div>
             </div>
 
-            <div id="contact-list" class="flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar">
+            <div id="contact-list" class="flex-1 overflow-y-auto px-3 md:px-12 space-y-1 custom-scrollbar">
                 <div class="text-center text-slate-500 text-xs mt-10">Syncing secure chats...</div>
             </div>
         </section>
@@ -105,7 +243,8 @@
                 <div class="text-center">
                     <div
                         class="w-20 h-20 bg-kin_primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-kin_primary/20 shadow-2xl">
-                        <span class="material-symbols-outlined text-kin_primary text-4xl" style="font-variation-settings: 'FILL' 1;">forum</span>
+                        <span class="material-symbols-outlined text-kin_primary text-4xl"
+                            style="font-variation-settings: 'FILL' 1;">forum</span>
                     </div>
                     <h3 class="manrope text-xl font-bold text-on-surface mb-2">Select a Conversation</h3>
                     <p class="text-slate-500 text-sm max-w-xs mx-auto">Click on a contact to start an end-to-end
@@ -114,58 +253,63 @@
             </div>
 
             <!-- Active Chat -->
-            <div id="active-chat" class="hidden flex flex-col h-full overflow-hidden">
+            <div id="active-chat" class="hidden h-full overflow-hidden relative grid grid-rows-[auto_1fr_auto]">
                 <!-- Chat Header -->
                 <header
-                    class="flex justify-between items-center w-full px-6 py-4 glass-panel border-b border-white/5 z-20">
-                    <div class="flex items-center gap-4">
-                        <button id="backToSidebarBtn" class="md:hidden text-slate-400 hover:text-white p-1">
+                    class="flex justify-between items-center w-full px-3 md:px-6 py-2 md:py-4 glass-panel border-b border-white/5 z-20 shrink-0">
+                    <div class="flex items-center gap-2 md:gap-4 min-w-0 flex-1 mr-2">
+                        <button id="backToSidebarBtn"
+                            class="xl:hidden text-slate-400 hover:text-white p-1 shrink-0 z-30">
                             <span class="material-symbols-outlined text-2xl">arrow_back_ios</span>
                         </button>
-                        <div class="relative flex-shrink-0" id="chatHeaderInfo">
-                            <div class="w-10 h-10 rounded-full border-2 border-kin_primary/30 flex items-center justify-center bg-gradient-to-tr from-kin_primary_container to-kin_primary font-bold overflow-hidden"
-                                id="chat-avatar-container">
-                                <img src="" alt="" class="w-full h-full object-cover hidden" id="chat-avatar-img">
-                                <span id="chat-avatar-char" class="text-sm text-white"></span>
+                        <div class="flex items-center gap-4 min-w-0 cursor-pointer flex-1" id="chatHeaderInfo">
+                            <div class="relative flex-shrink-0">
+                                <div class="w-10 h-10 rounded-full border-2 border-kin_primary/30 flex items-center justify-center bg-gradient-to-tr from-kin_primary_container to-kin_primary font-bold overflow-hidden"
+                                    id="chat-avatar-container">
+                                    <img src="" alt="" class="w-full h-full object-cover hidden" id="chat-avatar-img">
+                                    <span id="chat-avatar-char" class="text-sm text-white"></span>
+                                </div>
+                                <span
+                                    class="absolute bottom-0 right-0 w-3 h-3 bg-gray-500 border-2 border-surface-container rounded-full"
+                                    id="chat-status-dot"></span>
                             </div>
-                            <span
-                                class="absolute bottom-0 right-0 w-3 h-3 bg-gray-500 border-2 border-surface-container rounded-full"
-                                id="chat-status-dot"></span>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="manrope text-lg font-bold text-slate-100 leading-tight truncate" id="chat-name">
-                                Contact</h3>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-[10px] text-kin_tertiary font-bold tracking-widest uppercase"
-                                    id="chat-status-text">Offline</span>
+                            <div class="min-w-0 flex-1">
+                                <h3 class="manrope text-sm md:text-lg font-bold text-slate-100 leading-tight truncate"
+                                    id="chat-name">
+                                    Contact</h3>
+                                <div class="flex items-center gap-1.5 overflow-hidden">
+                                    <span
+                                        class="text-[9px] md:text-[10px] text-kin_tertiary font-bold tracking-widest uppercase truncate"
+                                        id="chat-status-text">Offline</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1 md:gap-2 shrink-0">
                         <button id="callContactBtn"
-                            class="p-2.5 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-kin_primary hidden">
-                            <span class="material-symbols-outlined text-2xl">call</span>
+                            class="p-1 px-1.5 md:p-2.5 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-kin_primary hidden">
+                            <span class="material-symbols-outlined text-xl md:text-2xl">call</span>
                         </button>
                         <button id="videoCallBtn"
-                            class="p-2.5 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-kin_primary hidden">
-                            <span class="material-symbols-outlined text-2xl">videocam</span>
+                            class="p-1 px-1.5 md:p-2.5 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-kin_primary hidden">
+                            <span class="material-symbols-outlined text-xl md:text-2xl">videocam</span>
                         </button>
                         <button id="clearChatBtn"
-                            class="p-2.5 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-red-400">
-                            <span class="material-symbols-outlined text-2xl">delete_sweep</span>
+                            class="p-1 px-1.5 md:p-2.5 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-red-400">
+                            <span class="material-symbols-outlined text-xl md:text-2xl">delete_sweep</span>
                         </button>
                     </div>
                 </header>
 
                 <!-- Messages Area -->
                 <div id="messages-area"
-                    class="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6 bg-surface-dim custom-scrollbar">
+                    class="overflow-y-auto p-6 md:p-8 flex flex-col gap-6 bg-surface-dim custom-scrollbar">
                     <!-- Messages appended here -->
                 </div>
 
                 <!-- Input Area (Composer) -->
-                <div class="p-6 pt-0">
+                <div class="p-6 pt-0 chat-input-safe-padding">
                     <!-- Reply Preview Block -->
                     <div id="reply-preview-container"
                         class="hidden mb-3 glass-panel p-3 rounded-xl border border-white/5 flex items-center justify-between mx-2 animate-in slide-in-from-bottom-2 duration-200">
@@ -211,8 +355,8 @@
 
                         <button type="submit"
                             class="w-11 h-11 bg-kin_primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-kin_primary/30 hover:scale-105 active:scale-95 transition-all">
-                            <span class="material-symbols-outlined text-2xl" 
-                                  style="transform: rotate(-45deg); margin-left: 4px; margin-bottom: 2px;">send</span>
+                            <span class="material-symbols-outlined text-2xl"
+                                style="transform: rotate(-45deg); margin-left: 4px; margin-bottom: 2px;">send</span>
                         </button>
                     </form>
 
@@ -223,9 +367,9 @@
 
                     <div class="mt-4 flex justify-center items-center gap-2 pointer-events-none opacity-50">
                         <span class="material-symbols-outlined text-kin_tertiary text-[10px]">priority_high</span>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                            </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
                         </svg>
                         <span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">End-to-End Encrypted
                             Session</span>
@@ -294,24 +438,30 @@
 <!-- Profile Update Modal (Stitch Alignment) -->
 <div id="profileModal"
     class="fixed inset-0 bg-kin_surf_target/80 backdrop-blur-md hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
-    <div class="glass-card w-full max-w-2xl p-0 transform scale-95 transition-all outline-none max-h-[95vh] overflow-hidden rounded-[2.5rem] ghost-border flex flex-col"
+    <div class="glass-card w-[95vw] md:max-w-2xl p-0 transform scale-95 transition-all outline-none max-h-[95vh] overflow-hidden rounded-[2.5rem] ghost-border flex flex-col"
         id="profileModalContent">
-        
+
         <!-- Modal Header / Profile Intro -->
         <div class="p-8 pb-0 flex flex-col md:flex-row items-center md:items-end gap-8 relative">
-            <button id="closeProfileModalBtn" class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-all text-slate-500 hover:text-kin_primary group z-20">
+            <button id="closeProfileModalBtn"
+                class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-all text-slate-500 hover:text-kin_primary group z-20">
                 <span class="material-symbols-outlined transition-transform group-hover:rotate-90">close</span>
             </button>
 
             <!-- Avatar Section -->
             <div class="relative group" id="profilePicContainer">
-                <div class="w-32 h-32 rounded-full ring-4 ring-indigo-500/20 p-1 overflow-hidden bg-surface-container flex items-center justify-center text-4xl text-on-surface font-bold transition-all">
-                    <img src="{{ user.profile_pic or '' }}" alt="Profile" class="w-full h-full rounded-full object-cover {% if not user.profile_pic %}hidden{% endif %}" id="modalProfileImg">
-                    <div class="w-full h-full rounded-full bg-indigo-500/20 flex items-center justify-center {% if user.profile_pic %}hidden{% endif %}" id="modalProfileChar">
+                <div
+                    class="w-32 h-32 rounded-full ring-4 ring-indigo-500/20 p-1 overflow-hidden bg-surface-container flex items-center justify-center text-4xl text-on-surface font-bold transition-all">
+                    <img src="{{ user.profile_pic or '' }}" alt="Profile"
+                        class="w-full h-full rounded-full object-cover {% if not user.profile_pic %}hidden{% endif %}"
+                        id="modalProfileImg">
+                    <div class="w-full h-full rounded-full bg-indigo-500/20 flex items-center justify-center {% if user.profile_pic %}hidden{% endif %}"
+                        id="modalProfileChar">
                         {{ user.first_name[0] }}
                     </div>
                 </div>
-                <button type="button" id="triggerProfilePic" class="absolute bottom-1 right-1 bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform duration-300">
+                <button type="button" id="triggerProfilePic"
+                    class="absolute bottom-1 right-1 bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform duration-300">
                     <span class="material-symbols-outlined text-xl">edit</span>
                 </button>
                 <input type="file" id="profilePicInput" class="hidden" accept="image/*">
@@ -319,9 +469,11 @@
 
             <!-- Header Info -->
             <div class="text-center md:text-left flex-1 pb-2">
-                <h2 class="text-3xl font-extrabold font-manrope tracking-tight text-on-surface mb-1" id="profileModalName">{{ user.first_name }} {{ user.last_name }}</h2>
+                <h2 class="text-3xl font-extrabold font-manrope tracking-tight text-on-surface mb-1"
+                    id="profileModalName">{{ user.first_name }} {{ user.last_name }}</h2>
                 <p class="text-on-surface-variant flex items-center justify-center md:justify-start gap-2 text-sm">
-                    <span class="material-symbols-outlined text-tertiary text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                    <span class="material-symbols-outlined text-tertiary text-sm"
+                        style="font-variation-settings: 'FILL' 1;">verified_user</span>
                     {{ user.email }}
                 </p>
             </div>
@@ -330,22 +482,30 @@
         <!-- Scrollable Form Content -->
         <form id="profileForm" class="flex-1 overflow-y-auto p-8 space-y-8">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
+
                 <!-- Personal Identity Panel -->
                 <div class="bg-surface-container-lowest/50 p-6 rounded-3xl border border-white/5 space-y-6">
                     <div class="flex items-center gap-3 mb-2">
                         <span class="material-symbols-outlined text-indigo-400">person_outline</span>
                         <h3 class="text-lg font-bold font-manrope">Personal Identity</h3>
                     </div>
-                    
+
                     <div class="space-y-4">
                         <div class="space-y-2">
-                            <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">First Name</label>
-                            <input type="text" id="profileFirstName" class="profile-edit-input w-full border border-white/5 rounded-xl px-4 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" value="{{ user.first_name }}">
+                            <label
+                                class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">First
+                                Name</label>
+                            <input type="text" id="profileFirstName"
+                                class="profile-edit-input w-full border border-white/5 rounded-xl px-4 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                value="{{ user.first_name }}">
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Last Name</label>
-                            <input type="text" id="profileLastName" class="profile-edit-input w-full border border-white/5 rounded-xl px-4 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" value="{{ user.last_name }}">
+                            <label
+                                class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Last
+                                Name</label>
+                            <input type="text" id="profileLastName"
+                                class="profile-edit-input w-full border border-white/5 rounded-xl px-4 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                value="{{ user.last_name }}">
                         </div>
                     </div>
                 </div>
@@ -356,21 +516,32 @@
                         <span class="material-symbols-outlined text-tertiary">phonelink_ring</span>
                         <h3 class="text-lg font-bold font-manrope">Communication</h3>
                     </div>
-                    
+
                     <div class="space-y-4">
                         <div class="space-y-2">
-                            <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Secure Mobile</label>
+                            <label
+                                class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Secure
+                                Mobile</label>
                             <div class="relative">
-                                <input type="tel" id="profileMobile" class="w-full bg-surface-container/50 border border-white/5 rounded-xl px-4 py-3 text-on-surface-variant text-sm opacity-60 cursor-not-allowed" disabled value="{{ user.mobile_number }}">
-                                <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
+                                <input type="tel" id="profileMobile"
+                                    class="w-full bg-surface-container/50 border border-white/5 rounded-xl px-4 py-3 text-on-surface-variant text-sm opacity-60 cursor-not-allowed"
+                                    disabled value="{{ user.mobile_number }}">
+                                <span
+                                    class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
                             </div>
-                            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-widest ml-1">Managed at registration</p>
+                            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-widest ml-1">Managed at
+                                registration</p>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Satellite Email</label>
+                            <label
+                                class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Satellite
+                                Email</label>
                             <div class="relative">
-                                <input type="email" class="w-full bg-surface-container/50 border border-white/5 rounded-xl px-4 py-3 text-on-surface-variant text-sm opacity-60 cursor-not-allowed" disabled value="{{ user.email }}">
-                                <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
+                                <input type="email"
+                                    class="w-full bg-surface-container/50 border border-white/5 rounded-xl px-4 py-3 text-on-surface-variant text-sm opacity-60 cursor-not-allowed"
+                                    disabled value="{{ user.email }}">
+                                <span
+                                    class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
                             </div>
                         </div>
                     </div>
@@ -381,40 +552,71 @@
             <div class="pt-6 border-t border-white/5">
                 <button type="button" id="togglePasswordBtn"
                     class="font-manrope text-[10px] font-black text-indigo-300 hover:text-indigo-400 transition-colors flex items-center gap-2 uppercase tracking-widest group">
-                    <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">shield_lock</span>
+                    <span
+                        class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">shield_lock</span>
                     Update Security Protocol
                 </button>
-                
+
                 <div id="passwordSection" class="hidden mt-6 animate-in slide-in-from-top-4 duration-300">
                     <div class="bg-surface-container-lowest/50 p-6 rounded-3xl border border-indigo-500/10 space-y-4">
                         <div class="space-y-4 max-w-xl">
                             <div class="space-y-2">
-                                <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Current Password</label>
+                                <label
+                                    class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Current
+                                    Password</label>
                                 <div class="relative">
-                                    <input type="password" id="oldPassword" class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" placeholder="••••••••••••">
-                                    <button type="button" class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2" data-password-toggle="oldPassword">
-                                        <span class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg" data-password-toggle-show>visibility</span>
-                                        <span class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg" data-password-toggle-hide>visibility_off</span>
+                                    <input type="password" id="oldPassword"
+                                        class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                        placeholder="••••••••••••">
+                                    <button type="button"
+                                        class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
+                                        data-password-toggle="oldPassword">
+                                        <span
+                                            class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
+                                            data-password-toggle-show>visibility</span>
+                                        <span
+                                            class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
+                                            data-password-toggle-hide>visibility_off</span>
                                     </button>
                                 </div>
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">New Password</label>
+                                <label
+                                    class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">New
+                                    Password</label>
                                 <div class="relative">
-                                    <input type="password" id="newPassword" class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" placeholder="Min. 12 characters">
-                                    <button type="button" class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2" data-password-toggle="newPassword">
-                                        <span class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg" data-password-toggle-show>visibility</span>
-                                        <span class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg" data-password-toggle-hide>visibility_off</span>
+                                    <input type="password" id="newPassword"
+                                        class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                        placeholder="Min. 12 characters">
+                                    <button type="button"
+                                        class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
+                                        data-password-toggle="newPassword">
+                                        <span
+                                            class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
+                                            data-password-toggle-show>visibility</span>
+                                        <span
+                                            class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
+                                            data-password-toggle-hide>visibility_off</span>
                                     </button>
                                 </div>
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Confirm New Password</label>
+                                <label
+                                    class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Confirm
+                                    New Password</label>
                                 <div class="relative">
-                                    <input type="password" id="confirmNewPassword" class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" placeholder="Repeat new password">
-                                    <button type="button" class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2" data-password-toggle="confirmNewPassword">
-                                        <span class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg" data-password-toggle-show>visibility</span>
-                                        <span class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg" data-password-toggle-hide>visibility_off</span>
+                                    <input type="password" id="confirmNewPassword"
+                                        class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                        placeholder="Repeat new password">
+                                    <button type="button"
+                                        class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
+                                        data-password-toggle="confirmNewPassword">
+                                        <span
+                                            class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
+                                            data-password-toggle-show>visibility</span>
+                                        <span
+                                            class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
+                                            data-password-toggle-hide>visibility_off</span>
                                     </button>
                                 </div>
                             </div>
@@ -426,10 +628,12 @@
 
         <!-- Fixed Footer Actions -->
         <div class="p-8 pt-0 flex gap-4">
-            <button type="button" onclick="closeProfileModal()" class="flex-1 py-4 bg-surface-container-highest hover:bg-white/5 rounded-2xl text-on-surface-variant font-bold text-sm transition-all uppercase tracking-widest">
+            <button type="button" onclick="closeProfileModal()"
+                class="flex-1 py-4 bg-surface-container-highest hover:bg-white/5 rounded-2xl text-on-surface-variant font-bold text-sm transition-all uppercase tracking-widest">
                 Cancel
             </button>
-            <button id="saveProfileBtn" type="submit" form="profileForm" class="flex-[2] py-4 bg-gradient-to-br from-primary-container to-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest">
+            <button id="saveProfileBtn" type="submit" form="profileForm"
+                class="flex-[2] py-4 bg-gradient-to-br from-primary-container to-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest">
                 Synchronize Identity
             </button>
         </div>
@@ -442,7 +646,7 @@
     class="fixed inset-0 bg-kin_surf_target/80 backdrop-blur-xl hidden items-center justify-center z-[70] p-4 opacity-0 transition-opacity duration-300">
     <div class="glass-card w-full max-w-lg rounded-[2.5rem] overflow-hidden ghost-border flex flex-col transform scale-95 transition-all text-left"
         id="contactProfileModalContent">
-        
+
         <!-- Header / Avatar Section -->
         <div class="relative h-64">
             <div class="w-full h-full bg-indigo-500/10 flex items-center justify-center" id="cpModalAvatarBg">
@@ -450,7 +654,8 @@
                 <span id="cpModalChar" class="text-6xl font-black text-indigo-400 font-manrope"></span>
             </div>
             <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
-            <button id="closeContactProfileBtn" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 hover:bg-white/5 transition-all">
+            <button id="closeContactProfileBtn"
+                class="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 hover:bg-white/5 transition-all">
                 <span class="material-symbols-outlined text-white">close</span>
             </button>
         </div>
@@ -458,7 +663,8 @@
         <!-- Info Section -->
         <div class="px-8 pb-10 -mt-8 relative z-10 flex-1">
             <div class="mb-8">
-                <h1 class="text-4xl font-extrabold font-manrope tracking-tighter text-on-surface" id="cpModalName">Name</h1>
+                <h1 class="text-4xl font-extrabold font-manrope tracking-tighter text-on-surface" id="cpModalName">Name
+                </h1>
                 <p class="text-tertiary flex items-center gap-2 font-medium text-sm mt-1">
                     <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse" id="cpStatusDotVisual"></span>
                     <span id="cpModalStatusText">Online • Secure Session</span>
@@ -468,7 +674,8 @@
             <div class="space-y-6">
                 <!-- Contact Detail -->
                 <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-2xl border border-white/5">
-                    <div class="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
                         <span class="material-symbols-outlined">call</span>
                     </div>
                     <div>
@@ -478,27 +685,37 @@
                 </div>
 
                 <!-- Security Section (Fingerprint Grid) -->
-                <div class="p-6 bg-surface-container-lowest rounded-2xl border border-tertiary/10 bloom-tertiary shadow-[0_0_20px_rgba(0,218,243,0.05)]">
+                <div
+                    class="p-6 bg-surface-container-lowest rounded-2xl border border-tertiary/10 bloom-tertiary shadow-[0_0_20px_rgba(0,218,243,0.05)]">
                     <div class="flex items-center gap-2 mb-4 text-tertiary">
-                        <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+                        <span class="material-symbols-outlined text-sm"
+                            style="font-variation-settings: 'FILL' 1;">verified_user</span>
                         <span class="text-[10px] font-bold uppercase tracking-widest">Secure Connection</span>
                     </div>
-                    <p class="text-[10px] text-on-surface-variant leading-relaxed mb-4 font-medium">End-to-end encryption is active. Unique Session Fingerprint:</p>
+                    <p class="text-[10px] text-on-surface-variant leading-relaxed mb-4 font-medium">End-to-end
+                        encryption is active. Unique Session Fingerprint:</p>
                     <div class="grid grid-cols-4 gap-2">
-                        <span class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">82B1</span>
-                        <span class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">99F0</span>
-                        <span class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">C2A4</span>
-                        <span class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">77D1</span>
+                        <span
+                            class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">82B1</span>
+                        <span
+                            class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">99F0</span>
+                        <span
+                            class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">C2A4</span>
+                        <span
+                            class="bg-surface-container-high py-2 rounded-lg text-center font-mono text-[10px] text-indigo-300 border border-white/5">77D1</span>
                     </div>
                 </div>
 
                 <!-- Actions -->
                 <div class="flex gap-4">
-                    <button id="blockContactBtn" class="flex-1 py-4 bg-surface-container-highest hover:bg-red-500/10 rounded-2xl text-red-400 font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-red-500/10">
+                    <button id="blockContactBtn"
+                        class="flex-1 py-4 bg-surface-container-highest hover:bg-red-500/10 rounded-2xl text-red-400 font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-red-500/10">
                         <span class="material-symbols-outlined text-lg">block</span>
                         Block
                     </button>
-                    <button class="flex-1 py-4 bg-surface-container-highest hover:bg-white/5 rounded-2xl text-on-surface font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-white/5" onclick="closeContactProfile()">
+                    <button
+                        class="flex-1 py-4 bg-surface-container-highest hover:bg-white/5 rounded-2xl text-on-surface font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-white/5"
+                        onclick="closeContactProfile()">
                         Close
                     </button>
                 </div>
@@ -511,13 +728,15 @@
 <div id="callHistoryModal"
     class="fixed inset-0 z-[80] hidden items-center justify-center bg-surface-container-lowest/70 backdrop-blur-md p-4 opacity-0 transition-opacity duration-200">
     <div id="callHistoryModalContent"
-        class="glass-card w-full max-w-xl rounded-[2rem] p-6 ghost-border transform scale-95 transition-transform duration-200">
+        class="glass-card w-[95vw] md:max-w-xl rounded-[2rem] p-6 ghost-border transform scale-95 transition-transform duration-200">
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h3 class="text-xl font-bold font-manrope text-on-surface">Call History</h3>
-                <p class="text-xs text-on-surface-variant uppercase tracking-widest mt-1" id="callHistorySubtitle">Recent secure sessions</p>
+                <p class="text-xs text-on-surface-variant uppercase tracking-widest mt-1" id="callHistorySubtitle">
+                    Recent secure sessions</p>
             </div>
-            <button id="closeCallHistoryBtn" class="w-10 h-10 rounded-full hover:bg-white/5 transition-colors text-slate-400 hover:text-white">
+            <button id="closeCallHistoryBtn"
+                class="w-10 h-10 rounded-full hover:bg-white/5 transition-colors text-slate-400 hover:text-white">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -530,33 +749,41 @@
 <!-- Incoming Pulse Call Overlay (Stitch Alignment) -->
 <div id="incomingCallOverlay"
     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface-container-lowest/40 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
-    <div class="w-full max-w-md glass-card rounded-[2rem] p-8 bloom-primary flex flex-col items-center text-center relative overflow-hidden ghost-border shadow-2xl">
+    <div
+        class="w-full max-w-md glass-card rounded-[2rem] p-8 bloom-primary flex flex-col items-center text-center relative overflow-hidden ghost-border shadow-2xl">
         <!-- Glowing Aura -->
         <div class="absolute -top-24 -left-24 w-48 h-48 bg-tertiary/10 blur-[80px] rounded-full animate-pulse"></div>
-        
+
         <!-- Caller Identity -->
         <div class="relative mb-6">
             <div class="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping opacity-20 scale-150"></div>
-            <div class="w-32 h-32 rounded-full border-4 border-surface-container-highest relative z-10 overflow-hidden bg-indigo-500/10 flex items-center justify-center">
-                <span class="material-symbols-outlined text-indigo-400 text-5xl" id="incomingCallAvatarChar">person</span>
+            <div
+                class="w-32 h-32 rounded-full border-4 border-surface-container-highest relative z-10 overflow-hidden bg-indigo-500/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-indigo-400 text-5xl"
+                    id="incomingCallAvatarChar">person</span>
                 <img src="" alt="" class="w-full h-full object-cover hidden" id="incomingCallAvatarImg">
             </div>
         </div>
-        
-        <h2 class="text-3xl font-bold font-manrope mb-1 tracking-tight text-on-surface" id="incomingCallerName">Evelyn</h2>
-        <p class="text-tertiary font-medium mb-12 tracking-widest text-xs uppercase" id="incomingCallTypeLabel">Secure Voice Call</p>
-        
+
+        <h2 class="text-3xl font-bold font-manrope mb-1 tracking-tight text-on-surface" id="incomingCallerName">Evelyn
+        </h2>
+        <p class="text-tertiary font-medium mb-12 tracking-widest text-xs uppercase" id="incomingCallTypeLabel">Secure
+            Voice Call</p>
+
         <!-- Call Controls -->
         <div class="flex gap-12 mb-4">
             <button id="rejectCallBtn" class="group flex flex-col items-center gap-3">
-                <div class="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 border border-red-500/20 group-hover:bg-red-500 group-hover:text-white transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+                <div
+                    class="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 border border-red-500/20 group-hover:bg-red-500 group-hover:text-white transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
                     <span class="material-symbols-outlined text-3xl">call_end</span>
                 </div>
                 <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Decline</span>
             </button>
             <button id="acceptCallBtn" class="group flex flex-col items-center gap-3">
-                <div class="w-16 h-16 rounded-full bg-tertiary/20 flex items-center justify-center text-tertiary border border-tertiary/20 group-hover:bg-tertiary group-hover:text-black transition-all duration-300 shadow-[0_0_20px_rgba(0,218,243,0.1)]">
-                    <span class="material-symbols-outlined text-3xl" id="acceptCallIcon" style="font-variation-settings: 'FILL' 1;">call</span>
+                <div
+                    class="w-16 h-16 rounded-full bg-tertiary/20 flex items-center justify-center text-tertiary border border-tertiary/20 group-hover:bg-tertiary group-hover:text-black transition-all duration-300 shadow-[0_0_20px_rgba(0,218,243,0.1)]">
+                    <span class="material-symbols-outlined text-3xl" id="acceptCallIcon"
+                        style="font-variation-settings: 'FILL' 1;">call</span>
                 </div>
                 <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Accept</span>
             </button>
@@ -568,10 +795,12 @@
     class="fixed top-6 right-6 z-[75] w-[320px] hidden rounded-[2rem] overflow-hidden border border-white/10 glass-card shadow-2xl">
     <div class="relative aspect-[4/5] bg-black">
         <video id="remoteVideoEl" autoplay playsinline class="w-full h-full object-cover"></video>
-        <div id="remoteVideoPlaceholder" class="absolute inset-0 flex items-center justify-center text-sm text-white/70 uppercase tracking-[0.3em] bg-slate-950/70">
+        <div id="remoteVideoPlaceholder"
+            class="absolute inset-0 flex items-center justify-center text-sm text-white/70 uppercase tracking-[0.3em] bg-slate-950/70">
             Waiting for video
         </div>
-        <video id="localVideoEl" autoplay playsinline muted class="absolute bottom-4 right-4 w-24 h-32 rounded-2xl object-cover border border-white/15 bg-slate-950"></video>
+        <video id="localVideoEl" autoplay playsinline muted
+            class="absolute bottom-4 right-4 w-24 h-32 rounded-2xl object-cover border border-white/15 bg-slate-950"></video>
     </div>
 </div>
 
@@ -580,7 +809,8 @@
     class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[70] w-[340px] glass-card rounded-[2.5rem] p-4 flex flex-col gap-4 shadow-2xl border border-white/10 hidden opacity-0 transition-all duration-300 transform translate-y-4">
     <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full border border-indigo-500/30 overflow-hidden bg-indigo-500/10 flex items-center justify-center">
+            <div
+                class="w-10 h-10 rounded-full border border-indigo-500/30 overflow-hidden bg-indigo-500/10 flex items-center justify-center">
                 <span class="material-symbols-outlined text-indigo-400 text-xl" id="activeCallAvatarChar">person</span>
                 <img src="" alt="" class="w-full h-full object-cover hidden" id="activeCallAvatarImg">
             </div>
@@ -591,23 +821,33 @@
         </div>
         <div class="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-full">
             <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-            <span class="text-[10px] text-on-surface font-bold uppercase tracking-tighter" id="activeCallStatus">Live</span>
+            <span class="text-[10px] text-on-surface font-bold uppercase tracking-tighter"
+                id="activeCallStatus">Live</span>
         </div>
     </div>
     <div class="flex justify-between items-center bg-surface-container-low p-2 rounded-2xl">
-        <button id="muteCallBtn" class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors" title="Mute">
+        <button id="muteCallBtn"
+            class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors"
+            title="Mute">
             <span class="material-symbols-outlined">mic_off</span>
         </button>
-        <button id="upgradeVideoBtn" class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors" title="Turn on video">
+        <button id="upgradeVideoBtn"
+            class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors"
+            title="Turn on video">
             <span class="material-symbols-outlined">videocam</span>
         </button>
-        <button class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors" title="Speaker">
+        <button
+            class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors"
+            title="Speaker">
             <span class="material-symbols-outlined">volume_up</span>
         </button>
-        <div id="callMediaBadge" class="min-w-[74px] h-10 px-3 rounded-xl bg-surface-container-highest flex items-center justify-center text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">
+        <div id="callMediaBadge"
+            class="min-w-[74px] h-10 px-3 rounded-xl bg-surface-container-highest flex items-center justify-center text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">
             Audio
         </div>
-        <button id="endCallBtn" class="w-14 h-10 rounded-xl bg-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95" title="End Call">
+        <button id="endCallBtn"
+            class="w-14 h-10 rounded-xl bg-red-500/20 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95"
+            title="End Call">
             <span class="material-symbols-outlined text-xl">call_end</span>
         </button>
     </div>
@@ -1224,7 +1464,7 @@
         const modal = document.getElementById('profileModal');
         const content = document.getElementById('profileModalContent');
         if (!modal || !content) return;
-        
+
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(() => {
@@ -1889,14 +2129,27 @@
         document.querySelectorAll('.contact-item').forEach((el) => {
             el.classList.remove('bg-kin_primary/10', 'border-kin_primary');
             el.classList.add('hover:bg-white/5', 'border-transparent');
+            // Reset time color
+            const timeSpan = el.querySelector('.time-stamp');
+            if (timeSpan) {
+                timeSpan.classList.add('text-slate-500');
+                timeSpan.classList.remove('text-kin_primary');
+            }
         });
 
-        if (contactId === null) return;
+        // Highlights only visible on Desktop (>1280px)
+        if (contactId === null || window.innerWidth < 1280) return;
 
         const contactEl = document.getElementById(`contact-${contactId}`);
         if (contactEl) {
             contactEl.classList.remove('hover:bg-white/5', 'border-transparent');
             contactEl.classList.add('bg-kin_primary/10', 'border-kin_primary');
+            // Highlight time color
+            const timeSpan = contactEl.querySelector('.time-stamp');
+            if (timeSpan) {
+                timeSpan.classList.remove('text-slate-500');
+                timeSpan.classList.add('text-kin_primary');
+            }
         }
     }
 
@@ -1996,18 +2249,57 @@
         }
     }
 
+    // Mobile Navigation State Manager (Hardened)
+    function syncDynamicView(isChatActive = null) {
+        const width = window.innerWidth;
+        const isMobile = width < 768;
+        const isTablet = width >= 768 && width < 1280;
+        const isDesktop = width >= 1280;
+
+        if (isChatActive === null) {
+            isChatActive = !!activeContactId;
+        }
+
+        if (isChatActive) {
+            document.body.classList.add('chat-active');
+        } else {
+            document.body.classList.remove('chat-active');
+        }
+
+        // Logic for Nav Bars
+        if (isMobile) {
+            document.body.classList.remove('sidebar-collapsed');
+        } else {
+            // Default to collapsed on tablet, expanded on desktop
+            const savedState = localStorage.getItem('isSidebarCollapsed');
+            const shouldCollapse = savedState !== null ? (savedState === 'true') : isTablet;
+            if (shouldCollapse) {
+                document.body.classList.add('sidebar-collapsed');
+            } else {
+                document.body.classList.remove('sidebar-collapsed');
+            }
+        }
+
+        // Handle placeholders properly for all modes
+        const placeholder = document.getElementById('no-chat-selected');
+        const activeChat = document.getElementById('active-chat');
+        if (isChatActive) {
+            if (placeholder) placeholder.classList.add('hidden');
+            if (activeChat) activeChat.classList.remove('hidden');
+        } else {
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (activeChat) activeChat.classList.add('hidden');
+        }
+    }
+
     async function selectUser(id, name, pubKeyB64, mobile = null, profilePic = null, blockedByMe = false, blockedMe = false) {
         activeContactId = id;
 
-        document.getElementById('no-chat-selected').classList.add('hidden');
-        document.getElementById('active-chat').classList.remove('hidden');
+        syncDynamicView(true);
+
         document.getElementById('chat-name').innerText = name;
         document.getElementById('callContactBtn').classList.remove('hidden');
         document.getElementById('videoCallBtn').classList.remove('hidden');
-
-        if (window.innerWidth < 768) {
-            document.getElementById('sidebar').classList.add('-translate-x-full');
-        }
 
         const avatarImg = document.getElementById('chat-avatar-img');
         const avatarChar = document.getElementById('chat-avatar-char');
@@ -2100,23 +2392,15 @@
 
     const handleBackToSidebar = (e) => {
         if (e) e.preventDefault();
-        document.getElementById('sidebar').classList.remove('-translate-x-full');
+        activeContactId = null;
         localStorage.removeItem('activeContactId');
         localStorage.removeItem('activeContactName');
         localStorage.removeItem('activeContactPubKey');
-        activeContactId = null;
-        document.getElementById('callContactBtn').classList.add('hidden');
-        document.getElementById('videoCallBtn').classList.add('hidden');
-        document.getElementById('active-chat').classList.add('hidden');
-        document.getElementById('no-chat-selected').classList.remove('hidden');
+
+        syncDynamicView(false);
         updateActiveContactHighlight();
     };
 
-    const backBtn = document.getElementById('backToSidebarBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', handleBackToSidebar);
-        backBtn.addEventListener('touchstart', handleBackToSidebar, { passive: false });
-    }
 
     document.getElementById('contact-list').addEventListener('click', async (e) => {
         const item = e.target.closest('.contact-item');
@@ -2184,6 +2468,11 @@
             const nameSafely = escapeHtml(contact.first_name) + ' ' + escapeHtml(contact.last_name);
             const profilePic = contact.profile_pic || "";
 
+            const isDesktop = window.innerWidth >= 1280;
+            const highlightClasses = (activeContactId === contact.id && isDesktop)
+                ? 'bg-kin_primary/10 border-l-4 border-kin_primary'
+                : 'hover:bg-white/5 border-l-4 border-transparent';
+
             const html = `
             <div id="contact-${contact.id}" data-contact-id="${contact.id}" data-contact-name="${nameSafely}"
                 data-contact-first-name="${escapeHtml(contact.first_name)}"
@@ -2192,8 +2481,8 @@
                 data-contact-pic="${profilePic}"
                 data-contact-blocked-by-me="${contact.blocked_by_me}"
                 data-contact-blocked-me="${contact.blocked_me}"
-                class="contact-item group flex items-center gap-4 p-3 cursor-pointer transition-all rounded-2xl mx-1
-                ${activeContactId === contact.id ? 'bg-kin_primary/10 border-l-4 border-kin_primary' : 'hover:bg-white/5 border-l-4 border-transparent'}">
+                class="contact-item group flex items-center gap-4 p-4 md:px-12 cursor-pointer transition-all rounded-2xl mx-1
+                ${highlightClasses}">
                 <div class="relative flex-shrink-0">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden bg-gradient-to-tr from-kin_primary_container to-kin_primary shadow-sm">
                         ${profilePic ? `<img src="${profilePic}" class="w-full h-full object-cover">` : escapeHtml(contact.first_name).charAt(0)}
@@ -2203,7 +2492,7 @@
                 <div class="flex-1 text-left min-w-0">
                     <div class="flex justify-between items-center mb-0.5">
                         <span class="font-bold text-on-surface truncate tracking-tight">${nameSafely}</span>
-                        <span class="text-[10px] ${activeContactId === contact.id ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
+                        <span class="text-[10px] time-stamp ${(activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <p class="text-xs text-on-surface-variant truncate pr-2 opacity-80" id="contact-${contact.id}-preview">${escapeHtml(lastMsgText)}</p>
@@ -2353,7 +2642,7 @@
                 : '<span class="material-symbols-outlined text-[14px] text-slate-500">done</span>';
 
         const html = `
-            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-3 message-container ${!msg.id ? 'optimistic' : ''}" 
+            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 md:gap-3 message-container w-full ${!msg.id ? 'optimistic' : ''}" 
                  id="${msg.id ? `msg-container-${msg.id}` : ''}"
                  data-msg-id="${msg.id || ''}"
                  data-pending="${isPending}"
@@ -2365,8 +2654,8 @@
                 </div>
                 ` : ''}
 
-                <div class="max-w-[70%] flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative">
-                    <div class="message-bubble ${isMe ? 'bg-kin_primary_container bg-gradient-to-br from-kin_primary_container to-kin_primary/40 rounded-2xl rounded-br-sm text-on-primary-container shadow-[0_0_20px_rgba(79,70,229,0.2)]' : 'bg-kin_surf_low rounded-2xl rounded-bl-sm text-on-surface shadow-sm border border-white/5'} px-5 py-3 transition-all w-full flex flex-col min-w-0 overflow-hidden relative">
+                <div class="max-w-[85%] flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative">
+                    <div class="message-bubble ${isMe ? 'bg-kin_primary_container bg-gradient-to-br from-kin_primary_container to-kin_primary/40 rounded-2xl rounded-br-sm text-on-primary-container shadow-[0_0_20px_rgba(79,70,229,0.2)]' : 'bg-kin_surf_low rounded-2xl rounded-bl-sm text-on-surface shadow-sm border border-white/5'} px-4 md:px-5 py-2.5 md:py-3 transition-all w-full flex flex-col min-w-0 overflow-hidden relative">
                         ${repliedHtml}
                         <div class="flex flex-col gap-1 w-full relative z-10 break-words">
                             ${plainText ? `<span class="text-sm leading-relaxed message-content whitespace-pre-wrap font-inter font-medium">${escapeHtml(plainText)}</span>` : ''}
@@ -2753,6 +3042,8 @@
         await loadContacts();
         setupWebRTCSocketListeners();
 
+        const activeChat = document.getElementById('active-chat');
+
         // Mark read when returning to tab
         window.addEventListener('focus', () => {
             if (activeContactId) {
@@ -2809,6 +3100,59 @@
 
         document.getElementById("fileInput").addEventListener("change", handleFileSelection);
 
+        // Mobile Navigation Listeners
+        // Redundant syncMobileView moved to global scope
+
+        const backBtn = document.getElementById("backToSidebarBtn");
+        if (backBtn) {
+            backBtn.addEventListener("click", handleBackToSidebar);
+        }
+
+        // Unified Sidebar Navigation (Hardened for Mobile/Tablet/Desktop)
+        const sidebarToggle = document.getElementById("sidebarToggleBtn");
+        const sideNavbar = document.getElementById("side-navbar");
+
+        function toggleSidebar() {
+            const width = window.innerWidth;
+            const isMobile = width < 768;
+            const isTablet = width >= 768 && width < 1280;
+
+            if (isMobile) {
+                // On mobile, this is a drawer toggle
+                document.body.classList.toggle('sidebar-open');
+                document.body.classList.remove('sidebar-collapsed');
+            } else {
+                // On tablet/desktop, this is a folding toggle
+                const nowCollapsed = document.body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem('isSidebarCollapsed', nowCollapsed);
+
+                // If we are on tablet and expanding/collapsing, we might need a sync
+                if (isTablet) {
+                    syncDynamicView();
+                }
+            }
+        }
+
+        if (sidebarToggle) {
+            sidebarToggle.onclick = (e) => {
+                e.stopPropagation();
+                toggleSidebar();
+            };
+        }
+
+        // Close sidebar drawer on mobile when clicking outside
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
+                if (!sideNavbar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    document.body.classList.remove('sidebar-open');
+                }
+            }
+        });
+
+        // Initialize state on load and resize
+        window.addEventListener('resize', () => syncDynamicView());
+        syncDynamicView();
+
         const msgInput = document.getElementById('msgInput');
         if (msgInput) {
             msgInput.addEventListener('focus', () => {
@@ -2839,6 +3183,7 @@
                 if (activeContactId) {
                     markChatAsRead(activeContactId);
                 }
+                syncDynamicView(); // Re-sync on tab focus
             }
         });
 
@@ -3057,8 +3402,12 @@
                 selectUser(Number(savedId), savedName, savedPubKey);
             }
         } else {
-            document.getElementById('active-chat').classList.add('hidden');
-            document.getElementById('no-chat-selected').classList.remove('hidden');
+            if (activeChat) activeChat.classList.add('hidden');
+            const placeholder = document.getElementById('no-chat-selected');
+            if (placeholder && window.innerWidth >= 768) {
+                placeholder.classList.remove('hidden');
+            }
+            syncMobileView(false);
         }
 
         keepActiveChatVisible(false);
@@ -3076,7 +3425,7 @@
         const avatarImg = document.getElementById('cpModalImg');
         const avatarChar = document.getElementById('cpModalChar');
         const avatarBg = document.getElementById('cpModalAvatarBg');
-        
+
         if (data.profilePic) {
             avatarImg.src = data.profilePic;
             avatarImg.classList.remove('hidden');
@@ -3092,9 +3441,9 @@
         const statusDot = document.getElementById('cpStatusDotVisual');
         const statusText = document.getElementById('cpModalStatusText');
         const activeStatusDot = document.getElementById('chat-status-dot');
-        
+
         const isOnline = activeStatusDot && activeStatusDot.classList.contains('bg-tertiary');
-        
+
         if (statusDot) {
             statusDot.className = `w-2.5 h-2.5 rounded-full animate-pulse ${isOnline ? 'bg-tertiary shadow-[0_0_10px_rgba(0,218,243,0.5)]' : 'bg-slate-500'}`;
         }
@@ -3445,7 +3794,7 @@
         if (name) name.innerText = contact.name;
         updateCallMediaBadge(mode);
         setCallAvatar('incomingCallAvatarImg', 'incomingCallAvatarChar', contact.profilePic, contact.name);
-        
+
         overlay.classList.remove('hidden');
         overlay.classList.add('flex');
         setTimeout(() => overlay.classList.remove('opacity-0'), 10);
@@ -3464,7 +3813,7 @@
         const statusEl = document.getElementById('activeCallStatus');
         const timerEl = document.getElementById('activeCallTimer');
         const contact = resolveContactForCall(contactId);
-        
+
         if (name) name.innerText = contact.name;
         if (statusEl) statusEl.innerText = status || "Live";
         if (timerEl) {
@@ -3472,7 +3821,7 @@
         }
         updateCallMediaBadge(currentCallMode);
         setCallAvatar('activeCallAvatarImg', 'activeCallAvatarChar', contact.profilePic, contact.name);
-        
+
         dock.classList.remove('hidden');
         dock.classList.add('flex');
         setTimeout(() => {

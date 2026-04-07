@@ -80,8 +80,12 @@
         }
     </script>
     <script nonce="{{ request.state.nonce }}" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
     <style>
         :root {
             --app-height: 100dvh;
@@ -90,9 +94,10 @@
         html {
             background-color: #0b0e14;
             /* Prevents transparent scrollbar tracks from revealing default white HTML background! */
-            height: 100%;
+            min-height: 100%;
             width: 100%;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             overscroll-behavior: none;
         }
 
@@ -102,14 +107,9 @@
             color: #e1e2eb;
             margin: 0;
             padding: 0;
-            height: var(--app-height);
+            min-height: 100vh;
+            min-height: 100dvh;
             width: 100%;
-            min-height: var(--app-height);
-            overflow: hidden;
-            overscroll-behavior: none;
-            position: fixed;
-            top: 0;
-            left: 0;
         }
 
         .mobile-app-shell {
@@ -179,12 +179,16 @@
             background: radial-gradient(circle at 0% 100%, rgba(0, 218, 243, 0.12) 0%, transparent 50%);
         }
 
-        .manrope { font-family: 'Manrope', sans-serif; }
+        .manrope {
+            font-family: 'Manrope', sans-serif;
+        }
 
         .glass-input {
-            background: #0b0e14; /* kin_surf_lowest */
+            background: #0b0e14;
+            /* kin_surf_lowest */
             border: 1px solid transparent;
-            color: #e1e2eb; /* kin_on_surface */
+            color: #e1e2eb;
+            /* kin_on_surface */
             border-radius: 0.75rem;
             padding: 0.875rem 1.25rem;
             transition: all 0.2s ease;
@@ -192,9 +196,11 @@
 
         .glass-input:focus {
             outline: none;
-            border: 1px solid rgba(195, 192, 255, 0.2); /* 20% kin_primary ghost border */
+            border: 1px solid rgba(195, 192, 255, 0.2);
+            /* 20% kin_primary ghost border */
             background: #0b0e14;
-            caret-color: #00daf3; /* kin_tertiary */
+            caret-color: #00daf3;
+            /* kin_tertiary */
         }
 
         .password-input-wrap {
@@ -242,7 +248,8 @@
             color: #10131a;
             font-weight: 700;
             padding: 0.875rem 1.5rem;
-            border-radius: 9999px; /* full roundedness */
+            border-radius: 9999px;
+            /* full roundedness */
             transition: all 0.2s;
             border: none;
         }
@@ -250,11 +257,13 @@
         .primary-btn:hover {
             opacity: 0.9;
             transform: translateY(-2px);
-            box-shadow: 0 0 15px rgba(0, 218, 243, 0.2); /* Interaction Glow */
+            box-shadow: 0 0 15px rgba(0, 218, 243, 0.2);
+            /* Interaction Glow */
         }
 
         .secondary-btn {
-            background: #32353c; /* kin_surf_highest */
+            background: #32353c;
+            /* kin_surf_highest */
             color: #e1e2eb;
             font-weight: 600;
             padding: 0.875rem 1.5rem;
@@ -307,7 +316,7 @@
     </style>
 </head>
 
-<body class="antialiased flex items-stretch md:items-center justify-center p-0 md:p-6 lg:p-10 min-h-screen">
+<body class="antialiased flex flex-col items-center p-0 md:p-6 lg:p-10">
     {% block content %}
     {% endblock %}
 
