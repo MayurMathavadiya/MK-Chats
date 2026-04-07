@@ -93,3 +93,21 @@ class BlockedUser(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     blocked_contact_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class CallLog(Base):
+    __tablename__ = "call_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    initiator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    started_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    accepted_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    ended_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    call_type = Column(String, nullable=False, default="audio")
+    final_call_type = Column(String, nullable=False, default="audio")
+    status = Column(String, nullable=False, default="initiated")
+    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    answered_at = Column(DateTime, nullable=True)
+    ended_at = Column(DateTime, nullable=True)
+    duration_seconds = Column(Integer, nullable=False, default=0)

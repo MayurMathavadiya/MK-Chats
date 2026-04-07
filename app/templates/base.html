@@ -6,15 +6,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}MK Chats{% endblock %}</title>
     <script nonce="{{ request.state.nonce }}" src="https://cdn.tailwindcss.com"></script>
+    <script nonce="{{ request.state.nonce }}">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#10131a",
+                        surface: "#10131a",
+                        "surface-dim": "#10131a",
+                        "surface-tint": "#c3c0ff",
+                        "surface-bright": "#363940",
+                        "surface-container-lowest": "#0b0e14",
+                        "surface-container-low": "#191c22",
+                        "surface-container": "#1d2026",
+                        "surface-container-high": "#272a31",
+                        "surface-container-highest": "#32353c",
+                        "surface-variant": "#32353c",
+                        "on-surface": "#e1e2eb",
+                        "on-surface-variant": "#c7c4d8",
+                        outline: "#918fa1",
+                        "outline-variant": "#464555",
+                        primary: "#c3c0ff",
+                        "primary-container": "#4f46e5",
+                        "primary-fixed": "#e2dfff",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-primary": "#1d00a5",
+                        "on-primary-container": "#dad7ff",
+                        "on-primary-fixed": "#0f0069",
+                        "on-primary-fixed-variant": "#3323cc",
+                        secondary: "#c4c6cf",
+                        "secondary-container": "#464950",
+                        "secondary-fixed": "#e1e2eb",
+                        "secondary-fixed-dim": "#c4c6cf",
+                        "on-secondary": "#2e3037",
+                        "on-secondary-container": "#b6b8c1",
+                        "on-secondary-fixed": "#191c22",
+                        "on-secondary-fixed-variant": "#44474e",
+                        tertiary: "#00daf3",
+                        "tertiary-container": "#006a77",
+                        "tertiary-fixed": "#9cf0ff",
+                        "tertiary-fixed-dim": "#00daf3",
+                        "on-tertiary": "#00363d",
+                        "on-tertiary-container": "#77ebff",
+                        "on-tertiary-fixed": "#001f24",
+                        "on-tertiary-fixed-variant": "#004f58",
+                        error: "#ffb4ab",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "on-error-container": "#ffdad6",
+                        "inverse-surface": "#e1e2eb",
+                        "inverse-on-surface": "#2e3037",
+                        "inverse-primary": "#4d44e3",
+                        kin_bg: "#10131a",
+                        kin_surf_lowest: "#0b0e14",
+                        kin_surf_low: "#191c22",
+                        kin_surf: "#10131a",
+                        kin_surf_high: "#272a31",
+                        kin_surf_highest: "#32353c",
+                        kin_on_surface: "#e1e2eb",
+                        kin_on_surface_variant: "#c7c4d8",
+                        kin_outline: "#918fa1",
+                        kin_outline_variant: "#464555",
+                        kin_primary: "#c3c0ff",
+                        kin_primary_container: "#4f46e5",
+                        kin_tertiary: "#00daf3"
+                    },
+                    fontFamily: {
+                        manrope: ['Manrope', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <script nonce="{{ request.state.nonce }}" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <style>
         :root {
             --app-height: 100dvh;
         }
 
         html {
-            background-color: #344878;
+            background-color: #0b0e14;
             /* Prevents transparent scrollbar tracks from revealing default white HTML background! */
             height: 100%;
             width: 100%;
@@ -24,8 +98,8 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            color: #f3f4f6;
+            background-color: #0b0e14;
+            color: #e1e2eb;
             margin: 0;
             padding: 0;
             height: var(--app-height);
@@ -61,17 +135,56 @@
         }
 
         .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            background: rgba(29, 32, 38, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(70, 69, 85, 0.1);
         }
 
+        .cinematic-glow {
+            background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.15) 0%, rgba(16, 19, 26, 0) 70%);
+        }
+
+        .glass-card {
+            background: rgba(29, 32, 38, 0.6);
+            backdrop-filter: blur(32px);
+            border: 1px solid rgba(70, 69, 85, 0.15);
+        }
+
+        .gradient-button {
+            background: linear-gradient(135deg, #4f46e5 0%, #c3c0ff 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .gradient-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px -10px rgba(79, 70, 229, 0.5);
+        }
+
+        .gradient-button:active {
+            transform: translateY(0);
+        }
+
+        .input-glow:focus-within {
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.2);
+            border-color: rgba(195, 192, 255, 0.2);
+        }
+
+        .bloom-top-right {
+            background: radial-gradient(circle at 100% 0%, rgba(79, 70, 229, 0.15) 0%, transparent 60%);
+        }
+
+        .bloom-bottom-left {
+            background: radial-gradient(circle at 0% 100%, rgba(0, 218, 243, 0.12) 0%, transparent 50%);
+        }
+
+        .manrope { font-family: 'Manrope', sans-serif; }
+
         .glass-input {
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #f3f4f6;
+            background: #0b0e14; /* kin_surf_lowest */
+            border: 1px solid transparent;
+            color: #e1e2eb; /* kin_on_surface */
             border-radius: 0.75rem;
             padding: 0.875rem 1.25rem;
             transition: all 0.2s ease;
@@ -79,9 +192,9 @@
 
         .glass-input:focus {
             outline: none;
-            border-color: rgba(167, 139, 250, 0.5);
-            background: rgba(0, 0, 0, 0.4);
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+            border: 1px solid rgba(195, 192, 255, 0.2); /* 20% kin_primary ghost border */
+            background: #0b0e14;
+            caret-color: #00daf3; /* kin_tertiary */
         }
 
         .password-input-wrap {
@@ -109,9 +222,8 @@
             color: white;
         }
 
-        .password-toggle-btn svg {
-            width: 1.1rem;
-            height: 1.1rem;
+        .password-toggle-btn .material-symbols-outlined {
+            font-size: 1.1rem;
             display: block;
         }
 
@@ -126,34 +238,33 @@
         }
 
         .primary-btn {
-            background: linear-gradient(to right, #6366f1, #a855f7);
-            color: white;
-            font-weight: 600;
+            background: linear-gradient(135deg, #4f46e5 0%, #c3c0ff 100%);
+            color: #10131a;
+            font-weight: 700;
             padding: 0.875rem 1.5rem;
-            border-radius: 0.75rem;
+            border-radius: 9999px; /* full roundedness */
             transition: all 0.2s;
             border: none;
-            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
         }
 
         .primary-btn:hover {
             opacity: 0.9;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 15px rgba(0, 218, 243, 0.2); /* Interaction Glow */
         }
 
         .secondary-btn {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
+            background: #32353c; /* kin_surf_highest */
+            color: #e1e2eb;
             font-weight: 600;
             padding: 0.875rem 1.5rem;
-            border-radius: 0.75rem;
+            border-radius: 9999px;
             transition: all 0.2s;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: none;
         }
 
         .secondary-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            opacity: 0.9;
         }
 
         /* Webkit custom scrollbar */

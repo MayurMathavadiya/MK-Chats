@@ -54,6 +54,7 @@ def bind_factories(db_session):
         factories.MessageFactory,
         factories.ChatClearFactory,
         factories.BlockedUserFactory,
+        factories.CallLogFactory,
     )
     for factory_class in factory_classes:
         factory_class._meta.sqlalchemy_session = db_session
