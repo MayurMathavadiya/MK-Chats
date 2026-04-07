@@ -29,6 +29,10 @@ OPENAPI_TAGS = [
         "description": "Message history, deletion, and chat-clearing operations.",
     },
     {
+        "name": f"{settings.CALL_TAG}",
+        "description": "Call history and call lifecycle operations for audio and video sessions.",
+    },
+    {
         "name": f"{settings.WEB_TAG}",
         "description": "Server-rendered HTML pages for the web application interface.",
     },

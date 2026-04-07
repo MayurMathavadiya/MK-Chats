@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.core import auth
 from app import api_router, models
-from test.factories import BlockedUserFactory, ChatClearFactory, MessageFactory, UserFactory
+from test.factories import BlockedUserFactory, CallLogFactory, ChatClearFactory, MessageFactory, UserFactory
 
 
 def register_payload(**overrides):
@@ -252,6 +252,57 @@ def test_block_and_unblock_contact(client, db_session, auth_cookie):
     assert block_response.json()["msg"] == "User blocked"
     assert duplicate_response.json()["msg"] == "User already blocked"
     assert unblock_response.json()["msg"] == "User unblocked"
+
+
+def test_create_update_and_list_call_logs(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    contact = UserFactory()
+    older_contact = UserFactory()
+    CallLogFactory(
+        initiator_id=older_contact.id,
+        receiver_id=current_user.id,
+        started_by_id=older_contact.id,
+        status="missed",
+        call_type="audio",
+        final_call_type="audio",
+    )
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    create_response = client.post(
+        "/api/calls",
+        json={"receiver_id": contact.id, "call_type": "video"},
+    )
+
+    assert create_response.status_code == 200
+    call_id = create_response.json()["id"]
+    assert create_response.json()["call_type"] == "video"
+    assert create_response.json()["status"] == "initiated"
+
+    update_response = client.patch(
+        f"/api/calls/{call_id}",
+        json={"status": "accepted", "final_call_type": "video"},
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.json()["status"] == "accepted"
+    assert update_response.json()["accepted_by_id"] == current_user.id
+
+    end_response = client.patch(
+        f"/api/calls/{call_id}",
+        json={"status": "ended", "final_call_type": "video"},
+    )
+
+    assert end_response.status_code == 200
+    assert end_response.json()["status"] == "ended"
+    assert end_response.json()["duration_seconds"] >= 0
+
+    history_response = client.get("/api/calls/history", params={"contact_id": contact.id})
+
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert len(history) == 1
+    assert history[0]["id"] == call_id
 
 
 def test_get_messages_respects_chat_clear(client, db_session, auth_cookie):

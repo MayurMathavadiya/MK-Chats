@@ -141,6 +141,37 @@ class ReadReceiptResponse(BaseModel):
     message_ids: list[int]
 
 
+# --- Call Base Model ---
+
+
+class CallLogCreate(BaseModel):
+    receiver_id: int
+    call_type: str
+
+
+class CallLogUpdate(BaseModel):
+    status: Optional[str] = None
+    final_call_type: Optional[str] = None
+
+
+class CallLogResponse(BaseModel):
+    id: int
+    initiator_id: int
+    receiver_id: int
+    started_by_id: int
+    accepted_by_id: Optional[int] = None
+    ended_by_id: Optional[int] = None
+    call_type: str
+    final_call_type: str
+    status: str
+    started_at: datetime
+    answered_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    duration_seconds: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # --- Block User Base Model ---
 
 

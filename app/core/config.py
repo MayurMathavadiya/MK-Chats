@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     PROFILE_TAG: str = "Profile"
     CONTACT_TAG: str = "Contacts"
     MESSAGE_TAG: str = "Messages"
+    CALL_TAG: str = "Calls"
     WEB_TAG: str = "Web Pages"
 
     model_config = ConfigDict(

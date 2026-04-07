@@ -3,99 +3,119 @@
 {% block title %}Register - MK Chats{% endblock %}
 
 {% block content %}
-<div class="flex-1 w-full min-h-screen md:min-h-0 overflow-y-auto flex flex-col items-center justify-center px-4 py-6 md:py-8">
-    <div class="glass-panel w-full max-w-4xl flex flex-col lg:flex-row rounded-3xl relative overflow-hidden p-0 shadow-2xl my-auto flex-shrink-0">
-        
-        <!-- Left Branding Panel (Hidden on Mobile) -->
-        <div class="hidden lg:flex flex-col justify-center w-5/12 p-10 xl:p-12 bg-white/5 border-r border-white/5 relative">
-            <div class="absolute -top-16 -left-16 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-            <div class="absolute -bottom-16 -right-16 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
-            
-            <div class="relative z-10 flex flex-col h-full">
-                <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-8 shadow-xl border border-white/20">
-                    <img src="/static/branding/mk-chats-logo.svg" alt="MK Chats logo" class="w-8 h-8 object-contain">
-                </div>
-                
-                <h1 class="text-4xl font-bold text-white mb-6 leading-tight tracking-tight">Join the MK Chats<br>Secure Network</h1>
-                <p class="text-[15px] font-medium text-indigo-100/70 leading-relaxed mb-auto">Create your cryptographic identity. Once registered, your device will generate unique encryption keys that never leave your browser.</p>
-                
-                <div class="mt-12 flex items-center gap-3 text-xs font-semibold text-white/70 bg-black/20 px-5 py-3 w-max rounded-full border border-white/10 shadow-inner">
-                    <svg class="w-4 h-4 text-green-400 shadow-sm" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
-                    Crypto Based End-to-End Encryption
-                </div>
-            </div>
+<div class="fixed inset-0 cinematic-glow pointer-events-none"></div>
+<div class="fixed -top-24 -left-24 w-96 h-96 bg-kin_primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="fixed -bottom-24 -right-24 w-96 h-96 bg-kin_tertiary/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+<main class="w-full max-w-lg px-6 z-10 flex flex-col items-center justify-center min-h-screen my-auto py-12">
+    <!-- Brand Identity -->
+    <div class="flex flex-col items-center mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-700">
+        <div class="w-16 h-16 bg-kin_surf_highest rounded-2xl flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(79,70,229,0.1)] border border-white/5">
+            <span class="material-symbols-outlined text-indigo-400 text-4xl" style="font-variation-settings: 'FILL' 1;">security</span>
+        </div>
+        <h1 class="font-manrope text-3xl font-black tracking-tighter text-kin_on_surface mb-1">MK Chats</h1>
+        <p class="font-inter text-sm text-kin_on_surface_variant tracking-wide uppercase font-semibold">Join the secure network</p>
+    </div>
+
+    <!-- Register Card -->
+    <div class="glass-card rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+        <div class="mb-8">
+            <h2 class="font-manrope text-2xl font-bold text-kin_on_surface">Create Account</h2>
+            <p class="font-inter text-sm text-kin_on_surface_variant mt-1">Configure your cryptographic chat identity.</p>
         </div>
 
-        <!-- Right Form Panel -->
-        <div class="w-full lg:w-7/12 p-6 sm:p-8 md:p-10 xl:p-12 relative flex flex-col justify-center bg-slate-900/40">
-            <div class="lg:hidden absolute -top-16 -right-16 w-32 h-32 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-            
-            <div class="lg:hidden flex justify-center mb-8 relative z-10">
-                <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
-                    <img src="/static/branding/mk-chats-logo.svg" alt="MK Chats logo" class="w-7 h-7 object-contain">
+        <form id="registerForm" class="space-y-5">
+            <!-- Name Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">First Name</label>
+                    <div class="relative group input-glow transition-all duration-300 rounded-xl">
+                        <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 px-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
+                               id="firstName" placeholder="First Name" type="text" required />
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Last Name</label>
+                    <div class="relative group input-glow transition-all duration-300 rounded-xl">
+                        <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 px-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
+                               id="lastName" placeholder="Last Name" type="text" required />
+                    </div>
                 </div>
             </div>
 
-            <div class="flex flex-col items-center lg:items-start mb-8 relative z-10">
-                <h2 class="text-3xl font-bold text-white tracking-tight text-center lg:text-left">Create Account</h2>
-                <p class="text-sm font-medium text-indigo-200/60 mt-1.5 text-center lg:text-left">Configure your secure chat identity.</p>
+            <!-- Mobile Field -->
+            <div class="space-y-2">
+                <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Mobile Number</label>
+                <div class="relative group input-glow transition-all duration-300 rounded-xl">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-kin_outline text-lg">call</span>
+                    </div>
+                    <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
+                           id="mobile" placeholder="e.g. 1234567890" type="text" required />
+                </div>
             </div>
 
-            <form id="registerForm" class="space-y-5 relative z-10">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">First Name</label>
-                        <input type="text" id="firstName" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="First Name">
+            <!-- Email Field -->
+            <div class="space-y-2">
+                <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Email Address</label>
+                <div class="relative group input-glow transition-all duration-300 rounded-xl">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-kin_outline text-lg">alternate_email</span>
                     </div>
-                    <div class="space-y-2">
-                        <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Last Name</label>
-                        <input type="text" id="lastName" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Last Name">
-                    </div>
+                    <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
+                           id="email" placeholder="identity@secure.net" type="email" required />
                 </div>
-                
-                <div class="space-y-2">
-                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Mobile Number</label>
-                    <input type="text" id="mobile" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Mobile Number">
-                </div>
+            </div>
 
-                <div class="space-y-2">
-                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Email</label>
-                    <input type="email" id="email" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Emai Address">
-                </div>
-                
-                <div class="space-y-2">
-                    <label class="block text-[11px] text-indigo-200 font-bold uppercase tracking-wider ml-1">Password</label>
-                    <div class="password-input-wrap">
-                        <input type="password" id="password" required class="w-full glass-input text-[15px] font-medium placeholder-gray-500" placeholder="Strong password">
-                        <button type="button" class="password-toggle-btn" data-password-toggle="password"
-                            aria-label="Show password" aria-pressed="false">
-                            <svg class="password-toggle-icon" data-password-toggle-show fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                <circle cx="12" cy="12" r="3" stroke-width="1.8" />
-                            </svg>
-                            <svg class="password-toggle-icon is-hidden" data-password-toggle-hide fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                    d="M3 3l18 18M10.585 10.587A2 2 0 0012 16a2 2 0 001.414-.586M9.88 5.09A9.77 9.77 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.741 9.741 0 01-4.132 5.207M6.228 6.228A9.744 9.744 0 002.458 12c1.274 4.057 5.064 7 9.542 7a9.77 9.77 0 005.09-1.42" />
-                            </svg>
-                        </button>
+            <!-- Password Field -->
+            <div class="space-y-2">
+                <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Master Password</label>
+                <div class="relative group input-glow transition-all duration-300 rounded-xl password-input-wrap">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-kin_outline text-lg">lock</span>
                     </div>
+                    <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-12 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
+                           id="password" placeholder="••••••••••••" type="password" required />
+                    
+                    <button type="button" class="absolute inset-y-0 right-0 pr-4 flex items-center text-kin_outline_variant hover:text-indigo-400 transition-colors" data-password-toggle="password">
+                        <span class="material-symbols-outlined text-lg" data-password-toggle-show>visibility</span>
+                        <span class="material-symbols-outlined text-lg hidden" data-password-toggle-hide>visibility_off</span>
+                    </button>
                 </div>
-                
-                <div id="statusMsg" class="text-[13px] text-indigo-300 font-semibold text-center hidden animate-pulse bg-indigo-500/10 p-3 rounded-xl border border-indigo-500/20">Processing...</div>
-                <div id="errorMsg" class="text-[13px] font-semibold text-red-200 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center hidden shadow-inner"></div>
-                
-                <button type="submit" id="submitBtn" class="primary-btn w-full mt-3 text-[15px] font-bold tracking-wide py-3">
-                    <span>Sign Up</span>
+            </div>
+
+            <div id="statusMsg" class="text-[12px] text-kin_tertiary font-bold text-center hidden animate-pulse bg-kin_primary/10 p-3 rounded-xl border border-kin_primary/20 uppercase tracking-widest">Processing...</div>
+            <div id="errorMsg" class="text-[12px] font-bold text-kin_tertiary bg-red-900/20 border border-kin_tertiary/20 rounded-xl p-3 text-center hidden animate-in fade-in duration-300"></div>
+
+            <!-- Submit Button -->
+            <div class="pt-2">
+                <button id="submitBtn" class="gradient-button w-full py-4 rounded-xl font-manrope font-extrabold text-white shadow-[0_4px_20px_rgba(79,70,229,0.2)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 group" type="submit">
+                    Generate Identity
+                    <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">verified</span>
                 </button>
-            </form>
-            
-            <div class="mt-8 pt-6 flex flex-col items-center gap-3 relative z-10 border-t border-white/10">
-                <p class="text-sm font-medium text-gray-400">Already have an account? <a href="/login" class="text-indigo-400 hover:text-indigo-300 transition-colors ml-1 font-bold">Sign In here</a></p>
             </div>
+        </form>
+
+        <div class="mt-10 pt-8 border-t border-white/5 text-center">
+            <p class="font-inter text-sm text-kin_on_surface_variant">
+                Already an operative? 
+                <a class="text-indigo-400 font-bold ml-1 hover:underline decoration-indigo-500/30 underline-offset-4 transition-all" href="/login">Access Portal</a>
+            </p>
         </div>
     </div>
-</div>
+
+    <!-- Footer Meta -->
+    <div class="mt-8 flex flex-col items-center gap-4 animate-in fade-in duration-1000">
+        <div class="flex items-center gap-3 px-4 py-2 bg-kin_surf_low rounded-full border border-white/5">
+            <span class="material-symbols-outlined text-kin_tertiary text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+            <span class="text-[9px] font-bold text-kin_on_surface_variant uppercase tracking-[0.2em]">End-to-End Encrypted Session</span>
+        </div>
+    </div>
+</main>
+
+<!-- Decorative Bottom Gradient -->
+<div class="fixed bottom-0 left-0 w-full h-64 bg-gradient-to-t from-indigo-500/5 to-transparent pointer-events-none"></div>
 
 <!-- Success & Profile Pic Modal -->
 <div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 transition-all duration-300 opacity-0">
@@ -129,6 +149,11 @@
 </div>
 
 <script nonce="{{ request.state.nonce }}">
+    const registerSubmitDefaultHtml = `
+        <span>Generate Identity</span>
+        <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">verified</span>
+    `;
+
     // Utility to convert ArrayBuffer to Base64
     function arrayBufferToBase64(buffer) {
         let binary = '';
@@ -170,12 +195,15 @@
         
         if (!window.isSecureContext) {
             errorMsg.innerText = 'Key generation requires a Secure Context (HTTPS or localhost).';
-            errorMsg.style.display = 'block';
+            errorMsg.classList.remove('hidden');
             btn.disabled = false;
             return;
         }
 
         try {
+            errorMsg.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Generating...</span>';
             statusMsg.innerText = "Generating ECDH Keys & Wrapping locally...";
             statusMsg.classList.remove('hidden');
             
@@ -274,16 +302,18 @@
                 document.getElementById('regProfileChar').innerText = document.getElementById('firstName').value[0];
             } else {
                 errorMsg.innerText = data.detail || 'Registration failed';
-                errorMsg.style.display = 'block';
+                errorMsg.classList.remove('hidden');
                 btn.disabled = false;
+                btn.innerHTML = registerSubmitDefaultHtml;
                 statusMsg.classList.add('hidden');
             }
             
         } catch (err) {
             console.error(err);
             errorMsg.innerText = 'An error occurred during registration/key generation.';
-            errorMsg.style.display = 'block';
+            errorMsg.classList.remove('hidden');
             btn.disabled = false;
+            btn.innerHTML = registerSubmitDefaultHtml;
             statusMsg.classList.add('hidden');
         }
     });

@@ -65,3 +65,21 @@ class BlockedUserFactory(BaseFactory):
 
     user_id = factory.LazyFunction(lambda: UserFactory().id)
     blocked_contact_id = factory.LazyFunction(lambda: UserFactory().id)
+
+
+class CallLogFactory(BaseFactory):
+    class Meta:
+        model = models.CallLog
+
+    initiator_id = factory.LazyFunction(lambda: UserFactory().id)
+    receiver_id = factory.LazyFunction(lambda: UserFactory().id)
+    started_by_id = factory.SelfAttribute("initiator_id")
+    accepted_by_id = None
+    ended_by_id = None
+    call_type = "audio"
+    final_call_type = "audio"
+    status = "initiated"
+    started_at = factory.LazyFunction(lambda: datetime.now(timezone.utc))
+    answered_at = None
+    ended_at = None
+    duration_seconds = 0
