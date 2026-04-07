@@ -22,7 +22,16 @@ def read_root(request: Request, db: deps.db_session):
         response.delete_cookie("access_token")
         return response
     
-    return templates.TemplateResponse(request, "chat.html", {"user": user})
+    return templates.TemplateResponse(
+        request,
+        "chat.html",
+        {
+            "user": user,
+            "supabase_url": settings.SUPABASE_URL,
+            "supabase_anon_key": settings.SUPABASE_ANON_KEY,
+        }
+    )
+    
 
 
 @router.get("/login", response_class=HTMLResponse)

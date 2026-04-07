@@ -136,6 +136,11 @@ class MessageResponse(MessageBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ReadReceiptResponse(BaseModel):
+    contact_id: int
+    message_ids: list[int]
+
+
 # --- Block User Base Model ---
 
 

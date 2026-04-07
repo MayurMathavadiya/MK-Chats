@@ -521,6 +521,127 @@ def get_messages(
     return messages
 
 
+@router.post(
+    "/messages",
+    response_model=schemas.MessageResponse,
+    tags=[settings.MESSAGE_TAG]
+)
+def create_message(
+    payload: schemas.MessageCreate,
+    request: Request,
+    db: deps.db_session
+):
+    user = deps.get_current_user(request, db)
+
+    blocking_exists = db.query(models.BlockedUser).filter(
+        or_(
+            and_(
+                models.BlockedUser.user_id == user.id,
+                models.BlockedUser.blocked_contact_id == payload.receiver_id
+            ),
+            and_(
+                models.BlockedUser.user_id == payload.receiver_id,
+                models.BlockedUser.blocked_contact_id == user.id
+            )
+        )
+    ).first()
+
+    if blocking_exists:
+        raise HTTPException(
+            status_code=400,
+            detail="Message blocked. Unblock to continue."
+        )
+
+    new_msg = models.Message(
+        sender_id=user.id,
+        receiver_id=payload.receiver_id,
+        content=payload.content,
+        file_data=payload.file_data,
+        file_type=payload.file_type,
+        reply_to_id=payload.reply_to_id
+    )
+
+    db.add(new_msg)
+    db.commit()
+    db.refresh(new_msg)
+    return new_msg
+
+
+@router.patch(
+    "/messages/{message_id}",
+    response_model=schemas.MessageResponse,
+    tags=[settings.MESSAGE_TAG]
+)
+def edit_message(
+    message_id: int,
+    payload: schemas.MessageUpdate,
+    request: Request,
+    db: deps.db_session
+):
+    user = deps.get_current_user(request, db)
+
+    msg = db.query(models.Message).filter(
+        models.Message.id == message_id,
+        models.Message.sender_id == user.id
+    ).first()
+
+    if not msg:
+        raise HTTPException(
+            status_code=404,
+            detail="Message not found or not authorized"
+        )
+
+    now_utc = datetime.now(timezone.utc)
+    t_diff = now_utc - msg.created_at.replace(tzinfo=timezone.utc)
+    if t_diff > timedelta(hours=1):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot edit message after 1 hour"
+        )
+
+    msg.content = payload.content
+    msg.is_edited = True
+    msg.edited_at = now_utc
+    db.commit()
+    db.refresh(msg)
+    return msg
+
+
+@router.post(
+    "/messages/read/{contact_id}",
+    response_model=schemas.ReadReceiptResponse,
+    tags=[settings.MESSAGE_TAG]
+)
+def mark_messages_read(
+    contact_id: int,
+    request: Request,
+    db: deps.db_session
+):
+    user = deps.get_current_user(request, db)
+
+    msg_ids = [
+        m.id for m in db.query(models.Message.id).filter(
+            models.Message.sender_id == contact_id,
+            models.Message.receiver_id == user.id,
+            models.Message.is_read == False,
+            models.Message.is_deleted == False
+        ).all()
+    ]
+
+    if not msg_ids:
+        return schemas.ReadReceiptResponse(contact_id=user.id, message_ids=[])
+
+    db.query(models.Message).filter(
+        models.Message.id.in_(msg_ids)
+    ).update(
+        {models.Message.is_read: True},
+        synchronize_session=False
+    )
+
+    db.commit()
+    return schemas.ReadReceiptResponse(contact_id=user.id, message_ids=msg_ids)
+
+
 @router.delete("/messages/{message_id}", tags=[settings.MESSAGE_TAG])
 def delete_message(message_id: int, request: Request, db: deps.db_session):
     user = deps.get_current_user(request, db)
@@ -546,8 +667,14 @@ def delete_message(message_id: int, request: Request, db: deps.db_session):
         )
     
     msg.is_deleted = True
+    receiver_id = msg.receiver_id
     db.commit()
-    return {"msg": "Message deleted"}
+    return {
+        "msg": "Message deleted",
+        "id": message_id,
+        "sender_id": user.id,
+        "receiver_id": receiver_id
+    }
 
 
 @router.post("/messages/clear/{contact_id}", tags=[settings.MESSAGE_TAG])
@@ -586,4 +713,3 @@ def clear_chat(
         )
     
     return {"msg": "Chat cleared"}
-

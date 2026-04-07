@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     # Database
     SQLALCHEMY_DATABASE_URL: str
     REDIS_URL: str
+
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
     
     # Auth
     SECRET_KEY: str
@@ -41,4 +45,3 @@ settings = Settings()
 parent_path = os.path.dirname(os.path.dirname(__file__))
 templates_dir = os.path.join(parent_path, "templates")
 templates = Jinja2Templates(directory=templates_dir)
-
