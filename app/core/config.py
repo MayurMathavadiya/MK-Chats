@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     # Database
     SQLALCHEMY_DATABASE_URL: str
+    REDIS_URL: str
     
     # Auth
     SECRET_KEY: str

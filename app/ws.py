@@ -3,14 +3,22 @@ from sqlalchemy import or_, and_
 from datetime import datetime, timezone, timedelta
 
 from app import models
+from app.core.config import settings
 from app.core import deps
 from app.core.database import SessionLocal
 
 
-# Create the Socket.IO server
+def _build_client_manager():
+    redis_url = settings.REDIS_URL.strip()
+    if not redis_url:
+        return None
+    return socketio.AsyncRedisManager(redis_url)
+
+
 # Create the Socket.IO server with faster heartbeat (ping) settings
 sio = socketio.AsyncServer(
     async_mode='asgi',
+    client_manager=_build_client_manager(),
     ping_timeout=60,    # Increased for serverless environment cold starts
     ping_interval=25
 )
