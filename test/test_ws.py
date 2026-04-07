@@ -64,7 +64,6 @@ def test_connect_accepts_token_from_socket_auth(db_session, monkeypatch, testing
     rejected = asyncio.run(ws.connect("sid-2", {}, {"token": f"Bearer {user_token}"}))
 
     db_session.expire_all()
-    refreshed_user = db_session.query(models.User).filter_by(id=user.id).first()
 
     assert rejected is None
     assert session_store["sid-2"]["user_id"] == user.id

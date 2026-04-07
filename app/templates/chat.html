@@ -237,6 +237,13 @@
     </div>
 </div>
 
+<div
+    id="supabase-config"
+    data-url="{{ supabase_url }}"
+    data-anon-key="{{ supabase_anon_key }}"
+    hidden
+></div>
+
 <!-- Action Menu Modal -->
 <div id="actionMenuModal"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
@@ -1037,24 +1044,319 @@
         }
     }
 
-    // --- WebSockets ---
-    function initWebSocket() {
-        socket = io({
-            path: '/socket.io'
+    // --- Supabase Realtime ---
+    const supabaseConfigEl = document.getElementById('supabase-config');
+    const supabaseUrl = supabaseConfigEl?.dataset.url || '';
+    const supabaseAnonKey = supabaseConfigEl?.dataset.anonKey || '';
+    let realtimeClient = null;
+    let inboundChannel = null;
+    let presenceChannel = null;
+    let onlineUserIds = new Set();
+    let windowTypingTimeouts = {};
+    const outboundChannelPromises = new Map();
+
+    function getDirectChannelName(userId) {
+        return `user-stream:${userId}`;
+    }
+
+    function dispatchSocketEvent(eventName, payload) {
+        if (!socket || !socket.handlers[eventName]) return;
+        for (const handler of socket.handlers[eventName]) {
+            Promise.resolve(handler(payload)).catch((err) => console.error(err));
+        }
+    }
+
+    function updatePresenceUI(userId, isOnline) {
+        const numericUserId = Number(userId);
+        const dot = document.getElementById(`contact-status-dot-${numericUserId}`);
+        if (dot) {
+            dot.className = `absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${isOnline ? 'bg-green-500' : 'bg-gray-500'} border-2 border-slate-900 rounded-full transition-all`;
+        }
+
+        cachedContacts = cachedContacts.map((contact) => (
+            Number(contact.id) === numericUserId ? { ...contact, is_online: isOnline } : contact
+        ));
+        if (temporaryPinnedContact && Number(temporaryPinnedContact.id) === numericUserId) {
+            temporaryPinnedContact = { ...temporaryPinnedContact, is_online: isOnline };
+        }
+
+        if (activeContactId === numericUserId) {
+            const statusText = document.getElementById('chat-status-text');
+            const statusDot = document.getElementById('chat-status-dot');
+            if (statusText && statusDot) {
+                if (isOnline) {
+                    statusText.innerText = 'Online';
+                    statusText.className = 'text-green-400 font-bold';
+                    statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-slate-900 rounded-full transition-all';
+                } else {
+                    statusText.innerText = 'Offline';
+                    statusText.className = 'text-gray-400 font-medium';
+                    statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-slate-900 rounded-full transition-all';
+                }
+            }
+        }
+    }
+
+    function syncOnlineUsers(nextOnlineUsers) {
+        const normalized = new Set([...nextOnlineUsers].map((id) => Number(id)));
+        const affectedUsers = new Set([...onlineUserIds, ...normalized]);
+
+        onlineUserIds = normalized;
+        for (const userId of affectedUsers) {
+            const isOnline = normalized.has(Number(userId));
+            updatePresenceUI(userId, isOnline);
+            dispatchSocketEvent('presence', { user_id: Number(userId), is_online: isOnline });
+        }
+    }
+
+    function consumePresenceState() {
+        if (!presenceChannel || typeof presenceChannel.presenceState !== 'function') return;
+        const presenceState = presenceChannel.presenceState();
+        const nextOnlineUsers = new Set();
+
+        Object.values(presenceState).forEach((entries) => {
+            (entries || []).forEach((entry) => {
+                const userId = Number(entry.user_id);
+                if (!Number.isNaN(userId)) {
+                    nextOnlineUsers.add(userId);
+                }
+            });
         });
 
-        socket.on('connect', async () => {
-            console.log("Socket.IO connected, syncing presence...");
-            socket.emit('sync_presence', {});
+        syncOnlineUsers(nextOnlineUsers);
+    }
 
+    async function subscribeChannel(channel) {
+        return await new Promise((resolve, reject) => {
+            let settled = false;
+            const timeoutId = setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    reject(new Error('Timed out while subscribing to Supabase Realtime channel'));
+                }
+            }, 10000);
+
+            channel.subscribe(async (status) => {
+                if (settled) return;
+                if (status === 'SUBSCRIBED') {
+                    settled = true;
+                    clearTimeout(timeoutId);
+                    resolve(channel);
+                    return;
+                }
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                    settled = true;
+                    clearTimeout(timeoutId);
+                    reject(new Error(`Supabase Realtime subscribe failed with status ${status}`));
+                }
+            });
+        });
+    }
+
+    async function getOutboundChannel(userId) {
+        const channelName = getDirectChannelName(userId);
+        if (!outboundChannelPromises.has(channelName)) {
+            const channel = realtimeClient.channel(channelName, {
+                config: { broadcast: { self: false } }
+            });
+            outboundChannelPromises.set(channelName, subscribeChannel(channel));
+        }
+        return await outboundChannelPromises.get(channelName);
+    }
+
+    async function publishToUser(userId, eventName, payload) {
+        if (!socket || !socket.connected || !realtimeClient) return;
+        const channel = await getOutboundChannel(userId);
+        await channel.send({
+            type: 'broadcast',
+            event: eventName,
+            payload
+        });
+    }
+
+    async function emitSupabaseEvent(eventName, payload) {
+        if (!socket || !socket.connected) return;
+
+        try {
+            if (eventName === 'send') {
+                const response = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Could not send message');
+                }
+
+                dispatchSocketEvent('receive_message', data);
+                await publishToUser(payload.receiver_id, 'receive_message', data);
+                return;
+            }
+
+            if (eventName === 'edit') {
+                const response = await fetch(`/api/messages/${payload.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: payload.content })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Could not edit message');
+                }
+
+                const editPayload = {
+                    action: 'edit',
+                    id: data.id,
+                    content: data.content,
+                    receiver_id: data.receiver_id,
+                    sender_id: data.sender_id
+                };
+                dispatchSocketEvent('edit', editPayload);
+                await publishToUser(data.receiver_id, 'edit', editPayload);
+                return;
+            }
+
+            if (eventName === 'delete') {
+                const response = await fetch(`/api/messages/${payload.id}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Could not delete message');
+                }
+
+                dispatchSocketEvent('delete', data);
+                await publishToUser(data.receiver_id, 'delete', data);
+                return;
+            }
+
+            if (eventName === 'mark_read') {
+                const response = await fetch(`/api/messages/read/${payload.contact_id}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Could not mark messages as read');
+                }
+
+                if (Array.isArray(data.message_ids) && data.message_ids.length > 0) {
+                    await publishToUser(payload.contact_id, 'read_receipt', data);
+                }
+                return;
+            }
+
+            if (eventName === 'typing' || eventName.startsWith('webrtc_')) {
+                await publishToUser(payload.receiver_id, eventName, {
+                    ...payload,
+                    sender_id: currentUserId
+                });
+                return;
+            }
+        } catch (err) {
+            dispatchSocketEvent('error', { message: err.message || 'Realtime request failed' });
+        }
+    }
+
+    async function initWebSocket() {
+        socket = {
+            connected: false,
+            handlers: {},
+            on(eventName, handler) {
+                if (!this.handlers[eventName]) {
+                    this.handlers[eventName] = [];
+                }
+                this.handlers[eventName].push(handler);
+            },
+            async emit(eventName, payload) {
+                await emitSupabaseEvent(eventName, payload);
+            },
+            async connect() {
+                if (this.connected) return;
+                if (!supabaseUrl || !supabaseAnonKey) {
+                    dispatchSocketEvent('error', { message: 'Supabase Realtime is not configured.' });
+                    return;
+                }
+                if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+                    dispatchSocketEvent('error', { message: 'Supabase client failed to load.' });
+                    return;
+                }
+
+                realtimeClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+                inboundChannel = realtimeClient.channel(getDirectChannelName(currentUserId), {
+                    config: { broadcast: { self: false } }
+                });
+                presenceChannel = realtimeClient.channel('presence:online-users', {
+                    config: { presence: { key: String(currentUserId) } }
+                });
+
+                [
+                    'receive_message',
+                    'edit',
+                    'delete',
+                    'read_receipt',
+                    'typing',
+                    'webrtc_offer',
+                    'webrtc_answer',
+                    'webrtc_ice_candidate',
+                    'webrtc_end'
+                ].forEach((eventName) => {
+                    inboundChannel.on('broadcast', { event: eventName }, ({ payload }) => {
+                        dispatchSocketEvent(eventName, payload);
+                    });
+                });
+
+                presenceChannel.on('presence', { event: 'sync' }, consumePresenceState);
+                presenceChannel.on('presence', { event: 'join' }, consumePresenceState);
+                presenceChannel.on('presence', { event: 'leave' }, consumePresenceState);
+
+                await Promise.all([
+                    subscribeChannel(inboundChannel),
+                    subscribeChannel(presenceChannel)
+                ]);
+                await presenceChannel.track({ user_id: currentUserId });
+
+                this.connected = true;
+                dispatchSocketEvent('connect');
+            },
+            async disconnect() {
+                if (!realtimeClient) {
+                    this.connected = false;
+                    return;
+                }
+
+                if (presenceChannel) {
+                    try {
+                        await presenceChannel.untrack();
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
+
+                const channels = [inboundChannel, presenceChannel];
+                outboundChannelPromises.forEach((channelPromise) => channels.push(channelPromise));
+                await Promise.allSettled(
+                    channels.map(async (channelOrPromise) => {
+                        const channel = await channelOrPromise;
+                        return realtimeClient.removeChannel(channel);
+                    })
+                );
+
+                outboundChannelPromises.clear();
+                inboundChannel = null;
+                presenceChannel = null;
+                realtimeClient = null;
+                this.connected = false;
+                syncOnlineUsers(new Set());
+                dispatchSocketEvent('disconnect');
+            }
+        };
+
+        socket.on('connect', async () => {
+            console.log('Supabase Realtime connected');
             if (activeContactId) {
                 await loadMessageHistory(activeContactId);
             }
-        });
-
-        socket.on('request_presence', (msg) => {
-            console.log("Presence roll call requested, replying...");
-            socket.emit('reply_presence', { user_id: currentUserId });
         });
 
         socket.on('error', async (msg) => {
@@ -1065,34 +1367,8 @@
             });
         });
 
-        socket.on('presence', (msg) => {
-            const dot = document.getElementById(`contact-status-dot-${msg.user_id}`);
-            if (dot) {
-                dot.className = `absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${msg.is_online ? 'bg-green-500' : 'bg-gray-500'} border-2 border-slate-900 rounded-full transition-all`;
-            }
-            if (activeContactId === msg.user_id) {
-                const statusText = document.getElementById('chat-status-text');
-                const statusDot = document.getElementById('chat-status-dot');
-                if (statusText && statusDot) {
-                    if (msg.is_online) {
-                        statusText.innerText = 'Online';
-                        statusText.className = 'text-green-400 font-bold';
-                        statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-slate-900 rounded-full transition-all';
-                    } else {
-                        statusText.innerText = 'Offline';
-                        statusText.className = 'text-gray-400 font-medium';
-                        statusDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-slate-900 rounded-full transition-all';
-                    }
-                }
-            }
-        });
-
-        let windowTypingTimeouts = {};
-
         socket.on('typing', (msg) => {
             const senderId = msg.sender_id;
-
-            // 1. Update the sidebar preview
             const previewEl = document.getElementById(`contact-${senderId}-preview`);
             if (previewEl) {
                 if (msg.is_typing) {
@@ -1100,18 +1376,15 @@
                         previewEl.setAttribute('data-original-text', previewEl.innerHTML);
                     }
                     previewEl.innerHTML = `<div class="flex items-center gap-1"><span class="text-indigo-400 font-semibold opacity-90">typing</span><div class="flex items-center space-x-0.5 mt-1.5"><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div></div>`;
-                } else {
-                    if (previewEl.hasAttribute('data-original-text')) {
-                        previewEl.innerHTML = previewEl.getAttribute('data-original-text');
-                        previewEl.removeAttribute('data-original-text');
-                    }
+                } else if (previewEl.hasAttribute('data-original-text')) {
+                    previewEl.innerHTML = previewEl.getAttribute('data-original-text');
+                    previewEl.removeAttribute('data-original-text');
                 }
             }
 
-            // 2. Update the chat area if it's the active chat
             if (senderId === activeContactId) {
                 const messagesArea = document.getElementById('messages-area');
-                let typingBubble = document.getElementById('typing-indicator-bubble');
+                const typingBubble = document.getElementById('typing-indicator-bubble');
 
                 if (msg.is_typing) {
                     if (!typingBubble && messagesArea) {
@@ -1139,7 +1412,7 @@
 
                     clearTimeout(windowTypingTimeouts[senderId]);
                     windowTypingTimeouts[senderId] = setTimeout(() => {
-                        let bubble = document.getElementById('typing-indicator-bubble');
+                        const bubble = document.getElementById('typing-indicator-bubble');
                         if (bubble) bubble.remove();
                         if (previewEl && previewEl.hasAttribute('data-original-text')) {
                             previewEl.innerHTML = previewEl.getAttribute('data-original-text');
@@ -1150,18 +1423,16 @@
                     if (typingBubble) typingBubble.remove();
                     clearTimeout(windowTypingTimeouts[senderId]);
                 }
+            } else if (msg.is_typing) {
+                clearTimeout(windowTypingTimeouts[senderId]);
+                windowTypingTimeouts[senderId] = setTimeout(() => {
+                    if (previewEl && previewEl.hasAttribute('data-original-text')) {
+                        previewEl.innerHTML = previewEl.getAttribute('data-original-text');
+                        previewEl.removeAttribute('data-original-text');
+                    }
+                }, 3000);
             } else {
-                if (msg.is_typing) {
-                    clearTimeout(windowTypingTimeouts[senderId]);
-                    windowTypingTimeouts[senderId] = setTimeout(() => {
-                        if (previewEl && previewEl.hasAttribute('data-original-text')) {
-                            previewEl.innerHTML = previewEl.getAttribute('data-original-text');
-                            previewEl.removeAttribute('data-original-text');
-                        }
-                    }, 3000);
-                } else {
-                    clearTimeout(windowTypingTimeouts[senderId]);
-                }
+                clearTimeout(windowTypingTimeouts[senderId]);
             }
         });
 
@@ -1179,7 +1450,6 @@
                     plainFileData = await decryptText(msg.file_data, activeSharedKey);
                 }
 
-                // For own messages, find and update optimistic message instead of double-appending
                 if (msg.sender_id === currentUserId) {
                     const optMsg = findOptimisticMessage();
                     if (optMsg) {
@@ -1187,7 +1457,6 @@
                         optMsg.dataset.msgId = msg.id;
                         optMsg.dataset.pending = 'false';
                         optMsg.classList.remove('optimistic');
-                        // Show buttons once ID is present and if within 1h
                         updateActionsVisibility(optMsg, msg.created_at);
 
                         const iconDiv = optMsg.querySelector('.msg-status-icon');
@@ -1209,12 +1478,11 @@
                         return;
                     }
                 }
+
                 appendMessageUI(msg, plainText, plainFileData);
 
-                if (msg.sender_id === activeContactId && msg.sender_id !== currentUserId) {
-                    if (document.hasFocus()) {
-                        markChatAsRead(activeContactId);
-                    }
+                if (msg.sender_id === activeContactId && msg.sender_id !== currentUserId && document.hasFocus()) {
+                    markChatAsRead(activeContactId);
                 }
             }
             if (document.getElementById('contactSearch').value.trim() === '') {
@@ -1244,8 +1512,7 @@
 
         socket.on('read_receipt', (msg) => {
             if (!window.pendingReadReceipts) window.pendingReadReceipts = new Set();
-            const msgIds = msg.message_ids;
-            msgIds.forEach(id => {
+            msg.message_ids.forEach((id) => {
                 const container = document.getElementById(`msg-container-${id}`);
                 if (container) {
                     const iconDiv = container.querySelector('.msg-status-icon');
@@ -1259,8 +1526,10 @@
         });
 
         socket.on('disconnect', () => {
-            console.log("Socket.IO disconnected");
+            console.log("Supabase Realtime disconnected");
         });
+
+        await socket.connect();
     }
 
     function markChatAsRead(contactId) {
@@ -1302,7 +1571,7 @@
             unread_count: Number(contact.unread_count || 0),
             blocked_by_me: Boolean(contact.blocked_by_me),
             blocked_me: Boolean(contact.blocked_me),
-            is_online: Boolean(contact.is_online),
+            is_online: onlineUserIds.has(Number(contact.id)) || Boolean(contact.is_online),
         };
     }
 
@@ -1562,7 +1831,7 @@
                 timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
 
-            const isOnline = contact.is_online;
+            const isOnline = onlineUserIds.has(Number(contact.id)) || contact.is_online;
             const nameSafely = escapeHtml(contact.first_name) + ' ' + escapeHtml(contact.last_name);
             const profilePic = contact.profile_pic || "";
 

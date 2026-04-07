@@ -1,6 +1,6 @@
 # MK Chats
 
-MK Chats is a FastAPI-based real-time chat application with server-rendered pages, REST APIs, and Socket.IO events for live messaging. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and presence updates.
+MK Chats is a FastAPI-based real-time chat application with server-rendered pages, REST APIs, and Supabase Realtime events for live messaging. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and presence updates.
 
 ## Tech Stack
 
@@ -9,7 +9,7 @@ MK Chats is a FastAPI-based real-time chat application with server-rendered page
 - SQLAlchemy
 - Alembic
 - Jinja2 templates
-- Socket.IO
+- Supabase Realtime
 - PostgreSQL
 - Pytest
 
@@ -18,7 +18,7 @@ MK Chats is a FastAPI-based real-time chat application with server-rendered page
 - User registration and login with cookie-based authentication
 - Profile view and profile update endpoints
 - Password change and email-based password reset flow
-- Real-time messaging over Socket.IO
+- Real-time messaging over Supabase Realtime
 - Presence and typing indicators
 - Read receipts
 - Edit and delete message support with a 1-hour limit
@@ -36,7 +36,7 @@ app/
   models.py            SQLAlchemy models
   schemas.py           Pydantic schemas
   web_page.py          HTML page routes
-  ws.py                Socket.IO event handlers
+  ws.py                Legacy Socket.IO event handlers
   core/
     auth.py            Auth helpers
     config.py          Settings and template config
@@ -71,6 +71,8 @@ SMTP_USERNAME=your-email@example.com
 SMTP_PASSWORD=your-email-password-or-app-password
 SMTP_FROM_EMAIL=your-email@example.com
 REDIS_URL=rediss://your-redis-url
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
 
 ```
 
@@ -138,29 +140,9 @@ Useful routes:
 - `DELETE /api/messages/{message_id}`
 - `POST /api/messages/clear/{contact_id}`
 
-## Socket.IO Events
+## Realtime Events
 
-The app mounts the Socket.IO ASGI app at `/` and uses live events for chat updates.
-
-Incoming events handled by the server:
-
-- `connect`
-- `disconnect`
-- `send`
-- `mark_read`
-- `edit`
-- `delete`
-- `typing`
-
-Common emitted event names:
-
-- `presence`
-- `receive_message`
-- `read_receipt`
-- `edit`
-- `delete`
-- `typing`
-- `error`
+The web client uses Supabase Realtime broadcast/presence channels for chat updates, typing indicators, WebRTC signaling, and online presence.
 
 ## Testing
 
