@@ -70,6 +70,7 @@ SMTP_PORT=587
 SMTP_USERNAME=your-email@example.com
 SMTP_PASSWORD=your-email-password-or-app-password
 SMTP_FROM_EMAIL=your-email@example.com
+REDIS_URL=rediss://your-redis-url
 
 ```
 
