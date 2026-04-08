@@ -1,0 +1,177 @@
+:root {
+    --navbar-expanded-w: 256px;
+    --navbar-collapsed-w: 80px;
+    --contact-list-w: 384px;
+    --transition-speed: 0.3s;
+    --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#side-navbar {
+    transition: width var(--transition-speed) var(--transition-timing),
+        transform var(--transition-speed) var(--transition-timing) !important;
+}
+
+#main-shell {
+    transition: padding-left var(--transition-speed) var(--transition-timing) !important;
+    padding-left: var(--navbar-expanded-w);
+    width: 100%;
+    display: flex;
+}
+
+/* Collapsed SideNavBar State */
+body.sidebar-collapsed #side-navbar {
+    width: var(--navbar-collapsed-w) !important;
+}
+
+body.sidebar-collapsed #main-shell {
+    padding-left: var(--navbar-collapsed-w) !important;
+}
+
+body.sidebar-collapsed #side-navbar .sidebar-label,
+body.sidebar-collapsed #side-navbar .sidebar-logo-text {
+    opacity: 0;
+    pointer-events: none;
+    display: none !important;
+}
+
+/* Pane Sizing and Transitions */
+#sidebar {
+    width: var(--contact-list-w);
+    min-width: var(--contact-list-w);
+    transition: transform var(--transition-speed) var(--transition-timing),
+        width var(--transition-speed) var(--transition-timing);
+}
+
+@media (max-width: 1279px) {
+    #sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+#chat-container {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Mobile Zone (<768px) */
+@media (max-width: 767px) {
+    #side-navbar {
+        transform: translateX(-100%);
+        width: var(--navbar-expanded-w) !important;
+        z-index: 50;
+    }
+
+    body.sidebar-open #side-navbar {
+        transform: translateX(0);
+    }
+
+    #main-shell {
+        padding-left: 0 !important;
+    }
+
+    /* Mutual Exclusivity on Mobile */
+    body.chat-active #sidebar {
+        display: none !important;
+    }
+
+    body:not(.chat-active) #chat-container {
+        display: none !important;
+    }
+}
+
+/* Tablet/Small Laptop Zone (768px - 1280px) */
+@media (min-width: 768px) and (max-width: 1279px) {
+    #main-shell {
+        padding-left: var(--navbar-collapsed-w) !important;
+    }
+
+    body:not(.sidebar-collapsed) #main-shell {
+        padding-left: var(--navbar-expanded-w) !important;
+    }
+
+    /* Mutual Exclusivity on Tablet to prevent cramped chat */
+    body.chat-active #sidebar {
+        display: none !important;
+    }
+
+    body:not(.chat-active) #chat-container {
+        display: none !important;
+    }
+}
+
+/* Large Desktop Zone (>1280px) */
+@media (min-width: 1280px) {
+
+    /* On Desktop, everything is visible together */
+    #sidebar {
+        display: flex !important;
+    }
+
+    #chat-container {
+        display: flex !important;
+    }
+}
+
+/* Video Call Stage (Full-screen + Compact + PiP) */
+#videoCallStage {
+    transition: all 200ms ease;
+}
+
+#videoCallStage[data-layout="fullscreen"] {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    background: #000;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+#videoCallStage[data-layout="compact"] {
+    top: 1.5rem;
+    right: 1.5rem;
+    bottom: auto;
+    left: auto;
+    width: 320px;
+}
+
+#videoCallStage[data-layout="compact"] .video-stage-inner {
+    aspect-ratio: 4 / 5;
+    height: auto;
+}
+
+#videoCallStage[data-layout="fullscreen"] .video-stage-inner {
+    width: 100%;
+    height: 100%;
+}
+
+.profile-edit-input {
+    background-color: #0b0e14;
+    color: #e1e2eb;
+    caret-color: #00daf3;
+}
+
+.profile-edit-input::placeholder {
+    color: #918fa1;
+}
+
+.profile-edit-input:focus {
+    background-color: #0b0e14;
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+}
+
+.profile-edit-input:-webkit-autofill,
+.profile-edit-input:-webkit-autofill:hover,
+.profile-edit-input:-webkit-autofill:focus,
+.profile-edit-input:-webkit-autofill:active {
+    -webkit-text-fill-color: #e1e2eb;
+    -webkit-box-shadow: 0 0 0px 1000px #0b0e14 inset;
+    transition: background-color 9999s ease-in-out 0s;
+    caret-color: #00daf3;
+}
