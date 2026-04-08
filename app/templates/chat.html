@@ -118,6 +118,44 @@
             display: flex !important;
         }
     }
+
+    /* Video Call Stage (Full-screen + Compact + PiP) */
+    #videoCallStage {
+        transition: all 200ms ease;
+    }
+
+    #videoCallStage[data-layout="fullscreen"] {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        background: #000;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    #videoCallStage[data-layout="compact"] {
+        top: 1.5rem;
+        right: 1.5rem;
+        bottom: auto;
+        left: auto;
+        width: 320px;
+    }
+
+    #videoCallStage[data-layout="compact"] .video-stage-inner {
+        aspect-ratio: 4 / 5;
+        height: auto;
+    }
+
+    #videoCallStage[data-layout="fullscreen"] .video-stage-inner {
+        width: 100%;
+        height: 100%;
+    }
 </style>
 <div class="fixed inset-0 h-[var(--app-height)] w-full flex bg-surface overflow-hidden font-inter">
     <!-- Bloom Effects -->
@@ -791,22 +829,35 @@
     </div>
 </div>
 
-<div id="videoCallStage"
-    class="fixed top-6 right-6 z-[75] w-[320px] hidden rounded-[2rem] overflow-hidden border border-white/10 glass-card shadow-2xl">
-    <div class="relative aspect-[4/5] bg-black">
-        <video id="remoteVideoEl" autoplay playsinline class="w-full h-full object-cover"></video>
+<div id="videoCallStage" data-layout="fullscreen"
+    class="fixed z-[75] hidden rounded-[2rem] overflow-hidden border border-white/10 glass-card shadow-2xl">
+    <div class="video-stage-inner relative bg-black">
+        <video id="remoteVideoEl" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
         <div id="remoteVideoPlaceholder"
             class="absolute inset-0 flex items-center justify-center text-sm text-white/70 uppercase tracking-[0.3em] bg-slate-950/70">
             Waiting for video
         </div>
         <video id="localVideoEl" autoplay playsinline muted
-            class="absolute bottom-4 right-4 w-24 h-32 rounded-2xl object-cover border border-white/15 bg-slate-950"></video>
+            class="absolute bottom-4 right-4 w-28 h-36 rounded-2xl object-cover border border-white/15 bg-slate-950"></video>
+
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+            <button id="videoStageMinimizeBtn" type="button"
+                class="w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white flex items-center justify-center border border-white/10 backdrop-blur"
+                title="Minimize (Picture-in-Picture)">
+                <span class="material-symbols-outlined">picture_in_picture_alt</span>
+            </button>
+            <button id="videoStageMaximizeBtn" type="button"
+                class="w-11 h-11 rounded-xl bg-black/40 hover:bg-black/60 text-white flex items-center justify-center border border-white/10 backdrop-blur hidden"
+                title="Back to full screen">
+                <span class="material-symbols-outlined">open_in_full</span>
+            </button>
+        </div>
     </div>
 </div>
 
 <!-- Active Call Dock (Stitch Alignment) -->
 <div id="activeCallOverlay"
-    class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[70] w-[340px] glass-card rounded-[2.5rem] p-4 flex flex-col gap-4 shadow-2xl border border-white/10 hidden opacity-0 transition-all duration-300 transform translate-y-4">
+    class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[85] w-[340px] glass-card rounded-[2.5rem] p-4 flex flex-col gap-4 shadow-2xl border border-white/10 hidden opacity-0 transition-all duration-300 transform translate-y-4">
     <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-3">
             <div
@@ -863,6 +914,8 @@
     let currentCallMode = 'audio';
     let pendingIncomingOffer = null;
     let pendingUpgradeRequest = null;
+    let videoStageLayout = 'fullscreen';
+    let videoControlsAutoHideTimeoutId = null;
 
     // Add audio element to DOM for remote stream
     const audioEl = document.createElement("audio");
@@ -871,6 +924,10 @@
     const remoteVideoEl = document.getElementById("remoteVideoEl");
     const localVideoEl = document.getElementById("localVideoEl");
     const remoteVideoPlaceholder = document.getElementById("remoteVideoPlaceholder");
+    const videoCallStageEl = document.getElementById("videoCallStage");
+    const videoStageMinimizeBtn = document.getElementById("videoStageMinimizeBtn");
+    const videoStageMaximizeBtn = document.getElementById("videoStageMaximizeBtn");
+    const activeCallOverlayEl = document.getElementById("activeCallOverlay");
 
     const rtcConfig = {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
@@ -910,11 +967,17 @@
 
         currentCallMode = wantsVideo || localStream.getVideoTracks().length > 0 ? 'video' : 'audio';
         syncLocalVideoPreview();
+        syncRemoteVideoState();
         updateCallMediaBadge(currentCallMode);
         return true;
     }
 
     function cleanupWebRTC() {
+        if (document.pictureInPictureElement) {
+            try {
+                document.exitPictureInPicture().catch(() => { });
+            } catch (e) { }
+        }
         if (peerConnection) {
             peerConnection.close();
             peerConnection = null;
@@ -937,6 +1000,104 @@
         currentCallLogId = null;
         pendingIncomingOffer = null;
         pendingUpgradeRequest = null;
+    }
+
+    function canUsePiP() {
+        return Boolean(
+            remoteVideoEl &&
+            document.pictureInPictureEnabled &&
+            typeof remoteVideoEl.requestPictureInPicture === 'function'
+        );
+    }
+
+    function setVideoStageLayout(layout = 'fullscreen') {
+        const normalized = layout === 'compact' ? 'compact' : 'fullscreen';
+        videoStageLayout = normalized;
+        if (videoCallStageEl) {
+            videoCallStageEl.dataset.layout = normalized;
+        }
+        if (videoStageMaximizeBtn) {
+            videoStageMaximizeBtn.classList.toggle('hidden', normalized !== 'compact');
+        }
+        syncVideoControlsMode();
+    }
+
+    function resetVideoStageLayout() {
+        setVideoStageLayout('fullscreen');
+    }
+
+    function isVideoFullscreenActive() {
+        if (!videoCallStageEl || videoCallStageEl.classList.contains('hidden')) return false;
+        if (document.pictureInPictureElement === remoteVideoEl) return false;
+        if (videoCallStageEl.dataset.layout !== 'fullscreen') return false;
+        const hasAnyVideo = Boolean(
+            (remoteStream && remoteStream.getVideoTracks().length > 0) ||
+            (localStream && localStream.getVideoTracks().length > 0)
+        );
+        return hasAnyVideo;
+    }
+
+    function clearVideoControlsAutoHide() {
+        if (!videoControlsAutoHideTimeoutId) return;
+        clearTimeout(videoControlsAutoHideTimeoutId);
+        videoControlsAutoHideTimeoutId = null;
+    }
+
+    function setVideoControlsVisible(visible) {
+        if (!activeCallOverlayEl) return;
+        // Only auto-hide controls in full-screen video
+        if (!isVideoFullscreenActive()) {
+            activeCallOverlayEl.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            return;
+        }
+
+        clearVideoControlsAutoHide();
+
+        if (visible) {
+            activeCallOverlayEl.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            // Auto-hide after a short delay (WhatsApp-like)
+            videoControlsAutoHideTimeoutId = setTimeout(() => {
+                setVideoControlsVisible(false);
+            }, 3000);
+        } else {
+            activeCallOverlayEl.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+        }
+    }
+
+    function syncVideoControlsMode() {
+        if (!activeCallOverlayEl) return;
+        // In compact mode, keep controls visible (more usable)
+        if (videoCallStageEl && videoCallStageEl.dataset.layout === 'compact') {
+            activeCallOverlayEl.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            return;
+        }
+        // In fullscreen, hide by default (tap-to-show)
+        if (isVideoFullscreenActive()) {
+            setVideoControlsVisible(false);
+        } else {
+            // Not fullscreen video: ensure dock is usable when it is shown
+            activeCallOverlayEl.classList.remove('pointer-events-none');
+        }
+    }
+
+    if (remoteVideoEl) {
+        remoteVideoEl.addEventListener('enterpictureinpicture', () => {
+            hideVideoStage();
+        });
+        remoteVideoEl.addEventListener('leavepictureinpicture', () => {
+            resetVideoStageLayout();
+            syncRemoteVideoState();
+        });
+    }
+
+    if (videoCallStageEl) {
+        videoCallStageEl.addEventListener('click', () => {
+            if (!isVideoFullscreenActive()) return;
+            const currentlyHidden = activeCallOverlayEl
+                ? (activeCallOverlayEl.classList.contains('opacity-0') || activeCallOverlayEl.classList.contains('pointer-events-none'))
+                : true;
+            setVideoControlsVisible(currentlyHidden);
+        });
     }
 
     function createPeerConnection(remoteUserId) {
@@ -977,7 +1138,9 @@
                 Number(currentCallLogId) === Number(data.call_id)
             ) {
                 try {
+                    const wasVideo = currentCallMode === 'video';
                     currentCallMode = data.call_type === 'video' ? 'video' : currentCallMode;
+                    if (!wasVideo && currentCallMode === 'video') resetVideoStageLayout();
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
@@ -1015,6 +1178,7 @@
 
                 const hasMedia = await initLocalStream(currentCallMode);
                 if (!hasMedia) return;
+                if (currentCallMode === 'video') resetVideoStageLayout();
 
                 createPeerConnection(data.sender_id);
                 try {
@@ -1047,7 +1211,9 @@
                 try {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                     currentCallLogId = data.call_id || currentCallLogId;
+                    const wasVideo = currentCallMode === 'video';
                     currentCallMode = data.call_type === 'video' ? 'video' : currentCallMode;
+                    if (!wasVideo && currentCallMode === 'video') resetVideoStageLayout();
                     setCallState('connecting', data.sender_id);
                 } catch (e) { console.error(e); }
             }
@@ -1095,6 +1261,7 @@
                 pendingUpgradeRequest = null;
                 return;
             }
+            resetVideoStageLayout();
 
             if (currentCallLogId) {
                 await patchCallLog('accepted', 'video', currentCallLogId);
@@ -1122,6 +1289,7 @@
                 return;
             }
             currentCallMode = 'video';
+            resetVideoStageLayout();
             if (currentCallLogId) {
                 await patchCallLog('accepted', 'video', currentCallLogId);
             }
@@ -2920,6 +3088,7 @@
         if (!hasMedia) return;
 
         currentCallMode = callType === 'video' ? 'video' : 'audio';
+        if (currentCallMode === 'video') resetVideoStageLayout();
         createPeerConnection(activeContactId);
 
         try {
@@ -3086,11 +3255,41 @@
             if (!currentCallPeerId || currentCallMode === 'video') return;
             const hasVideo = await initLocalStream('video');
             if (!hasVideo) return;
+            resetVideoStageLayout();
             socket.emit("webrtc_upgrade_request", {
                 receiver_id: currentCallPeerId,
                 call_id: currentCallLogId
             });
         });
+
+        if (videoStageMinimizeBtn) {
+            videoStageMinimizeBtn.addEventListener("click", async (e) => {
+                // Prevent stage click from toggling controls
+                e.stopPropagation();
+                if (!videoCallStageEl) return;
+
+                if (canUsePiP()) {
+                    try {
+                        await remoteVideoEl.play().catch(() => { });
+                        await remoteVideoEl.requestPictureInPicture();
+                        hideVideoStage();
+                        return;
+                    } catch (e) {
+                        console.warn("PiP request failed, falling back to compact mode", e);
+                    }
+                }
+
+                const nextLayout = (videoCallStageEl.dataset.layout === 'compact') ? 'fullscreen' : 'compact';
+                setVideoStageLayout(nextLayout);
+            });
+        }
+
+        if (videoStageMaximizeBtn) {
+            videoStageMaximizeBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                setVideoStageLayout('fullscreen');
+            });
+        }
 
         document.getElementById("uploadBtnTrigger").addEventListener("click", () => {
             document.getElementById("fileInput").click();
@@ -3563,6 +3762,9 @@
         if (remoteVideoPlaceholder) {
             remoteVideoPlaceholder.classList.toggle('hidden', hasRemoteVideo);
         }
+        if (document.pictureInPictureElement === remoteVideoEl) {
+            return;
+        }
         if (hasRemoteVideo || (localStream && localStream.getVideoTracks().length > 0)) {
             showVideoStage();
         } else {
@@ -3571,15 +3773,19 @@
     }
 
     function showVideoStage() {
-        const stage = document.getElementById('videoCallStage');
-        if (!stage) return;
-        stage.classList.remove('hidden');
+        if (!videoCallStageEl) return;
+        if (document.pictureInPictureElement === remoteVideoEl) return;
+        videoCallStageEl.classList.remove('hidden');
+        setVideoStageLayout(videoStageLayout || 'fullscreen');
+        // When entering full-screen video, show controls briefly then hide.
+        if (activeCallOverlayEl && isVideoFullscreenActive()) {
+            setVideoControlsVisible(true);
+        }
     }
 
     function hideVideoStage() {
-        const stage = document.getElementById('videoCallStage');
-        if (!stage) return;
-        stage.classList.add('hidden');
+        if (!videoCallStageEl) return;
+        videoCallStageEl.classList.add('hidden');
     }
 
     async function createCallLog(receiverId, callType) {
