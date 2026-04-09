@@ -205,13 +205,42 @@ function createPeerConnection(remoteUserId) {
     };
 
     peerConnection.ontrack = (event) => {
-        remoteStream = event.streams[0];
-        audioEl.srcObject = remoteStream;
-        if (remoteVideoEl) {
-            remoteVideoEl.srcObject = remoteStream;
+        if (!remoteStream) {
+            remoteStream = new MediaStream();
         }
+
+        // Add track to our stable remoteStream if not already added
+        if (!remoteStream.getTracks().find(t => t.id === event.track.id)) {
+            remoteStream.addTrack(event.track);
+        }
+
+        // Assign stream to audio element
+        if (audioEl && audioEl.srcObject !== remoteStream) {
+            audioEl.srcObject = remoteStream;
+        }
+
+        // If it's a video track, assign to video element and show stage
+        if (event.track.kind === 'video') {
+            if (remoteVideoEl && remoteVideoEl.srcObject !== remoteStream) {
+                remoteVideoEl.srcObject = remoteStream;
+            }
+            if (currentCallMode === 'video') {
+                showVideoStage();
+            }
+        }
+
         syncRemoteVideoState();
-        showActiveCallOverlay("Connected", remoteUserId);
+        showActiveCallOverlay(currentCallState === 'live' ? 'Live' : 'Connected', remoteUserId);
+    };
+
+    peerConnection.oniceconnectionstatechange = () => {
+        if (!peerConnection) return;
+        const state = peerConnection.iceConnectionState;
+        if (state === 'connected' || state === 'completed') {
+            setCallState('live', remoteUserId);
+        } else if (state === 'failed' || state === 'disconnected') {
+            console.warn("ICE Connection state:", state);
+        }
     };
 
     localStream.getTracks().forEach(track => {

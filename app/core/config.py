@@ -8,7 +8,6 @@ class Settings(BaseSettings):
 
     # Database
     SQLALCHEMY_DATABASE_URL: str
-    REDIS_URL: str
 
     # Supabase
     SUPABASE_URL: str = ""
