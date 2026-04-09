@@ -108,9 +108,9 @@ function setVideoStageLayout(layout = 'fullscreen') {
     if (videoCallStageEl) {
         videoCallStageEl.dataset.layout = normalized;
     }
-    if (videoStageMaximizeBtn) {
-        videoStageMaximizeBtn.classList.toggle('hidden', normalized !== 'compact');
-    }
+
+    if (videoStageMinimizeBtn) videoStageMinimizeBtn.classList.toggle('hidden', normalized === 'compact');
+    if (videoStageMaximizeBtn) videoStageMaximizeBtn.classList.toggle('hidden', normalized !== 'compact');
     syncVideoControlsMode();
 }
 
@@ -208,22 +208,29 @@ function createPeerConnection(remoteUserId) {
         if (!remoteStream) {
             remoteStream = new MediaStream();
         }
+        remoteStream.addTrack(event.track);
 
-        // Add track to our stable remoteStream if not already added
-        if (!remoteStream.getTracks().find(t => t.id === event.track.id)) {
-            remoteStream.addTrack(event.track);
-        }
-
-        // Assign stream to audio element
-        if (audioEl && audioEl.srcObject !== remoteStream) {
+        if (event.track.kind === 'audio') {
+            if (remoteVideoEl) {
+                if (remoteVideoEl.srcObject !== remoteStream) {
+                    remoteVideoEl.srcObject = remoteStream;
+                }
+                // Try playing through video element first (often more reliable sync)
+                remoteVideoEl.play().catch(e => console.warn("Remote video play blocked", e));
+            }
             audioEl.srcObject = remoteStream;
+            audioEl.play().catch(e => console.warn("Audio play blocked", e));
         }
 
-        // If it's a video track, assign to video element and show stage
         if (event.track.kind === 'video') {
             if (remoteVideoEl && remoteVideoEl.srcObject !== remoteStream) {
                 remoteVideoEl.srcObject = remoteStream;
             }
+            remoteVideoEl.play().catch(e => console.warn("Remote video play blocked", e));
+
+            // Mute the backup audioEl if video is active to avoid double-audio/echo
+            audioEl.muted = true;
+
             if (currentCallMode === 'video') {
                 showVideoStage();
             }
@@ -295,8 +302,11 @@ function setupWebRTCSocketListeners() {
         showIncomingCallOverlay(data.sender_id, currentCallMode);
 
         document.getElementById('acceptCallBtn').onclick = async () => {
-            hideIncomingCallOverlay();
+            // Unlock media elements for autoplay policy
+            audioEl.play().catch(() => { });
+            if (remoteVideoEl) remoteVideoEl.play().catch(() => { });
 
+            stopRingtone();
             const hasMedia = await initLocalStream(currentCallMode);
             if (!hasMedia) return;
             if (currentCallMode === 'video') resetVideoStageLayout();
@@ -1626,7 +1636,7 @@ async function renderContactList(contactsArray) {
             <div class="flex-1 text-left min-w-0">
                 <div class="flex justify-between items-baseline mb-0.5 w-full">
                     <span class="font-bold text-on-surface truncate tracking-tight flex-1 min-w-0 pr-4">${nameSafely}</span>
-                    <span class="text-[10px] time-stamp shrink-0 whitespace-nowrap ${ (activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
+                    <span class="text-[10px] time-stamp shrink-0 whitespace-nowrap ${(activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <p class="text-xs text-on-surface-variant truncate pr-2 opacity-80" id="contact-${contact.id}-preview">${escapeHtml(lastMsgText)}</p>
@@ -2053,7 +2063,11 @@ function updateActionsVisibility(container, createdAt) {
 let myTypingTimeout = null;
 let lastTypingTime = 0;
 async function startCall(callType = 'audio') {
-    if (!activeContactId || !socket || currentCallState !== 'idle') return;
+    if (currentCallState !== 'idle') return;
+
+    // Unlock media elements for autoplay policy
+    audioEl.play().catch(() => { });
+    if (remoteVideoEl) remoteVideoEl.play().catch(() => { });
 
     const hasMedia = await initLocalStream(callType);
     if (!hasMedia) return;
@@ -2269,7 +2283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("fileInput").addEventListener("change", handleFileSelection);
 
     // Mobile Navigation Listeners
-    // Redundant syncMobileView moved to global scope
+    // Redundant syncDynamicView moved to global scope
 
     const backBtn = document.getElementById("backToSidebarBtn");
     if (backBtn) {
@@ -2526,18 +2540,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         chatHeader.addEventListener('click', showContactProfile);
     }
 
-    document.getElementById('closeContactProfileBtn').addEventListener('click', () => {
-        const modal = document.getElementById('contactProfileModal');
-        const content = document.getElementById('contactProfileModalContent');
-        if (modal) modal.classList.add('opacity-0');
-        if (content) content.classList.add('scale-95');
-        setTimeout(() => {
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }, 200);
-    });
+    document.getElementById('closeContactProfileBtn').addEventListener('click', closeContactProfile);
 
     document.getElementById('blockContactBtn').addEventListener('click', blockActiveContact);
     const unblockNowBtn = document.getElementById('unblockNowBtn');
@@ -2565,7 +2568,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (placeholder && window.innerWidth >= 768) {
             placeholder.classList.remove('hidden');
         }
-        syncMobileView(false);
+        syncDynamicView(false);
     }
 
     keepActiveChatVisible(false);
@@ -2699,12 +2702,19 @@ function updateCallMediaBadge(mode = 'audio') {
 }
 
 function syncLocalVideoPreview() {
-    const hasVideo = Boolean(localStream && localStream.getVideoTracks().length > 0);
-    if (localVideoEl) {
-        localVideoEl.srcObject = hasVideo ? localStream : null;
-        localVideoEl.classList.toggle('hidden', !hasVideo);
+    if (localVideoEl && localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack && videoTrack.enabled) {
+            localVideoEl.srcObject = localStream;
+            localVideoEl.style.transform = "scaleX(-1)"; // Mirror effect for local preview
+            localVideoEl.classList.remove('hidden');
+            localVideoEl.play().catch(e => console.warn("Local video play blocked", e));
+        } else {
+            localVideoEl.classList.add('hidden');
+            localVideoEl.srcObject = null;
+        }
     }
-    updateCallMediaBadge(hasVideo ? 'video' : currentCallMode);
+    updateCallMediaBadge(localStream && localStream.getVideoTracks().length > 0 ? 'video' : currentCallMode);
 }
 
 function syncRemoteVideoState() {

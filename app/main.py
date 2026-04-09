@@ -55,8 +55,9 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
             csp = (
                 f"default-src 'self'; "
-                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com \
-                    https://cdn.socket.io https://cdn.jsdelivr.net; "
+                f"script-src 'self' 'nonce-{nonce}' "
+                f"https://cdn.tailwindcss.com "
+                f"https://cdn.jsdelivr.net; "
                 f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 f"font-src 'self' https://fonts.gstatic.com; "
                 f"img-src 'self' data: http: https: blob:; "
@@ -68,7 +69,9 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
             content_type = response.headers.get("content-type", "")
             if "text/html" in content_type:
-                response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+                response.headers["Cache-Control"] = (
+                    "no-store, no-cache, must-revalidate, max-age=0"
+                )
                 response.headers["Pragma"] = "no-cache"
                 response.headers["Expires"] = "0"
 
