@@ -54,12 +54,9 @@ Pygments==2.19.2
 PyJWT==2.12.1
 pytest==9.0.2
 python-dotenv==1.2.2
-python-engineio==4.13.1
 python-jose==3.5.0
 python-multipart==0.0.22
-python-socketio==5.16.1
 PyYAML==6.0.3
-redis==7.4.0
 requests==2.33.1
 rich==14.3.3
 rich-toolkit==0.19.7

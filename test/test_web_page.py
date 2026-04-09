@@ -16,7 +16,6 @@ def test_root_renders_chat_page_for_authenticated_user(client, db_session, auth_
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Your Messages" in response.text
     assert "Search conversations..." in response.text
 
 

@@ -5,7 +5,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.ws import sio_app
 from app.core.config import settings
 from app.api_router import router as api_router
 from app.web_page import router as web_page_router
@@ -56,7 +55,8 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
             csp = (
                 f"default-src 'self'; "
-                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com https://cdn.socket.io https://cdn.jsdelivr.net; "
+                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com \
+                    https://cdn.socket.io https://cdn.jsdelivr.net; "
                 f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 f"font-src 'self' https://fonts.gstatic.com; "
                 f"img-src 'self' data: http: https: blob:; "
@@ -91,4 +91,3 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.include_router(api_router)
 app.include_router(web_page_router)
 
-app.mount("/socket.io", sio_app)
