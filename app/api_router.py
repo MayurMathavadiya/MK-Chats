@@ -415,7 +415,7 @@ def get_contacts(
                 last_name=user.last_name,
                 mobile_number=user.mobile_number,
                 profile_pic=user.profile_pic,
-                is_online=bool(user.socket_sid),
+                is_online=False,
                 last_message=last_msg,
                 last_message_at=last_time,
                 public_key=user.public_key,

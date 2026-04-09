@@ -13,14 +13,12 @@
     <aside id="side-navbar"
         class="fixed left-0 top-0 h-full z-[60] flex flex-col p-4 bg-slate-900/60 backdrop-blur-3xl w-64 border-r border-white/10 shadow-[0_0_40px_rgba(79,70,229,0.08)]">
         <div class="flex items-center gap-3 mb-10 px-2">
-            <div
-                class="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <span class="material-symbols-outlined text-white text-2xl"
-                    style="font-variation-settings: 'FILL' 1;">security</span>
+            <div class="w-14 h-14 flex items-center justify-center">
+                <img src="/static/branding/mk-chats-logo.svg" alt="MK" class="w-full h-full object-contain">
             </div>
             <div class="sidebar-logo-text min-w-0">
                 <h1 class="text-xl font-black tracking-tighter text-indigo-400 manrope truncate">MK Chats</h1>
-                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold truncate">Secure Session</p>
+                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold truncate">Safe Chat</p>
             </div>
         </div>
 
@@ -47,14 +45,14 @@
             </a>
         </nav>
 
-        <div class="mt-auto pt-4 border-t border-white/5">
-            <a href="javascript:void(0)" onclick="openProfileModal()"
+        <div class="mt-auto pt-4 border-t border-white/5 relative">
+            <a href="javascript:void(0)" id="sidebarSettingsBtn"
                 class="flex items-center gap-4 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all duration-300 rounded-xl mb-4 scale-95 active:scale-90">
                 <span class="material-symbols-outlined text-2xl">settings</span>
                 <span class="sidebar-label text-sm truncate">Settings</span>
             </a>
-            <div class="flex items-center gap-3 px-2 relative">
-                <div class="relative group cursor-pointer" id="profileDropdownBtn">
+            <div class="flex items-center gap-3 px-2">
+                <div class="relative group">
                     <img src="{{ user.profile_pic or '' }}" alt="Profile"
                         class="w-10 h-10 rounded-full border border-indigo-500/30 object-cover {% if not user.profile_pic %}hidden{% endif %}"
                         id="topAvatarImg">
@@ -71,26 +69,27 @@
                         id="currentUserStatusText">Connecting</p>
                 </div>
 
-                <!-- Profile Dropdown -->
-                <div id="profileDropdown"
-                    class="absolute left-0 bottom-full mb-3 w-56 glass-panel rounded-xl shadow-2xl py-2 hidden z-50 overflow-hidden border border-white/10">
-                    <div class="px-5 py-4 border-b border-white/5 bg-white/5">
-                        <p class="text-[10px] text-kin_primary font-bold uppercase tracking-wider mb-1">Account</p>
-                        <p class="text-sm font-bold text-on-surface truncate">{{ user.first_name }} {{ user.last_name }}
-                        </p>
-                    </div>
-                    <div class="p-1">
-                        <button id="profileEditBtn" onclick="openProfileModal()"
-                            class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-all text-left">
-                            <span class="material-symbols-outlined text-xl">person_edit</span>
-                            Edit Profile
-                        </button>
-                        <button id="logoutBtn"
-                            class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-all text-left">
-                            <span class="material-symbols-outlined text-xl">logout</span>
-                            Logout
-                        </button>
-                    </div>
+            </div>
+
+            <!-- Profile Dropdown (Anchored to mt-auto relative container) -->
+            <div id="profileDropdown"
+                class="absolute left-0 bottom-full mb-3 w-56 glass-panel rounded-xl shadow-2xl py-2 hidden z-50 overflow-hidden border border-white/10">
+                <div class="px-5 py-4 border-b border-white/5 bg-white/5">
+                    <p class="text-[10px] text-kin_primary font-bold uppercase tracking-wider mb-1">Account</p>
+                    <p class="text-sm font-bold text-on-surface truncate">{{ user.first_name }} {{ user.last_name }}
+                    </p>
+                </div>
+                <div class="p-1">
+                    <button id="profileEditBtn"
+                        class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-all text-left">
+                        <span class="material-symbols-outlined text-xl">person_edit</span>
+                        Edit Profile
+                    </button>
+                    <button id="logoutBtn"
+                        class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/20 rounded-lg transition-all text-left">
+                        <span class="material-symbols-outlined text-xl">logout</span>
+                        Logout
+                    </button>
                 </div>
             </div>
         </div>
@@ -132,8 +131,7 @@
                             style="font-variation-settings: 'FILL' 1;">forum</span>
                     </div>
                     <h3 class="manrope text-xl font-bold text-on-surface mb-2">Select a Conversation</h3>
-                    <p class="text-slate-500 text-sm max-w-xs mx-auto">Click on a contact to start an end-to-end
-                        encrypted session.</p>
+                    <p class="text-slate-500 text-sm max-w-xs mx-auto">Click on a contact to start a secure chat.</p>
                 </div>
             </div>
 
@@ -225,23 +223,23 @@
                     </div>
 
                     <form id="messageForm"
-                        class="glass-panel p-2 rounded-[24px] border border-white/5 flex items-end gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
+                        class="glass-panel p-2 rounded-[24px] border border-white/5 flex items-center gap-2 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
                         <button type="button" id="uploadBtnTrigger"
-                            class="p-3 hover:bg-white/5 rounded-full transition-all text-slate-400 hover:text-kin_primary">
+                            class="p-3 hover:bg-white/5 rounded-full transition-all text-slate-400 hover:text-kin_primary flex-shrink-0">
                             <span class="material-symbols-outlined text-2xl">add_circle</span>
                         </button>
                         <input type="file" id="fileInput" class="hidden" accept="image/*,video/*">
 
                         <div class="flex-1 relative">
                             <textarea id="msgInput" rows="1"
-                                class="w-full bg-kin_surf_lowest border-none rounded-2xl py-3 px-4 text-sm text-on-surface placeholder:text-slate-500 focus:ring-1 focus:ring-kin_primary/20 resize-none max-h-32 font-inter"
-                                placeholder="Write a secure message..."></textarea>
+                                class="w-full bg-kin_surf_lowest border-none rounded-2xl py-3 px-4 text-sm text-on-surface placeholder:text-slate-500 focus:ring-1 focus:ring-kin_primary/20 resize-none max-h-32 font-inter block"
+                                placeholder="Type a message..."></textarea>
                         </div>
 
                         <button type="submit"
-                            class="w-11 h-11 bg-kin_primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-kin_primary/30 hover:scale-105 active:scale-95 transition-all">
+                            class="w-11 h-11 bg-kin_primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-kin_primary/30 hover:scale-105 active:scale-95 transition-all flex-shrink-0">
                             <span class="material-symbols-outlined text-2xl"
-                                style="transform: rotate(-45deg); margin-left: 4px; margin-bottom: 2px;">send</span>
+                                style="transform: rotate(-45deg);">send</span>
                         </button>
                     </form>
 
@@ -256,8 +254,8 @@
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
                         </path>
                         </svg>
-                        <span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">End-to-End Encrypted
-                            Session</span>
+                        <span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Secure
+                            Communication</span>
                     </div>
                 </div>
             </div>
@@ -265,7 +263,8 @@
     </main>
 </div>
 
-<div id="supabase-config" data-url="{{ supabase_url }}" data-anon-key="{{ supabase_anon_key }}" data-user-id="{{ user.id }}" hidden></div>
+<div id="supabase-config" data-url="{{ supabase_url }}" data-anon-key="{{ supabase_anon_key }}"
+    data-user-id="{{ user.id }}" hidden></div>
 
 <!-- Action Menu Modal -->
 <div id="actionMenuModal"
@@ -344,7 +343,7 @@
                 <div class="bg-surface-container-lowest/50 p-6 rounded-3xl border border-white/5 space-y-6">
                     <div class="flex items-center gap-3 mb-2">
                         <span class="material-symbols-outlined text-indigo-400">person_outline</span>
-                        <h3 class="text-lg font-bold font-manrope">Personal Identity</h3>
+                        <h3 class="text-lg font-bold font-manrope">Personal Information</h3>
                     </div>
 
                     <div class="space-y-4">
@@ -386,13 +385,13 @@
                                 <span
                                     class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
                             </div>
-                            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-widest ml-1">Managed at
-                                registration</p>
+                            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-widest ml-1">Set during
+                                sign up</p>
                         </div>
                         <div class="space-y-2">
                             <label
-                                class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Satellite
-                                Email</label>
+                                class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Email
+                                Address</label>
                             <div class="relative">
                                 <input type="email"
                                     class="w-full bg-surface-container/50 border border-white/5 rounded-xl px-4 py-3 text-on-surface-variant text-sm opacity-60 cursor-not-allowed"
@@ -411,7 +410,7 @@
                     class="font-manrope text-[10px] font-black text-indigo-300 hover:text-indigo-400 transition-colors flex items-center gap-2 uppercase tracking-widest group">
                     <span
                         class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">shield_lock</span>
-                    Update Security Protocol
+                    Change Password
                 </button>
 
                 <div id="passwordSection" class="hidden mt-6 animate-in slide-in-from-top-4 duration-300">
@@ -485,13 +484,9 @@
 
         <!-- Fixed Footer Actions -->
         <div class="p-8 pt-0 flex gap-4">
-            <button type="button" onclick="closeProfileModal()"
-                class="flex-1 py-4 bg-surface-container-highest hover:bg-white/5 rounded-2xl text-on-surface-variant font-bold text-sm transition-all uppercase tracking-widest">
-                Cancel
-            </button>
             <button id="saveProfileBtn" type="submit" form="profileForm"
-                class="flex-[2] py-4 bg-gradient-to-br from-primary-container to-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest">
-                Synchronize Identity
+                class="w-full py-4 bg-gradient-to-br from-primary-container to-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest">
+                Save Profile
             </button>
         </div>
     </div>
@@ -524,7 +519,7 @@
                 </h1>
                 <p class="text-tertiary flex items-center gap-2 font-medium text-sm mt-1">
                     <span class="w-2 h-2 rounded-full bg-slate-500" id="cpStatusDotVisual"></span>
-                    <span id="cpModalStatusText">Offline • Secure Session</span>
+                    <span id="cpModalStatusText">Offline • Safe Chat</span>
                 </p>
             </div>
 
@@ -536,7 +531,8 @@
                         <span class="material-symbols-outlined">call</span>
                     </div>
                     <div>
-                        <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Mobile</p>
+                        <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Phone Number
+                        </p>
                         <p class="text-on-surface font-semibold text-sm" id="cpModalMobile">+1 (555) 012-9934</p>
                     </div>
                 </div>
@@ -564,16 +560,11 @@
                 </div> -->
 
                 <!-- Actions -->
-                <div class="flex gap-4">
+                <div class="flex">
                     <button id="blockContactBtn"
-                        class="flex-1 py-4 bg-surface-container-highest hover:bg-red-500/10 rounded-2xl text-red-400 font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-red-500/10">
+                        class="w-full py-4 bg-surface-container-highest hover:bg-red-500/10 rounded-2xl text-red-400 font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-red-500/10">
                         <span class="material-symbols-outlined text-lg">block</span>
-                        Block
-                    </button>
-                    <button
-                        class="flex-1 py-4 bg-surface-container-highest hover:bg-white/5 rounded-2xl text-on-surface font-bold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-widest border border-white/5"
-                        onclick="closeContactProfile()">
-                        Close
+                        Block Contact
                     </button>
                 </div>
             </div>
@@ -590,7 +581,7 @@
             <div>
                 <h3 class="text-xl font-bold font-manrope text-on-surface">Call History</h3>
                 <p class="text-xs text-on-surface-variant uppercase tracking-widest mt-1" id="callHistorySubtitle">
-                    Recent secure sessions</p>
+                    Recent calls</p>
             </div>
             <button id="closeCallHistoryBtn"
                 class="w-10 h-10 rounded-full hover:bg-white/5 transition-colors text-slate-400 hover:text-white">
@@ -624,7 +615,7 @@
 
         <h2 class="text-3xl font-bold font-manrope mb-1 tracking-tight text-on-surface" id="incomingCallerName">Evelyn
         </h2>
-        <p class="text-tertiary font-medium mb-12 tracking-widest text-xs uppercase" id="incomingCallTypeLabel">Secure
+        <p class="text-tertiary font-medium mb-12 tracking-widest text-xs uppercase" id="incomingCallTypeLabel">Safe
             Voice Call</p>
 
         <!-- Call Controls -->

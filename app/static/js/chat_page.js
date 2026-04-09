@@ -9,6 +9,227 @@ let pendingUpgradeRequest = null;
 let videoStageLayout = 'fullscreen';
 let videoControlsAutoHideTimeoutId = null;
 
+// --- Desktop Notifications (best-effort) ---
+const mkChatsNotificationIcon = "/static/branding/mk-chats-logo.svg";
+const sharedKeyCache = new Map(); // userId -> CryptoKey|null
+const recentNotificationTags = new Map(); // tag -> timestamp
+
+function initDesktopNotifications() {
+    if (!('Notification' in window)) return;
+    if (!window.isSecureContext && location.hostname !== 'localhost') {
+        console.warn("Notifications require a secure context (HTTPS or localhost).");
+        return;
+    }
+
+    // Many browsers require a user gesture to show the permission prompt.
+    if (Notification.permission === 'default') {
+        document.addEventListener('click', async () => {
+            try {
+                await Notification.requestPermission();
+            } catch (e) {
+                console.warn("Notification permission request failed", e);
+            }
+        }, { once: true, capture: true });
+    }
+}
+
+function canShowDesktopNotification() {
+    return ('Notification' in window) && Notification.permission === 'granted';
+}
+
+function shouldThrottleNotification(tag, minIntervalMs = 2500) {
+    const now = Date.now();
+    const lastAt = recentNotificationTags.get(tag) || 0;
+    if (now - lastAt < minIntervalMs) return true;
+    recentNotificationTags.set(tag, now);
+    return false;
+}
+
+function showDesktopNotification({ title, body, tag, icon, onClick } = {}) {
+    if (!canShowDesktopNotification()) return null;
+    if (tag && shouldThrottleNotification(tag)) return null;
+
+    try {
+        const notif = new Notification(String(title || "MK Chats"), {
+            body: body ? String(body) : undefined,
+            tag: tag ? String(tag) : undefined,
+            icon: icon || mkChatsNotificationIcon,
+            badge: mkChatsNotificationIcon,
+            renotify: false
+        });
+        if (typeof onClick === 'function') {
+            notif.onclick = (evt) => {
+                try {
+                    // Try to focus window first (Firefox requirement)
+                    window.focus();
+                } catch (e) { }
+
+                try { evt?.preventDefault?.(); } catch (e) { }
+
+                // Allow a small tick for focus to propagate
+                setTimeout(() => {
+                    try { window.focus(); } catch (e) { }
+                    try { onClick(); } catch (e) { console.error("onClick error:", e); }
+                    try { notif.close(); } catch (e) { }
+                }, 0);
+            };
+        }
+        return notif;
+    } catch (e) {
+        console.warn("Desktop notification failed", e);
+        return null;
+    }
+}
+
+function getContactById(userId) {
+    const numericUserId = Number(userId);
+    if (window.activeContactData && Number(window.activeContactData.id) === numericUserId) {
+        return {
+            id: numericUserId,
+            first_name: (window.activeContactData.name || '').split(' ')[0] || '',
+            last_name: (window.activeContactData.name || '').split(' ').slice(1).join(' ') || '',
+            public_key: window.activeContactData.pubKeyB64 || '',
+            mobile_number: window.activeContactData.mobile || '',
+            profile_pic: window.activeContactData.profilePic || '',
+            blocked_by_me: Boolean(window.activeContactData.blockedByMe),
+            blocked_me: Boolean(window.activeContactData.blockedMe)
+        };
+    }
+    return cachedContacts.find((entry) => Number(entry.id) === numericUserId) || null;
+}
+
+async function getSharedKeyForUser(userId) {
+    const numericUserId = Number(userId);
+    if (Number(activeContactId) === numericUserId && activeSharedKey) {
+        return activeSharedKey;
+    }
+    if (sharedKeyCache.has(numericUserId)) {
+        return sharedKeyCache.get(numericUserId);
+    }
+
+    const contact = getContactById(numericUserId);
+    const pubKeyB64 = contact?.public_key;
+    if (!pubKeyB64 || pubKeyB64 === "null") {
+        sharedKeyCache.set(numericUserId, null);
+        return null;
+    }
+
+    try {
+        const contactPubKey = await importContactPublicKey(pubKeyB64);
+        const sharedKey = await deriveSharedSecret(contactPubKey);
+        sharedKeyCache.set(numericUserId, sharedKey || null);
+        return sharedKey || null;
+    } catch (e) {
+        console.warn("Shared key derivation failed", e);
+        sharedKeyCache.set(numericUserId, null);
+        return null;
+    }
+}
+
+function focusAndOpenChat(userId) {
+    console.log("Redirecting to chat for user:", userId);
+    try { window.focus(); } catch (e) { }
+
+    // Ensure we are not on a sub-page if needed (not applicable for this monolith)
+    if (document.visibilityState !== 'visible') {
+        // Some browsers need this hint
+        try { window.focus(); } catch (e) { }
+    }
+
+    const contact = getContactById(userId);
+    if (!contact) {
+        console.warn("Contact not found for focus:", userId);
+        // Fallback: If contact not in cache, trigger a reload then select
+        loadContacts().then(() => {
+            const reContact = getContactById(userId);
+            if (reContact) {
+                const name = `${reContact.first_name || ''} ${reContact.last_name || ''}`.trim() || `User ${Number(userId)}`;
+                selectUser(Number(reContact.id), name, reContact.public_key, reContact.mobile_number, reContact.profile_pic, Boolean(reContact.blocked_by_me), Boolean(reContact.blocked_me)).catch(console.error);
+            }
+        });
+        return;
+    }
+
+    const name = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || `User ${Number(userId)}`;
+    selectUser(
+        Number(contact.id),
+        name,
+        contact.public_key || '',
+        contact.mobile_number || null,
+        contact.profile_pic || null,
+        Boolean(contact.blocked_by_me),
+        Boolean(contact.blocked_me)
+    ).catch(console.error);
+}
+
+function shouldNotifyForIncomingMessage(msg) {
+    if (!msg) return false;
+    if (Number(msg.receiver_id) !== Number(currentUserId)) return false;
+    if (Number(msg.sender_id) === Number(currentUserId)) return false;
+
+    const isForeground = document.visibilityState === 'visible' && document.hasFocus();
+    const isActiveChat = Number(msg.sender_id) === Number(activeContactId);
+    return !(isForeground && isActiveChat);
+}
+
+async function notifyIncomingMessage(msg) {
+    if (!canShowDesktopNotification()) return;
+    if (!shouldNotifyForIncomingMessage(msg)) return;
+
+    const senderId = Number(msg.sender_id);
+    const contact = resolveContactForCall(senderId);
+
+    let preview = "New message";
+    try {
+        if (msg.content) {
+            const sharedKey = await getSharedKeyForUser(senderId);
+            const decrypted = await decryptText(msg.content, sharedKey);
+            if (decrypted && !String(decrypted).startsWith('[')) {
+                preview = decrypted;
+            }
+        } else if (msg.file_data) {
+            preview = "Attachment";
+        }
+    } catch (e) {
+        console.warn("Notification preview failed", e);
+    }
+
+    if (preview && preview.length > 120) preview = preview.slice(0, 117) + '...';
+    const tag = `mkchats-message-${msg.id || `${senderId}-${msg.created_at || ''}`}`;
+
+    showDesktopNotification({
+        title: contact.name,
+        body: preview,
+        tag,
+        icon: contact.profilePic || mkChatsNotificationIcon,
+        onClick: () => focusAndOpenChat(senderId)
+    });
+}
+
+function shouldNotifyForIncomingCall(senderId) {
+    if (Number(senderId) === Number(currentUserId)) return false;
+    return !(document.visibilityState === 'visible' && document.hasFocus());
+}
+
+function notifyIncomingCall({ senderId, callType = 'audio', callId = null } = {}) {
+    if (!canShowDesktopNotification()) return;
+    if (!shouldNotifyForIncomingCall(senderId)) return;
+
+    const contact = resolveContactForCall(senderId);
+    const normalizedType = callType === 'video' ? 'video' : 'audio';
+    const tag = `mkchats-call-${callId || senderId}`;
+    const title = "Incoming call";
+    const body = `${contact.name} is calling (${normalizedType}).`;
+
+    showDesktopNotification({
+        title,
+        body,
+        tag,
+        icon: contact.profilePic || mkChatsNotificationIcon,
+        onClick: () => focusAndOpenChat(senderId)
+    });
+}
+
 // Add audio element to DOM for remote stream
 const audioEl = document.createElement("audio");
 audioEl.autoplay = true;
@@ -108,9 +329,9 @@ function setVideoStageLayout(layout = 'fullscreen') {
     if (videoCallStageEl) {
         videoCallStageEl.dataset.layout = normalized;
     }
-    if (videoStageMaximizeBtn) {
-        videoStageMaximizeBtn.classList.toggle('hidden', normalized !== 'compact');
-    }
+
+    if (videoStageMinimizeBtn) videoStageMinimizeBtn.classList.toggle('hidden', normalized === 'compact');
+    if (videoStageMaximizeBtn) videoStageMaximizeBtn.classList.toggle('hidden', normalized !== 'compact');
     syncVideoControlsMode();
 }
 
@@ -208,22 +429,29 @@ function createPeerConnection(remoteUserId) {
         if (!remoteStream) {
             remoteStream = new MediaStream();
         }
+        remoteStream.addTrack(event.track);
 
-        // Add track to our stable remoteStream if not already added
-        if (!remoteStream.getTracks().find(t => t.id === event.track.id)) {
-            remoteStream.addTrack(event.track);
-        }
-
-        // Assign stream to audio element
-        if (audioEl && audioEl.srcObject !== remoteStream) {
+        if (event.track.kind === 'audio') {
+            if (remoteVideoEl) {
+                if (remoteVideoEl.srcObject !== remoteStream) {
+                    remoteVideoEl.srcObject = remoteStream;
+                }
+                // Try playing through video element first (often more reliable sync)
+                remoteVideoEl.play().catch(e => console.warn("Remote video play blocked", e));
+            }
             audioEl.srcObject = remoteStream;
+            audioEl.play().catch(e => console.warn("Audio play blocked", e));
         }
 
-        // If it's a video track, assign to video element and show stage
         if (event.track.kind === 'video') {
             if (remoteVideoEl && remoteVideoEl.srcObject !== remoteStream) {
                 remoteVideoEl.srcObject = remoteStream;
             }
+            remoteVideoEl.play().catch(e => console.warn("Remote video play blocked", e));
+
+            // Mute the backup audioEl if video is active to avoid double-audio/echo
+            audioEl.muted = true;
+
             if (currentCallMode === 'video') {
                 showVideoStage();
             }
@@ -293,10 +521,14 @@ function setupWebRTCSocketListeners() {
         currentCallState = 'ringing';
         pendingIncomingOffer = data;
         showIncomingCallOverlay(data.sender_id, currentCallMode);
+        notifyIncomingCall({ senderId: data.sender_id, callType: currentCallMode, callId: currentCallLogId });
 
         document.getElementById('acceptCallBtn').onclick = async () => {
-            hideIncomingCallOverlay();
+            // Unlock media elements for autoplay policy
+            audioEl.play().catch(() => { });
+            if (remoteVideoEl) remoteVideoEl.play().catch(() => { });
 
+            stopRingtone();
             const hasMedia = await initLocalStream(currentCallMode);
             if (!hasMedia) return;
             if (currentCallMode === 'video') resetVideoStageLayout();
@@ -562,7 +794,26 @@ async function initCrypto() {
     try {
         const privKeyJwkStr = sessionStorage.getItem('chat_priv_key');
         if (!privKeyJwkStr) {
-            console.warn("Private key not found in sessionStorage! Cannot decrypt messages.");
+            console.warn("Private key not found in sessionStorage! Cannot decrypt messages. Logging out...");
+            let seconds = 10;
+            const modalPromise = showModal({
+                title: "Security Session Locked",
+                description: `Encryption keys cleared from memory. Logging out securely in ${seconds} seconds...`,
+                isAlert: true
+            });
+            const descEl = document.getElementById('modalDescription');
+            const interval = setInterval(() => {
+                seconds--;
+                if (descEl) descEl.innerText = `Encryption keys cleared from memory. Logging out securely in ${seconds} seconds...`;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    logout();
+                }
+            }, 1000);
+            modalPromise.then(() => {
+                clearInterval(interval);
+                logout();
+            });
             return;
         }
         const jwk = JSON.parse(privKeyJwkStr);
@@ -785,7 +1036,7 @@ document.getElementById('profileModal').addEventListener('click', (e) => {
 // Profile Dropdown Toggle
 document.addEventListener('click', (e) => {
     const dropdown = document.getElementById('profileDropdown');
-    const btn = document.getElementById('profileDropdownBtn');
+    const btn = document.getElementById('sidebarSettingsBtn');
 
     if (btn && btn.contains(e.target)) {
         dropdown.classList.toggle('hidden');
@@ -1154,8 +1405,11 @@ async function initRealtime() {
     });
 
     socket.on('receive_message', async (msg) => {
-        if ((msg.sender_id === activeContactId && msg.receiver_id === currentUserId) ||
-            (msg.sender_id === currentUserId && msg.receiver_id === activeContactId)) {
+        if (Number(msg.receiver_id) === Number(currentUserId) && Number(msg.sender_id) !== Number(currentUserId)) {
+            notifyIncomingMessage(msg).catch(console.error);
+        }
+        if ((Number(msg.sender_id) === Number(activeContactId) && Number(msg.receiver_id) === Number(currentUserId)) ||
+            (Number(msg.sender_id) === Number(currentUserId) && Number(msg.receiver_id) === Number(activeContactId))) {
 
             let plainText = msg.content;
             if (msg.content) {
@@ -1167,7 +1421,7 @@ async function initRealtime() {
                 plainFileData = await decryptText(msg.file_data, activeSharedKey);
             }
 
-            if (msg.sender_id === currentUserId) {
+            if (Number(msg.sender_id) === Number(currentUserId)) {
                 const optMsg = findOptimisticMessage();
                 if (optMsg) {
                     optMsg.id = `msg-container-${msg.id}`;
@@ -1198,8 +1452,8 @@ async function initRealtime() {
 
             appendMessageUI(msg, plainText, plainFileData);
 
-            if (msg.sender_id === activeContactId && msg.sender_id !== currentUserId && document.hasFocus()) {
-                markChatAsRead(activeContactId);
+            if (Number(msg.sender_id) === Number(activeContactId) && Number(msg.sender_id) !== Number(currentUserId) && document.hasFocus()) {
+                await markChatAsRead(activeContactId);
             }
         }
         if (document.getElementById('contactSearch').value.trim() === '') {
@@ -1250,15 +1504,20 @@ async function initRealtime() {
     await socket.connect();
 }
 
-function markChatAsRead(contactId) {
+async function markChatAsRead(contactId) {
     if (socket && socket.connected) {
-        socket.emit('mark_read', { contact_id: contactId });
+        await socket.emit('mark_read', { contact_id: contactId });
 
         const contactEl = document.getElementById('contact-' + contactId);
         if (contactEl) {
-            const badge = contactEl.querySelector('.bg-sky-500');
+            const badge = contactEl.querySelector('.unread-badge');
             if (badge) badge.remove();
         }
+
+        // Sync local contact data
+        cachedContacts = cachedContacts.map(c =>
+            Number(c.id) === Number(contactId) ? { ...c, unread_count: 0 } : c
+        );
     }
 }
 
@@ -1377,7 +1636,7 @@ async function loadMessageHistory(contactId) {
         }
 
         scrollToBottom();
-        markChatAsRead(contactId);
+        await markChatAsRead(contactId);
     } catch (e) {
         console.error(e);
         if (loadToken !== activeHistoryLoadToken || Number(contactId) !== Number(activeContactId)) {
@@ -1567,7 +1826,11 @@ document.getElementById('contact-list').addEventListener('click', async (e) => {
 
 async function renderContactList(contactsArray) {
     const listDiv = document.getElementById('contact-list');
+    if (!listDiv) return;
+
+    // Clear the loading/placeholder state immediately.
     listDiv.innerHTML = '';
+
     const contactsToRender = getRenderedContacts(contactsArray);
 
     if (!contactsToRender || contactsToRender.length === 0) {
@@ -1575,18 +1838,34 @@ async function renderContactList(contactsArray) {
         return;
     }
 
-    for (let contact of contactsToRender) {
-        if (activeContactId === contact.id) contact.unread_count = 0;
+    const contactDataList = await Promise.all(contactsToRender.map(async (contact) => {
+        if (Number(activeContactId) === Number(contact.id)) contact.unread_count = 0;
         let lastMsgText = "Click to start chatting";
         let timeStr = "";
 
         if (contact.last_message) {
             try {
-                let contactPubKey = await importContactPublicKey(contact.public_key);
-                let tempSharedKey = await deriveSharedSecret(contactPubKey);
-                let plain = await decryptText(contact.last_message, tempSharedKey);
-                lastMsgText = plain ? plain : (contact.last_message.includes(':') ? "Secure message" : "Encrypted media");
+                // Defensive check for public key existence.
+                if (contact.public_key) {
+                    let contactPubKey = await importContactPublicKey(contact.public_key);
+                    if (contactPubKey && myPrivateKey) {
+                        let tempSharedKey = await deriveSharedSecret(contactPubKey);
+                        if (tempSharedKey) {
+                            let plain = await decryptText(contact.last_message, tempSharedKey);
+                            lastMsgText = plain ? plain : (contact.last_message.includes(':') ? "Secure message" : "Encrypted media");
+                        } else {
+                            lastMsgText = "Security setup pending";
+                        }
+                    } else if (contactPubKey) {
+                        lastMsgText = "Encrypted message";
+                    } else {
+                        lastMsgText = "Secure message";
+                    }
+                } else {
+                    lastMsgText = "Legacy message";
+                }
             } catch (e) {
+                console.warn("Could not decrypt preview for contact", contact.id, e);
                 lastMsgText = "Encrypted message";
             }
         } else if (contact.last_message_at) {
@@ -1594,9 +1873,16 @@ async function renderContactList(contactsArray) {
         }
 
         if (contact.last_message_at) {
-            let d = new Date(contact.last_message_at + (contact.last_message_at.endsWith('Z') ? '' : 'Z'));
-            timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            try {
+                let d = new Date(contact.last_message_at + (contact.last_message_at.endsWith('Z') ? '' : 'Z'));
+                timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch (e) { timeStr = ""; }
         }
+        return { ...contact, lastMsgText, timeStr };
+    }));
+
+    for (let contact of contactDataList) {
+        let { lastMsgText, timeStr } = contact;
 
         const isOnline = Boolean(contact.is_online);
         const nameSafely = escapeHtml(contact.first_name) + ' ' + escapeHtml(contact.last_name);
@@ -1626,12 +1912,12 @@ async function renderContactList(contactsArray) {
             <div class="flex-1 text-left min-w-0">
                 <div class="flex justify-between items-baseline mb-0.5 w-full">
                     <span class="font-bold text-on-surface truncate tracking-tight flex-1 min-w-0 pr-4">${nameSafely}</span>
-                    <span class="text-[10px] time-stamp shrink-0 whitespace-nowrap ${ (activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
+                    <span class="text-[10px] time-stamp shrink-0 whitespace-nowrap ${(activeContactId === contact.id && isDesktop) ? 'text-kin_primary' : 'text-slate-500'} font-bold">${timeStr}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <p class="text-xs text-on-surface-variant truncate pr-2 opacity-80" id="contact-${contact.id}-preview">${escapeHtml(lastMsgText)}</p>
-                    ${contact.unread_count > 0 ? `
-                    <div class="w-5 h-5 bg-kin_primary rounded-full flex items-center justify-center shadow-lg shadow-kin_primary/20 flex-shrink-0">
+                    ${Number(contact.unread_count) > 0 ? `
+                    <div class="unread-badge w-5 h-5 bg-kin_primary rounded-full flex items-center justify-center shadow-lg shadow-kin_primary/20 flex-shrink-0">
                         <span class="text-[10px] font-bold text-white">${contact.unread_count}</span>
                     </div>` : ''}
                 </div>
@@ -1646,17 +1932,25 @@ async function renderContactList(contactsArray) {
 }
 
 async function loadContacts() {
+    const listDiv = document.getElementById('contact-list');
     try {
         const res = await fetch('/api/contacts');
         if (res.ok) {
-            const contacts = (await res.json()).map(normalizeContactData);
+            const data = await res.json();
+            const contacts = (data || []).map(normalizeContactData);
             cachedContacts = contacts;
             if (temporaryPinnedContact && cachedContacts.some((contact) => Number(contact.id) === Number(temporaryPinnedContact.id))) {
                 temporaryPinnedContact = null;
             }
             await renderContactList(cachedContacts);
+        } else {
+            console.error("Failed to fetch contacts", res.status);
+            if (listDiv) listDiv.innerHTML = '<div class="text-center text-red-300 text-xs mt-10">Could not load contacts</div>';
         }
-    } catch (e) { console.error("Error loading contacts", e); }
+    } catch (e) {
+        console.error("Error loading contacts", e);
+        if (listDiv) listDiv.innerHTML = '<div class="text-center text-red-300 text-xs mt-10">Server unreachable</div>';
+    }
 }
 
 let searchTimeout = null;
@@ -2053,7 +2347,11 @@ function updateActionsVisibility(container, createdAt) {
 let myTypingTimeout = null;
 let lastTypingTime = 0;
 async function startCall(callType = 'audio') {
-    if (!activeContactId || !socket || currentCallState !== 'idle') return;
+    if (currentCallState !== 'idle') return;
+
+    // Unlock media elements for autoplay policy
+    audioEl.play().catch(() => { });
+    if (remoteVideoEl) remoteVideoEl.play().catch(() => { });
 
     const hasMedia = await initLocalStream(callType);
     if (!hasMedia) return;
@@ -2130,6 +2428,7 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
             replyToId: currentReplyToId
         });
         input.value = '';
+        input.style.height = 'auto';
         cancelReply();
     } catch (err) {
         console.error("Encryption/Send error:", err);
@@ -2174,220 +2473,233 @@ async function logout() {
 
 // Init
 document.addEventListener("DOMContentLoaded", async () => {
-    await initCrypto();
-    await initRealtime();
-    setupSearch();
-    await loadContacts();
-    setupWebRTCSocketListeners();
+    // --- STATE FOR INTERACTIVE HANDLERS ---
+    let longPressTimer = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchContainer = null;
+    let isMouseDown = false;
+    let mouseContainer = null;
 
-    const activeChat = document.getElementById('active-chat');
+    // --- 1. ATTACH STATIC UI EVENT LISTENERS IMMEDIATELY ---
+    const attachUIListeners = () => {
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
-    // Mark read when returning to tab
-    window.addEventListener('focus', () => {
-        if (activeContactId) {
-            markChatAsRead(activeContactId);
+        const clearChatBtn = document.getElementById("clearChatBtn");
+        if (clearChatBtn) clearChatBtn.addEventListener("click", clearChat);
+
+        const callContactBtn = document.getElementById("callContactBtn");
+        if (callContactBtn) {
+            callContactBtn.addEventListener("click", async () => {
+                await startCall('audio');
+            });
         }
-    });
 
-    // Attach secure event listeners
-    document.getElementById("logoutBtn").addEventListener("click", logout);
-    document.getElementById("clearChatBtn").addEventListener("click", clearChat);
-
-    document.getElementById("callContactBtn").addEventListener("click", async () => {
-        await startCall('audio');
-    });
-
-    document.getElementById("videoCallBtn").addEventListener("click", async () => {
-        await startCall('video');
-    });
-
-    document.getElementById("sidebarCallsBtn").addEventListener("click", openCallHistoryModal);
-    document.getElementById("closeCallHistoryBtn").addEventListener("click", closeCallHistoryModal);
-
-    document.getElementById("endCallBtn").addEventListener("click", () => {
-        hideActiveCallOverlay();
-        if (currentCallPeerId && socket) socket.emit("webrtc_end", { receiver_id: currentCallPeerId, call_id: currentCallLogId, reason: 'ended' });
-        if (currentCallLogId) {
-            patchCallLog('ended', currentCallMode, currentCallLogId).catch(console.error);
+        const videoCallBtn = document.getElementById("videoCallBtn");
+        if (videoCallBtn) {
+            videoCallBtn.addEventListener("click", async () => {
+                await startCall('video');
+            });
         }
-        cleanupWebRTC();
-        loadCallHistory(activeContactId);
-    });
 
-    document.getElementById("muteCallBtn").addEventListener("click", (e) => {
-        if (localStream) {
-            localStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
-            const isMuted = !localStream.getAudioTracks()[0].enabled;
-            setMuteButtonState(isMuted);
+        const sidebarCallsBtn = document.getElementById("sidebarCallsBtn");
+        if (sidebarCallsBtn) sidebarCallsBtn.addEventListener("click", openCallHistoryModal);
+
+        const closeCallHistoryBtn = document.getElementById("closeCallHistoryBtn");
+        if (closeCallHistoryBtn) closeCallHistoryBtn.addEventListener("click", closeCallHistoryModal);
+
+        const endCallBtn = document.getElementById("endCallBtn");
+        if (endCallBtn) {
+            endCallBtn.addEventListener("click", () => {
+                hideActiveCallOverlay();
+                if (currentCallPeerId && socket) socket.emit("webrtc_end", { receiver_id: currentCallPeerId, call_id: currentCallLogId, reason: 'ended' });
+                if (currentCallLogId) {
+                    patchCallLog('ended', currentCallMode, currentCallLogId).catch(console.error);
+                }
+                cleanupWebRTC();
+                loadCallHistory(activeContactId);
+            });
         }
-    });
 
-    document.getElementById("upgradeVideoBtn").addEventListener("click", async () => {
-        if (!currentCallPeerId || currentCallMode === 'video') return;
-        const hasVideo = await initLocalStream('video');
-        if (!hasVideo) return;
-        resetVideoStageLayout();
-        socket.emit("webrtc_upgrade_request", {
-            receiver_id: currentCallPeerId,
-            call_id: currentCallLogId
-        });
-    });
+        const muteCallBtn = document.getElementById("muteCallBtn");
+        if (muteCallBtn) {
+            muteCallBtn.addEventListener("click", (e) => {
+                if (localStream) {
+                    localStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+                    const isMuted = !localStream.getAudioTracks()[0].enabled;
+                    setMuteButtonState(isMuted);
+                }
+            });
+        }
 
-    if (videoStageMinimizeBtn) {
-        videoStageMinimizeBtn.addEventListener("click", async (e) => {
-            // Prevent stage click from toggling controls
-            e.stopPropagation();
-            if (!videoCallStageEl) return;
+        const upgradeVideoBtn = document.getElementById("upgradeVideoBtn");
+        if (upgradeVideoBtn) {
+            upgradeVideoBtn.addEventListener("click", async () => {
+                if (!currentCallPeerId || currentCallMode === 'video') return;
+                const hasVideo = await initLocalStream('video');
+                if (!hasVideo) return;
+                resetVideoStageLayout();
+                socket.emit("webrtc_upgrade_request", {
+                    receiver_id: currentCallPeerId,
+                    call_id: currentCallLogId
+                });
+            });
+        }
 
-            if (canUsePiP()) {
-                try {
-                    await remoteVideoEl.play().catch(() => { });
-                    await remoteVideoEl.requestPictureInPicture();
-                    hideVideoStage();
-                    return;
-                } catch (e) {
-                    console.warn("PiP request failed, falling back to compact mode", e);
+        if (videoStageMinimizeBtn) {
+            videoStageMinimizeBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                if (!videoCallStageEl) return;
+                if (canUsePiP()) {
+                    try {
+                        await remoteVideoEl.play().catch(() => { });
+                        await remoteVideoEl.requestPictureInPicture();
+                        hideVideoStage();
+                        return;
+                    } catch (e) {
+                        console.warn("PiP request failed, falling back to compact mode", e);
+                    }
+                }
+                const nextLayout = (videoCallStageEl.dataset.layout === 'compact') ? 'fullscreen' : 'compact';
+                setVideoStageLayout(nextLayout);
+            });
+        }
+
+        if (window.videoStageMaximizeBtn) {
+            window.videoStageMaximizeBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                setVideoStageLayout('fullscreen');
+            });
+        }
+
+        const uploadTrigger = document.getElementById("uploadBtnTrigger");
+        if (uploadTrigger) uploadTrigger.addEventListener("click", () => document.getElementById("fileInput")?.click());
+
+        const fileInput = document.getElementById("fileInput");
+        if (fileInput) fileInput.addEventListener("change", handleFileSelection);
+
+        const backBtn = document.getElementById("backToSidebarBtn");
+        if (backBtn) backBtn.addEventListener("click", handleBackToSidebar);
+
+        const sidebarToggle = document.getElementById("sidebarToggleBtn");
+        const sideNavbar = document.getElementById("side-navbar");
+
+        if (sidebarToggle) {
+            sidebarToggle.onclick = (e) => {
+                e.stopPropagation();
+                const width = window.innerWidth;
+                if (width < 768) {
+                    document.body.classList.toggle('sidebar-open');
+                    document.body.classList.remove('sidebar-collapsed');
+                } else {
+                    const nowCollapsed = document.body.classList.toggle('sidebar-collapsed');
+                    localStorage.setItem('isSidebarCollapsed', nowCollapsed);
+                    if (width < 1280) syncDynamicView();
+                }
+            };
+        }
+
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
+                if (sideNavbar && !sideNavbar.contains(e.target) && sidebarToggle && !sidebarToggle.contains(e.target)) {
+                    document.body.classList.remove('sidebar-open');
                 }
             }
-
-            const nextLayout = (videoCallStageEl.dataset.layout === 'compact') ? 'fullscreen' : 'compact';
-            setVideoStageLayout(nextLayout);
         });
-    }
 
-    if (videoStageMaximizeBtn) {
-        videoStageMaximizeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            setVideoStageLayout('fullscreen');
+        window.addEventListener('resize', () => {
+            syncDynamicView();
+            keepActiveChatVisible(false);
         });
-    }
 
-    document.getElementById("uploadBtnTrigger").addEventListener("click", () => {
-        document.getElementById("fileInput").click();
-    });
+        const msgInput = document.getElementById('msgInput');
+        const msgForm = document.getElementById('messageForm');
+        if (msgInput) {
+            msgInput.addEventListener('focus', () => {
+                keepActiveChatVisible(true);
+                setTimeout(() => keepActiveChatVisible(true), 250);
+            });
+            msgInput.addEventListener('input', () => {
+                msgInput.style.height = 'auto';
+                msgInput.style.height = (msgInput.scrollHeight) + 'px';
+            });
+            msgInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (msgForm) msgForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            });
+        }
 
-    document.getElementById("fileInput").addEventListener("change", handleFileSelection);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => keepActiveChatVisible(true));
+            window.visualViewport.addEventListener('scroll', () => keepActiveChatVisible(false));
+        }
 
-    // Mobile Navigation Listeners
-    // Redundant syncMobileView moved to global scope
-
-    const backBtn = document.getElementById("backToSidebarBtn");
-    if (backBtn) {
-        backBtn.addEventListener("click", handleBackToSidebar);
-    }
-
-    // Unified Sidebar Navigation (Hardened for Mobile/Tablet/Desktop)
-    const sidebarToggle = document.getElementById("sidebarToggleBtn");
-    const sideNavbar = document.getElementById("side-navbar");
-
-    function toggleSidebar() {
-        const width = window.innerWidth;
-        const isMobile = width < 768;
-        const isTablet = width >= 768 && width < 1280;
-
-        if (isMobile) {
-            // On mobile, this is a drawer toggle
-            document.body.classList.toggle('sidebar-open');
-            document.body.classList.remove('sidebar-collapsed');
-        } else {
-            // On tablet/desktop, this is a folding toggle
-            const nowCollapsed = document.body.classList.toggle('sidebar-collapsed');
-            localStorage.setItem('isSidebarCollapsed', nowCollapsed);
-
-            // If we are on tablet and expanding/collapsing, we might need a sync
-            if (isTablet) {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                if (activeContactId) markChatAsRead(activeContactId);
                 syncDynamicView();
             }
-        }
-    }
-
-    if (sidebarToggle) {
-        sidebarToggle.onclick = (e) => {
-            e.stopPropagation();
-            toggleSidebar();
-        };
-    }
-
-    // Close sidebar drawer on mobile when clicking outside
-    document.addEventListener('click', (e) => {
-        if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
-            if (!sideNavbar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                document.body.classList.remove('sidebar-open');
-            }
-        }
-    });
-
-    // Initialize state on load and resize
-    window.addEventListener('resize', () => syncDynamicView());
-    syncDynamicView();
-
-    const msgInput = document.getElementById('msgInput');
-    if (msgInput) {
-        msgInput.addEventListener('focus', () => {
-            keepActiveChatVisible(true);
-            setTimeout(() => keepActiveChatVisible(true), 250);
         });
-    }
 
-    window.addEventListener('resize', () => keepActiveChatVisible(false));
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => keepActiveChatVisible(true));
-        window.visualViewport.addEventListener('scroll', () => keepActiveChatVisible(false));
-    }
-
-    // When user returns to the tab, refresh UI + mark read
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            if (activeContactId) {
-                markChatAsRead(activeContactId);
-            }
-            syncDynamicView(); // Re-sync on tab focus
+        const messagesArea = document.getElementById("messages-area");
+        if (messagesArea) {
+            messagesArea.addEventListener("click", handleMessageAreaClick);
+            messagesArea.addEventListener("touchstart", handleTouchStart, { passive: true });
+            messagesArea.addEventListener("touchmove", handleTouchMove, { passive: true });
+            messagesArea.addEventListener("touchend", handleTouchEnd);
+            messagesArea.addEventListener("touchcancel", handleTouchEnd);
+            messagesArea.addEventListener("mousedown", handleMouseDown);
+            messagesArea.addEventListener("mousemove", handleMouseMove);
+            messagesArea.addEventListener("mouseup", handleMouseUp);
+            messagesArea.addEventListener("mouseleave", handleMouseUp);
+            messagesArea.addEventListener("contextmenu", handleContextMenu);
         }
-    });
 
-    // Global listener for click events in the messages area
-    document.getElementById("messages-area").addEventListener("click", (e) => {
+        const chatHeader = document.getElementById('chatHeaderInfo');
+        if (chatHeader) chatHeader.addEventListener('click', showContactProfile);
+
+        const closeCPBtn = document.getElementById('closeContactProfileBtn');
+        if (closeCPBtn) closeCPBtn.addEventListener('click', closeContactProfile);
+
+        const blockBtn = document.getElementById('blockContactBtn');
+        if (blockBtn) blockBtn.addEventListener('click', blockActiveContact);
+
+        const unblockNowBtn = document.getElementById('unblockNowBtn');
+        if (unblockNowBtn) unblockNowBtn.addEventListener('click', blockActiveContact);
+    };
+
+    // --- INTERACTIVE HANDLERS FOR MESSAGES --- (Swipe, Long Press)
+    const handleMessageAreaClick = (e) => {
         const quoteBlock = e.target.closest('.reply-quote-block');
         if (quoteBlock) {
             const targetId = quoteBlock.dataset.targetId;
             if (targetId) window.scrollToMessage(targetId);
             return;
         }
-
         const editBtn = e.target.closest('.btn-edit');
         const deleteBtn = e.target.closest('.btn-delete');
-
         if (editBtn || deleteBtn) {
             const container = (editBtn || deleteBtn).closest('.message-container');
-            const msgId = container.dataset.msgId;
-            if (!msgId) return;
-
-            if (editBtn) startEdit(msgId);
-            else if (deleteBtn) confirmDelete(msgId);
+            const msgId = container?.dataset.msgId;
+            if (msgId) {
+                if (editBtn) startEdit(msgId);
+                else confirmDelete(msgId);
+            }
         }
-    });
-
-    // Long Press Implementation
-    let longPressTimer = null;
-    const area = document.getElementById("messages-area");
+    };
 
     const startLongPress = (e) => {
         const container = e.target.closest('.message-container');
         if (!container) return;
-
         const buttons = container.querySelector('.action-buttons');
-        // Check if editable/deletable (action buttons div exists and is not hidden)
         if (!buttons || buttons.classList.contains('hidden')) return;
-
         const msgId = container.dataset.msgId;
         if (!msgId) return;
-
-        // Visual feedback: sublte pulse
         container.classList.add('scale-95', 'opacity-80', 'transition-all');
-
-        console.log("Starting long press timer for msg:", msgId);
         longPressTimer = setTimeout(() => {
-            console.log("Long press triggered!");
             showActionMenu(msgId);
             container.classList.remove('scale-95', 'opacity-80');
             longPressTimer = null;
@@ -2396,7 +2708,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const cancelLongPress = (e) => {
         if (longPressTimer) {
-            console.log("Long press canceled.");
             clearTimeout(longPressTimer);
             longPressTimer = null;
             const container = e.target.closest('.message-container');
@@ -2404,53 +2715,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    // Swipe-to-reply Implementation
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchContainer = null;
-
-    area.addEventListener("touchstart", (e) => {
+    const handleTouchStart = (e) => {
         const container = e.target.closest('.message-container');
-        if (!container) return;
-
-        // Ignore touches on the reply snippet to prevent false animations
-        if (e.target.closest('.reply-quote-block')) return;
-
+        if (!container || e.target.closest('.reply-quote-block')) return;
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
         touchContainer = container;
-
-        // Maintain long press
         startLongPress(e);
-    }, { passive: true });
+    };
 
-    area.addEventListener("touchmove", (e) => {
-        // Cancel long press
+    const handleTouchMove = (e) => {
         cancelLongPress(e);
-
         if (!touchContainer) return;
         let diffX = e.changedTouches[0].screenX - touchStartX;
-        let diffY = e.changedTouches[0].screenY - touchStartY; // We need to define touchStartY
-
-        // If movement is predominantly vertical, don't trigger reply
+        let diffY = e.changedTouches[0].screenY - touchStartY;
         if (Math.abs(diffY) > Math.abs(diffX)) {
             touchContainer.style.transform = '';
             return;
         }
-
-        // Allow slight movement visual feedback
-        if (Math.abs(diffX) < 80) {
-            touchContainer.style.transform = `translateX(${diffX}px)`;
-        }
-
+        if (Math.abs(diffX) < 80) touchContainer.style.transform = `translateX(${diffX}px)`;
         if (diffX > 60 || diffX < -60) {
             triggerReplyMode(touchContainer);
             touchContainer.style.transform = '';
             touchContainer = null;
         }
-    }, { passive: true });
+    };
 
-    const endTouch = (e) => {
+    const handleTouchEnd = (e) => {
         cancelLongPress(e);
         if (touchContainer) {
             touchContainer.style.transform = '';
@@ -2458,43 +2749,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    area.addEventListener("touchend", endTouch);
-    area.addEventListener("touchcancel", endTouch);
-
-    let isMouseDown = false;
-    let mouseContainer = null;
-
-    area.addEventListener("mousedown", (e) => {
+    const handleMouseDown = (e) => {
         const container = e.target.closest('.message-container');
-        if (container) {
-            // Ignore clicks on the reply snippet
-            if (e.target.closest('.reply-quote-block')) return;
-
+        if (container && !e.target.closest('.reply-quote-block')) {
             isMouseDown = true;
             touchStartX = e.clientX;
             mouseContainer = container;
         }
         startLongPress(e);
-    });
+    };
 
-    area.addEventListener("mousemove", (e) => {
+    const handleMouseMove = (e) => {
         if (longPressTimer) cancelLongPress(e);
         if (!isMouseDown || !mouseContainer) return;
-
         let diffX = e.clientX - touchStartX;
-        if (Math.abs(diffX) < 80) {
-            mouseContainer.style.transform = `translateX(${diffX}px)`;
-        }
-
+        if (Math.abs(diffX) < 80) mouseContainer.style.transform = `translateX(${diffX}px)`;
         if (diffX > 60 || diffX < -60) {
             triggerReplyMode(mouseContainer);
             mouseContainer.style.transform = '';
             mouseContainer = null;
             isMouseDown = false;
         }
-    });
+    };
 
-    const endMouse = (e) => {
+    const handleMouseUp = (e) => {
         cancelLongPress(e);
         isMouseDown = false;
         if (mouseContainer) {
@@ -2503,72 +2781,67 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    area.addEventListener("mouseup", endMouse);
-    area.addEventListener("mouseleave", endMouse);
-    // Remove mousemove cancel to avoid jitter issues unless it's a drag
-
-    // Context Menu (Right Click) fallback
-    area.addEventListener("contextmenu", (e) => {
+    const handleContextMenu = (e) => {
         const container = e.target.closest('.message-container');
         if (!container) return;
-
         const buttons = container.querySelector('.action-buttons');
         if (!buttons || buttons.classList.contains('hidden')) return;
-
         const msgId = container.dataset.msgId;
-        e.preventDefault(); // Stop native menu
+        e.preventDefault();
         showActionMenu(msgId);
-    });
+    };
 
-    // Contact Profile Card Interactions
-    const chatHeader = document.getElementById('chatHeaderInfo');
-    if (chatHeader) {
-        chatHeader.addEventListener('click', showContactProfile);
-    }
+    attachUIListeners();
+    syncDynamicView();
 
-    document.getElementById('closeContactProfileBtn').addEventListener('click', () => {
-        const modal = document.getElementById('contactProfileModal');
-        const content = document.getElementById('contactProfileModalContent');
-        if (modal) modal.classList.add('opacity-0');
-        if (content) content.classList.add('scale-95');
-        setTimeout(() => {
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
+    // --- 2. START ASYNC SERVICES IN PARALLEL ---
+    // We launch these in parallel to avoid one service's delay (like Supabase) blocking the others.
+
+    // Crypto is needed for decryption, but it usually initializes quickly.
+    const cryptoPromise = initCrypto().catch(e => console.error("Crypto Error:", e));
+
+    // Notifications don't block anything.
+    initDesktopNotifications();
+
+    // Realtime can be slow, so we don't await it sequentially.
+    const realtimePromise = initRealtime().catch(e => console.error("Realtime Error:", e));
+
+    // Search setup is fast.
+    setupSearch();
+
+    // Load contacts immediately. We'll wait for crypto inside loadContacts if needed, 
+    // but at least we'll clear the "Syncing" message as soon as the fetch completes.
+    const contactsPromise = loadContacts().catch(e => console.error("Load Contacts Error:", e));
+
+    // WebRTC setup.
+    setupWebRTCSocketListeners();
+
+    // Wait for critical data for session restoration, but don't block the UI.
+    Promise.allSettled([cryptoPromise, contactsPromise, realtimePromise]).then(() => {
+        // --- 3. RESTORE SESSION ---
+        const savedId = localStorage.getItem('activeContactId');
+        const savedName = localStorage.getItem('activeContactName');
+        const savedPubKey = localStorage.getItem('activeContactPubKey');
+        if (savedId && savedName && savedPubKey) {
+            const contactEl = document.getElementById('contact-' + savedId);
+            if (contactEl) {
+                const mobile = contactEl.getAttribute('data-contact-mobile');
+                const pic = contactEl.getAttribute('data-contact-pic');
+                const bByMe = contactEl.getAttribute('data-contact-blocked-by-me') === 'true';
+                const bMe = contactEl.getAttribute('data-contact-blocked-me') === 'true';
+                selectUser(Number(savedId), savedName, savedPubKey, mobile, pic, bByMe, bMe);
+            } else {
+                selectUser(Number(savedId), savedName, savedPubKey);
             }
-        }, 200);
-    });
-
-    document.getElementById('blockContactBtn').addEventListener('click', blockActiveContact);
-    const unblockNowBtn = document.getElementById('unblockNowBtn');
-    if (unblockNowBtn) unblockNowBtn.addEventListener('click', blockActiveContact);
-
-    // RESTORE SESSION: Check localStorage
-    const savedId = localStorage.getItem('activeContactId');
-    const savedName = localStorage.getItem('activeContactName');
-    const savedPubKey = localStorage.getItem('activeContactPubKey');
-    if (savedId && savedName && savedPubKey) {
-        // Re-fetch mobile and pic from the list if possible, or just select
-        const contactEl = document.getElementById('contact-' + savedId);
-        if (contactEl) {
-            const mobile = contactEl.getAttribute('data-contact-mobile');
-            const profilePic = contactEl.getAttribute('data-contact-pic');
-            const blockedByMe = contactEl.getAttribute('data-contact-blocked-by-me') === 'true';
-            const blockedMe = contactEl.getAttribute('data-contact-blocked-me') === 'true';
-            selectUser(Number(savedId), savedName, savedPubKey, mobile, profilePic, blockedByMe, blockedMe);
         } else {
-            selectUser(Number(savedId), savedName, savedPubKey);
+            const activeChat = document.getElementById('active-chat');
+            if (activeChat) activeChat.classList.add('hidden');
+            const placeholder = document.getElementById('no-chat-selected');
+            if (placeholder && window.innerWidth >= 768) placeholder.classList.remove('hidden');
+            syncDynamicView(false);
         }
-    } else {
-        if (activeChat) activeChat.classList.add('hidden');
-        const placeholder = document.getElementById('no-chat-selected');
-        if (placeholder && window.innerWidth >= 768) {
-            placeholder.classList.remove('hidden');
-        }
-        syncMobileView(false);
-    }
-
-    keepActiveChatVisible(false);
+        keepActiveChatVisible(false);
+    });
 });
 
 function showContactProfile() {
@@ -2699,12 +2972,19 @@ function updateCallMediaBadge(mode = 'audio') {
 }
 
 function syncLocalVideoPreview() {
-    const hasVideo = Boolean(localStream && localStream.getVideoTracks().length > 0);
-    if (localVideoEl) {
-        localVideoEl.srcObject = hasVideo ? localStream : null;
-        localVideoEl.classList.toggle('hidden', !hasVideo);
+    if (localVideoEl && localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack && videoTrack.enabled) {
+            localVideoEl.srcObject = localStream;
+            localVideoEl.style.transform = "scaleX(-1)"; // Mirror effect for local preview
+            localVideoEl.classList.remove('hidden');
+            localVideoEl.play().catch(e => console.warn("Local video play blocked", e));
+        } else {
+            localVideoEl.classList.add('hidden');
+            localVideoEl.srcObject = null;
+        }
     }
-    updateCallMediaBadge(hasVideo ? 'video' : currentCallMode);
+    updateCallMediaBadge(localStream && localStream.getVideoTracks().length > 0 ? 'video' : currentCallMode);
 }
 
 function syncRemoteVideoState() {
@@ -2997,7 +3277,14 @@ async function blockActiveContact() {
     const isBlocked = window.activeContactData.blockedByMe;
     const action = isBlocked ? 'unblock' : 'block';
 
-    if (confirm(`Are you sure you want to ${action} ${window.activeContactData.name}?`)) {
+    closeContactProfile();
+
+    const confirmed = await showModal({
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Contact`,
+        description: `Are you sure you want to ${action} ${window.activeContactData.name}?`
+    });
+
+    if (confirmed) {
         try {
             const res = await fetch(`/api/contacts/${action}`, {
                 method: 'POST',
@@ -3005,15 +3292,38 @@ async function blockActiveContact() {
                 body: JSON.stringify({ blocked_contact_id: contactId })
             });
             if (res.ok) {
-                alert(`Contact ${action}ed successfully.`);
-                location.reload();
+                // Optimistic UI Update instantly
+                const pContact = getContactById(contactId);
+                if (pContact) pContact.blocked_by_me = (action === 'block');
+
+                if (window.activeContactData && window.activeContactData.id === contactId) {
+                    window.activeContactData.blockedByMe = (action === 'block');
+                    focusAndOpenChat(contactId);
+                }
+
+                // Fetch fresh data in background
+                loadContacts();
+
+                await showModal({
+                    title: "Success",
+                    description: `Contact has been ${action}ed successfully.`,
+                    isAlert: true
+                });
             } else {
                 const err = await res.json();
-                alert(err.detail || `Failed to ${action} contact.`);
+                showModal({
+                    title: "Error",
+                    description: err.detail || `Failed to ${action} contact.`,
+                    isAlert: true
+                });
             }
         } catch (e) {
             console.error(e);
-            alert("An error occurred.");
+            showModal({
+                title: "Error",
+                description: "An unexpected error occurred.",
+                isAlert: true
+            });
         }
     }
 }

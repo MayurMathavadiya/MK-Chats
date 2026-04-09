@@ -5,80 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}MK Chats{% endblock %}</title>
-    <script nonce="{{ request.state.nonce }}" src="https://cdn.tailwindcss.com"></script>
-    <script nonce="{{ request.state.nonce }}">
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        background: "#10131a",
-                        surface: "#10131a",
-                        "surface-dim": "#10131a",
-                        "surface-tint": "#c3c0ff",
-                        "surface-bright": "#363940",
-                        "surface-container-lowest": "#0b0e14",
-                        "surface-container-low": "#191c22",
-                        "surface-container": "#1d2026",
-                        "surface-container-high": "#272a31",
-                        "surface-container-highest": "#32353c",
-                        "surface-variant": "#32353c",
-                        "on-surface": "#e1e2eb",
-                        "on-surface-variant": "#c7c4d8",
-                        outline: "#918fa1",
-                        "outline-variant": "#464555",
-                        primary: "#c3c0ff",
-                        "primary-container": "#4f46e5",
-                        "primary-fixed": "#e2dfff",
-                        "primary-fixed-dim": "#c3c0ff",
-                        "on-primary": "#1d00a5",
-                        "on-primary-container": "#dad7ff",
-                        "on-primary-fixed": "#0f0069",
-                        "on-primary-fixed-variant": "#3323cc",
-                        secondary: "#c4c6cf",
-                        "secondary-container": "#464950",
-                        "secondary-fixed": "#e1e2eb",
-                        "secondary-fixed-dim": "#c4c6cf",
-                        "on-secondary": "#2e3037",
-                        "on-secondary-container": "#b6b8c1",
-                        "on-secondary-fixed": "#191c22",
-                        "on-secondary-fixed-variant": "#44474e",
-                        tertiary: "#00daf3",
-                        "tertiary-container": "#006a77",
-                        "tertiary-fixed": "#9cf0ff",
-                        "tertiary-fixed-dim": "#00daf3",
-                        "on-tertiary": "#00363d",
-                        "on-tertiary-container": "#77ebff",
-                        "on-tertiary-fixed": "#001f24",
-                        "on-tertiary-fixed-variant": "#004f58",
-                        error: "#ffb4ab",
-                        "error-container": "#93000a",
-                        "on-error": "#690005",
-                        "on-error-container": "#ffdad6",
-                        "inverse-surface": "#e1e2eb",
-                        "inverse-on-surface": "#2e3037",
-                        "inverse-primary": "#4d44e3",
-                        kin_bg: "#10131a",
-                        kin_surf_lowest: "#0b0e14",
-                        kin_surf_low: "#191c22",
-                        kin_surf: "#10131a",
-                        kin_surf_high: "#272a31",
-                        kin_surf_highest: "#32353c",
-                        kin_on_surface: "#e1e2eb",
-                        kin_on_surface_variant: "#c7c4d8",
-                        kin_outline: "#918fa1",
-                        kin_outline_variant: "#464555",
-                        kin_primary: "#c3c0ff",
-                        kin_primary_container: "#4f46e5",
-                        kin_tertiary: "#00daf3"
-                    },
-                    fontFamily: {
-                        manrope: ['Manrope', 'sans-serif'],
-                        inter: ['Inter', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="/static/css/output.css" rel="stylesheet">
     <script nonce="{{ request.state.nonce }}" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
@@ -322,7 +249,7 @@
 
     <!-- Global Custom Modal -->
     <div id="customModal"
-        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
         <div class="glass-panel max-w-sm w-full p-8 rounded-2xl transform scale-95 transition-transform duration-200 text-left"
             id="modalContent">
             <h3 class="text-xl font-bold text-white mb-2" id="modalTitle">Notice</h3>
@@ -355,8 +282,11 @@
         }
 
         let modalResolve = null;
+        let hideModalTimeout = null;
 
         function showModal({ title, description, placeholder, value, isAlert = false }) {
+            if (hideModalTimeout) clearTimeout(hideModalTimeout);
+
             const modal = document.getElementById('customModal');
             const content = document.getElementById('modalContent');
             const inputContainer = document.getElementById('modalInputContainer');
@@ -395,7 +325,7 @@
             const content = document.getElementById('modalContent');
             modal.classList.add('opacity-0');
             content.classList.add('scale-95');
-            setTimeout(() => {
+            hideModalTimeout = setTimeout(() => {
                 modal.classList.add('hidden');
             }, 200);
         }
