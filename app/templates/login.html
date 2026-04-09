@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Login - MK Chats{% endblock %}
+{% block title %}Sign In - MK Chats{% endblock %}
 
 {% block content %}
 <div class="fixed inset-0 cinematic-glow pointer-events-none"></div>
@@ -8,28 +8,27 @@
 <div class="fixed -bottom-24 -right-24 w-96 h-96 bg-kin_tertiary/5 blur-[120px] rounded-full pointer-events-none"></div>
 
 <main class="w-full max-w-md px-6 z-10 flex flex-col items-center py-10 md:py-20 my-auto">
-    <!-- Brand Identity -->
-    <div class="flex flex-col items-center mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-700">
-        <div
-            class="w-16 h-16 bg-kin_surf_highest rounded-2xl flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(79,70,229,0.1)] border border-white/5">
-            <span class="material-symbols-outlined text-indigo-400 text-4xl"
-                style="font-variation-settings: 'FILL' 1;">security</span>
-        </div>
-        <h1 class="font-manrope text-3xl font-black tracking-tighter text-kin_on_surface mb-1">MK Chats</h1>
-        <p class="font-inter text-sm text-kin_on_surface_variant tracking-wide uppercase font-semibold">Enter your
-            secure portal</p>
-    </div>
-
     <!-- Login Card -->
     <div
         class="glass-card rounded-[2rem] p-6 md:p-10 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
         <div
             class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent">
         </div>
-        <div class="mb-8">
-            <h2 class="font-manrope text-2xl font-bold text-kin_on_surface">Sign In</h2>
-            <p class="font-inter text-sm text-kin_on_surface_variant mt-1">Authentication required for session access.
-            </p>
+
+        <!-- Brand Identity -->
+        <div class="flex flex-col items-center mb-8 text-center">
+            <div
+                class="w-24 h-24 flex items-center justify-center mb-6">
+                <img src="/static/branding/mk-chats-logo.svg" alt="MK" class="w-full h-full object-contain">
+            </div>
+            <h1 class="font-manrope text-2xl font-black tracking-tighter text-kin_on_surface mb-1">MK Chats</h1>
+            <p class="font-inter text-[10px] text-kin_on_surface_variant tracking-widest uppercase font-bold">Secure
+                Communication</p>
+        </div>
+
+        <div class="mb-8 text-center">
+            <h2 class="font-manrope text-xl font-bold text-kin_on_surface">Sign In</h2>
+            <p class="font-inter text-sm text-kin_on_surface_variant mt-1">Please sign in to continue.</p>
         </div>
 
         <form id="loginForm" class="space-y-6">
@@ -37,7 +36,7 @@
             <div class="space-y-2">
                 <label
                     class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-[0.2em]"
-                    for="mobile">Mobile Number</label>
+                    for="mobile">Phone Number</label>
                 <div class="relative group input-glow transition-all duration-300 rounded-xl">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span class="material-symbols-outlined text-kin_outline text-lg">call</span>
@@ -84,7 +83,7 @@
                 <button id="submitBtn"
                     class="gradient-button w-full py-4 rounded-xl font-manrope font-extrabold text-white shadow-[0_4px_20px_rgba(79,70,229,0.2)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 group"
                     type="submit">
-                    Authorize Access
+                    Sign In
                     <span
                         class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
@@ -93,9 +92,9 @@
 
         <div class="mt-10 pt-8 border-t border-white/5 text-center">
             <p class="font-inter text-sm text-kin_on_surface_variant">
-                New operative?
+                Don't have an account?
                 <a class="text-indigo-400 font-bold ml-1 hover:underline decoration-indigo-500/30 underline-offset-4 transition-all"
-                    href="/register">Request Credentials</a>
+                    href="/register">Sign up here</a>
             </p>
         </div>
     </div>
@@ -106,7 +105,7 @@
             <span class="material-symbols-outlined text-kin_tertiary text-sm"
                 style="font-variation-settings: 'FILL' 1;">verified_user</span>
             <span class="text-[9px] font-bold text-kin_on_surface_variant uppercase tracking-[0.2em]">End-to-End
-                Encrypted Session</span>
+                Secure Communication</span>
         </div>
         <div class="flex gap-6 text-[9px] font-bold text-kin_outline_variant uppercase tracking-widest">
             <a class="hover:text-kin_on_surface transition-colors" href="#">Privacy Protocol</a>
@@ -121,7 +120,7 @@
 
 <script nonce="{{ request.state.nonce }}">
     const loginSubmitDefaultHtml = `
-        <span>Authorize Access</span>
+        <span>Sign In</span>
         <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
     `;
 
