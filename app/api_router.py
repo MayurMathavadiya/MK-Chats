@@ -712,7 +712,7 @@ def clear_chat(
     background_tasks.add_task(
         backgound_jobs.delete_cleared_messages,
         contact_id, user.id, now_utc # Parameters
-        )
+    )
     
     return {"msg": "Chat cleared"}
 

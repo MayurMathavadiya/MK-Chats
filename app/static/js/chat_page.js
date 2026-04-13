@@ -528,7 +528,7 @@ function setupWebRTCSocketListeners() {
             audioEl.play().catch(() => { });
             if (remoteVideoEl) remoteVideoEl.play().catch(() => { });
 
-            stopRingtone();
+            hideIncomingCallOverlay();
             const hasMedia = await initLocalStream(currentCallMode);
             if (!hasMedia) return;
             if (currentCallMode === 'video') resetVideoStageLayout();
