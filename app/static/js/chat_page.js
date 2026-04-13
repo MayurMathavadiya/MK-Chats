@@ -6,6 +6,7 @@ let currentCallLogId = null;
 let currentCallMode = 'audio';
 let pendingIncomingOffer = null;
 let pendingUpgradeRequest = null;
+let pendingIceCandidatesQueue = [];
 let videoStageLayout = 'fullscreen';
 let videoControlsAutoHideTimeoutId = null;
 
@@ -313,6 +314,7 @@ function cleanupWebRTC() {
     currentCallLogId = null;
     pendingIncomingOffer = null;
     pendingUpgradeRequest = null;
+    pendingIceCandidatesQueue = [];
 }
 
 function canUsePiP() {
@@ -476,6 +478,18 @@ function createPeerConnection(remoteUserId) {
     });
 }
 
+async function processPendingIceCandidates() {
+    if (!peerConnection) return;
+    for (const candidate of pendingIceCandidatesQueue) {
+        try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+            console.error("Failed to add queued ICE candidate", e);
+        }
+    }
+    pendingIceCandidatesQueue = [];
+}
+
 function setupWebRTCSocketListeners() {
     if (!socket) return;
 
@@ -491,6 +505,7 @@ function setupWebRTCSocketListeners() {
                 currentCallMode = data.call_type === 'video' ? 'video' : currentCallMode;
                 if (!wasVideo && currentCallMode === 'video') resetVideoStageLayout();
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                processPendingIceCandidates();
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
                 socket.emit("webrtc_answer", {
@@ -536,6 +551,7 @@ function setupWebRTCSocketListeners() {
             createPeerConnection(data.sender_id);
             try {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                processPendingIceCandidates();
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
                 if (currentCallLogId) {
@@ -563,6 +579,7 @@ function setupWebRTCSocketListeners() {
         if (peerConnection) {
             try {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                processPendingIceCandidates();
                 currentCallLogId = data.call_id || currentCallLogId;
                 const wasVideo = currentCallMode === 'video';
                 currentCallMode = data.call_type === 'video' ? 'video' : currentCallMode;
@@ -573,10 +590,12 @@ function setupWebRTCSocketListeners() {
     });
 
     socket.on("webrtc_ice_candidate", async (data) => {
-        if (peerConnection) {
+        if (peerConnection && peerConnection.remoteDescription) {
             try {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
             } catch (e) { console.error(e); }
+        } else {
+            pendingIceCandidatesQueue.push(data.candidate);
         }
     });
 
