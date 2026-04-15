@@ -1,62 +1,32 @@
 (() => {
-  function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async function subscribeChannel(channel) {
-    return await new Promise((resolve, reject) => {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          reject(new Error("Timed out while subscribing to Supabase Realtime channel"));
-        }
-      }, 10000);
-
-      channel.subscribe((status) => {
-        if (settled) return;
-        if (status === "SUBSCRIBED") {
-          settled = true;
-          clearTimeout(timeoutId);
-          resolve(channel);
-          return;
-        }
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          settled = true;
-          clearTimeout(timeoutId);
-          reject(new Error(`Supabase Realtime subscribe failed with status ${status}`));
-        }
-      });
-    });
-  }
-
-  function getDirectChannelName(userId) {
-    return `user-stream:${userId}`;
-  }
-
   function createSocket({ supabaseUrl, supabaseAnonKey, currentUserId, onPresenceIds } = {}) {
     let realtimeClient = null;
     let inboundChannel = null;
     let presenceChannel = null;
-    const outboundChannelPromises = new Map();
-    let watchdogIntervalId = null;
-    let lastPresenceSyncAt = 0;
+    const outboundChannels = new Map(); // userId -> channel
 
     const socket = {
       connected: false,
       handlers: {},
+      
       on(eventName, handler) {
         if (!this.handlers[eventName]) {
           this.handlers[eventName] = [];
         }
         this.handlers[eventName].push(handler);
       },
+
       _dispatch(eventName, payload) {
         const list = this.handlers[eventName] || [];
         for (const handler of list) {
-          Promise.resolve(handler(payload)).catch((err) => console.error(err));
+          try {
+            handler(payload);
+          } catch (err) {
+            console.error(`[Socket] Error in handler for ${eventName}:`, err);
+          }
         }
       },
+
       async emit(eventName, payload) {
         if (!this.connected) return;
 
@@ -71,7 +41,7 @@
             if (!response.ok) throw new Error(data.detail || "Could not send message");
 
             this._dispatch("receive_message", data);
-            await publishToUser(payload.receiver_id, "receive_message", data);
+            publishToUser(payload.receiver_id, "receive_message", data);
             return;
           }
 
@@ -92,7 +62,7 @@
               sender_id: data.sender_id,
             };
             this._dispatch("edit", editPayload);
-            await publishToUser(data.receiver_id, "edit", editPayload);
+            publishToUser(data.receiver_id, "edit", editPayload);
             return;
           }
 
@@ -102,7 +72,7 @@
             if (!response.ok) throw new Error(data.detail || "Could not delete message");
 
             this._dispatch("delete", data);
-            await publishToUser(data.receiver_id, "delete", data);
+            publishToUser(data.receiver_id, "delete", data);
             return;
           }
 
@@ -112,188 +82,114 @@
             if (!response.ok) throw new Error(data.detail || "Could not mark messages as read");
 
             if (Array.isArray(data.message_ids) && data.message_ids.length > 0) {
-              await publishToUser(payload.contact_id, "read_receipt", data);
+                publishToUser(payload.contact_id, "read_receipt", { ...data, contact_id: payload.contact_id });
             }
             return;
           }
 
           if (eventName === "typing" || String(eventName).startsWith("webrtc_")) {
-            await publishToUser(payload.receiver_id, eventName, { ...payload, sender_id: currentUserId });
+            publishToUser(payload.receiver_id, eventName, { ...payload, sender_id: currentUserId });
             return;
           }
         } catch (err) {
-          this._dispatch("error", { message: err?.message || "Realtime request failed" });
+          console.error(`[Socket] Emit error for ${eventName}:`, err);
+          this._dispatch("error", { message: err?.message || "Operation failed" });
         }
       },
-      async connect() {
+
+      connect() {
         if (this.connected) return;
-        if (!supabaseUrl || !supabaseAnonKey) {
-          this._dispatch("error", { message: "Supabase Realtime is not configured." });
-          return;
-        }
-        if (!window.supabase || typeof window.supabase.createClient !== "function") {
-          this._dispatch("error", { message: "Supabase client failed to load." });
-          return;
+        if (!supabaseUrl || !supabaseAnonKey || !window.supabase) {
+            console.error("[Socket] Missing Supabase configuration or library.");
+            return;
         }
 
         realtimeClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        inboundChannel = realtimeClient.channel(getDirectChannelName(currentUserId), {
-          config: { broadcast: { self: false } },
-        });
-        presenceChannel = realtimeClient.channel("presence:online-users", {
-          config: { presence: { key: String(currentUserId) } },
+        
+        // Inbound channel
+        const inboundName = `user-stream:${currentUserId}`;
+        inboundChannel = realtimeClient.channel(inboundName, {
+            config: { broadcast: { self: false } },
         });
 
         [
-          "receive_message",
-          "edit",
-          "delete",
-          "read_receipt",
-          "typing",
-          "webrtc_offer",
-          "webrtc_answer",
-          "webrtc_ice_candidate",
-          "webrtc_end",
-          "webrtc_upgrade_request",
-          "webrtc_upgrade_response",
+          "receive_message", "edit", "delete", "read_receipt", "typing",
+          "webrtc_offer", "webrtc_answer", "webrtc_ice_candidate", 
+          "webrtc_end", "webrtc_upgrade_request", "webrtc_upgrade_response"
         ].forEach((eventName) => {
           inboundChannel.on("broadcast", { event: eventName }, ({ payload }) => {
             this._dispatch(eventName, payload);
           });
         });
 
-        const consumePresenceState = () => {
-          if (!presenceChannel || typeof presenceChannel.presenceState !== "function") return;
-          const presenceState = presenceChannel.presenceState();
-          const ids = [];
-          Object.keys(presenceState).forEach((key) => {
-            const userId = Number(key);
-            const metas = presenceState[key];
-            const hasAnyPresence = Array.isArray(metas) ? metas.length > 0 : Boolean(metas);
-            if (!Number.isNaN(userId) && hasAnyPresence) ids.push(userId);
-          });
-          lastPresenceSyncAt = Date.now();
-          if (typeof onPresenceIds === "function") onPresenceIds(ids);
+        inboundChannel.subscribe();
+
+        // Presence channel
+        presenceChannel = realtimeClient.channel("presence:online-users", {
+          config: { presence: { key: String(currentUserId) } },
+        });
+
+        const syncPresence = () => {
+          const state = presenceChannel.presenceState();
+          const ids = Object.keys(state)
+            .filter(key => state[key] && state[key].length > 0)
+            .map(key => Number(key))
+            .filter(id => !isNaN(id));
+          
+          if (typeof onPresenceIds === "function") {
+            onPresenceIds(ids);
+          }
         };
 
-        presenceChannel.on("presence", { event: "sync" }, consumePresenceState);
-        presenceChannel.on("presence", { event: "join" }, consumePresenceState);
-        presenceChannel.on("presence", { event: "leave" }, consumePresenceState);
-
-        await Promise.all([subscribeChannel(inboundChannel), subscribeChannel(presenceChannel)]);
-        await presenceChannel.track({ user_id: currentUserId });
-        consumePresenceState();
-
-        this.connected = true;
-        this._dispatch("connect");
-
-        if (!watchdogIntervalId) {
-          watchdogIntervalId = window.setInterval(async () => {
-            if (!this.connected) return;
-            // If presence stops syncing for a while, reconnect.
-            if (lastPresenceSyncAt && Date.now() - lastPresenceSyncAt > 90000) {
-              try {
-                await this.disconnect();
-              } catch (e) {}
-              await sleep(250);
-              try {
-                await this.connect();
-              } catch (e) {}
+        presenceChannel
+          .on("presence", { event: "sync" }, syncPresence)
+          .on("presence", { event: "join" }, syncPresence)
+          .on("presence", { event: "leave" }, syncPresence)
+          .subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+              await presenceChannel.track({ user_id: currentUserId });
+              this.connected = true;
+              this._dispatch("connect");
             }
-          }, 15000);
-        }
-
-        // Best-effort disconnect on pagehide (more reliable than beforeunload).
-        window.addEventListener(
-          "pagehide",
-          () => {
-            try {
-              this.disconnect();
-            } catch (e) {}
-          },
-          { once: true }
-        );
+          });
       },
-      async disconnect() {
-        if (!realtimeClient) {
-          this.connected = false;
-          return;
+
+      disconnect() {
+        if (realtimeClient) {
+          realtimeClient.removeAllChannels();
+          realtimeClient = null;
         }
-
-        if (presenceChannel) {
-          try {
-            await presenceChannel.untrack();
-          } catch (err) {
-            console.error(err);
-          }
-        }
-
-        const channels = [inboundChannel, presenceChannel];
-        outboundChannelPromises.forEach((channelPromise) => channels.push(channelPromise));
-        await Promise.allSettled(
-          channels.map(async (channelOrPromise) => {
-            const channel = await channelOrPromise;
-            return realtimeClient.removeChannel(channel);
-          })
-        );
-
-        outboundChannelPromises.clear();
         inboundChannel = null;
         presenceChannel = null;
-        realtimeClient = null;
+        outboundChannels.clear();
         this.connected = false;
-        if (typeof onPresenceIds === "function") onPresenceIds([]);
         this._dispatch("disconnect");
-      },
+      }
     };
 
-    async function getOutboundChannel(userId) {
-      if (!realtimeClient) return null;
-      const channelName = getDirectChannelName(userId);
-      if (!outboundChannelPromises.has(channelName)) {
-        console.log(`[Realtime] Initializing outbound channel for user ${userId}`);
-        const channel = realtimeClient.channel(channelName, {
-          config: { broadcast: { self: false } },
+    function publishToUser(userId, eventName, payload) {
+      if (!realtimeClient || !socket.connected || !userId) return;
+
+      const channelName = `user-stream:${userId}`;
+      let channel = outboundChannels.get(channelName);
+
+      if (!channel) {
+        channel = realtimeClient.channel(channelName, {
+            config: { broadcast: { self: false } },
         });
-        outboundChannelPromises.set(channelName, subscribeChannel(channel));
-      }
-      try {
-        return await outboundChannelPromises.get(channelName);
-      } catch (err) {
-        console.error(`[Realtime] Failed to join outbound channel for user ${userId}`, err);
-        outboundChannelPromises.delete(channelName);
-        return null;
-      }
-    }
-
-    async function publishToUser(userId, eventName, payload) {
-      if (!socket.connected || !realtimeClient) return;
-      if (!userId) {
-        console.error("[Realtime] publishToUser called without userId", { eventName, payload });
-        return;
-      }
-
-      const channel = await getOutboundChannel(userId);
-      if (!channel) return;
-
-      console.log(`[Realtime] Sending ${eventName} to user ${userId}`);
-      const status = await channel.send({ type: "broadcast", event: eventName, payload });
-      
-      if (status !== 'ok') {
-        console.warn(`[Realtime] Send ${eventName} to ${userId} returned status: ${status}. Retrying once...`);
-        await sleep(100);
-        const retryStatus = await channel.send({ type: "broadcast", event: eventName, payload });
-        if (retryStatus !== 'ok') {
-          console.error(`[Realtime] Failed to send ${eventName} to ${userId} after retry: ${retryStatus}`);
-        }
+        channel.subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            outboundChannels.set(channelName, channel);
+            channel.send({ type: "broadcast", event: eventName, payload });
+          }
+        });
+      } else {
+        channel.send({ type: "broadcast", event: eventName, payload });
       }
     }
 
     return socket;
   }
 
-  window.MKChatsRealtime = {
-    createSocket,
-  };
+  window.MKChatsRealtime = { createSocket };
 })();
-
