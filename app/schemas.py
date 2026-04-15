@@ -132,6 +132,7 @@ class MessageResponse(MessageBase):
     is_read: Optional[bool] = False
     edited_at: Optional[datetime] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -139,6 +140,10 @@ class MessageResponse(MessageBase):
 class ReadReceiptResponse(BaseModel):
     contact_id: int
     message_ids: list[int]
+
+
+class PresenceResponse(BaseModel):
+    online_user_ids: list[int]
 
 
 # --- Call Base Model ---

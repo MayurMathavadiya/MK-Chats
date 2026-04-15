@@ -1,6 +1,6 @@
 # MK Chats
 
-MK Chats is a FastAPI-based real-time chat application with server-rendered pages, REST APIs, and Supabase Realtime events for live messaging. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and presence updates.
+MK Chats is a FastAPI-based chat application with server-rendered pages, REST APIs, HTTP polling for message and presence updates, and Supabase Realtime signaling for WebRTC calls. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and presence updates.
 
 ## Tech Stack
 
@@ -9,7 +9,6 @@ MK Chats is a FastAPI-based real-time chat application with server-rendered page
 - SQLAlchemy
 - Alembic
 - Jinja2 templates
-- Supabase Realtime
 - PostgreSQL
 - Pytest
 
@@ -18,8 +17,9 @@ MK Chats is a FastAPI-based real-time chat application with server-rendered page
 - User registration and login with cookie-based authentication
 - Profile view and profile update endpoints
 - Password change and email-based password reset flow
-- Real-time messaging over Supabase Realtime
-- Presence and typing indicators
+- Polling-based messaging that works on Vercel serverless hosting
+- Presence updates based on recent activity
+- Supabase Realtime signaling for audio/video calls
 - Read receipts
 - Edit and delete message support with a 1-hour limit
 - Contact list with latest message, unread counts, and search
@@ -36,7 +36,6 @@ app/
   models.py            SQLAlchemy models
   schemas.py           Pydantic schemas
   web_page.py          HTML page routes
-  ws.py                Legacy Socket.IO event handlers
   core/
     auth.py            Auth helpers
     config.py          Settings and template config
@@ -70,7 +69,6 @@ SMTP_PORT=587
 SMTP_USERNAME=your-email@example.com
 SMTP_PASSWORD=your-email-password-or-app-password
 SMTP_FROM_EMAIL=your-email@example.com
-REDIS_URL=rediss://your-redis-url
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
 
@@ -137,12 +135,10 @@ Useful routes:
 ### Messages
 
 - `GET /api/messages/{contact_id}`
+- `GET /api/sync/messages`
 - `DELETE /api/messages/{message_id}`
 - `POST /api/messages/clear/{contact_id}`
-
-## Realtime Events
-
-The web client uses Supabase Realtime broadcast/presence channels for chat updates, typing indicators, WebRTC signaling, and online presence.
+- `POST /api/presence/ping`
 
 ## Testing
 
@@ -155,3 +151,5 @@ pytest
 ## Notes
 
 - Authentication is stored in an `access_token` cookie or in Header Authorization `bearer <token>`.
+- Message delivery uses HTTP polling.
+- Audio/video media uses WebRTC peer connections, while Supabase Realtime is used only for call signaling.

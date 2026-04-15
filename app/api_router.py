@@ -15,9 +15,22 @@ from app.core.email import send_password_reset_email
 
 VALID_CALL_TYPES = {"audio", "video"}
 VALID_CALL_STATUSES = {"initiated", "ringing", "accepted", "ended", "missed", "rejected"}
+ONLINE_WINDOW = timedelta(minutes=2)
 
 
 router = APIRouter(prefix="/api")
+
+
+def is_user_online(user: models.User, now_utc: datetime | None = None) -> bool:
+    if not user.last_seen:
+        return False
+
+    now_utc = now_utc or datetime.now(timezone.utc)
+    last_seen = user.last_seen
+    if last_seen.tzinfo is None:
+        last_seen = last_seen.replace(tzinfo=timezone.utc)
+
+    return (now_utc - last_seen) <= ONLINE_WINDOW
 
 
 # --- Auth Endpoint ---
@@ -207,7 +220,9 @@ async def reset_password(
 )
 def get_profile(request: Request, db: deps.db_session):
     user = deps.get_current_user(request, db)
-    return user
+    return schemas.UserResponse.model_validate(user).model_copy(
+        update={"is_online": is_user_online(user)}
+    )
 
 
 @router.patch(
@@ -232,7 +247,9 @@ def update_profile(
     
     db.commit()
     db.refresh(user)
-    return user
+    return schemas.UserResponse.model_validate(user).model_copy(
+        update={"is_online": is_user_online(user)}
+    )
 
 
 @router.post("/profile/password", tags=[settings.PROFILE_TAG])
@@ -270,6 +287,7 @@ def get_contacts(
     offset: int = 0
 ):
     current_user = deps.get_current_user(request, db)
+    now_utc = datetime.now(timezone.utc)
 
     limit = min(limit, 100)
 
@@ -415,7 +433,7 @@ def get_contacts(
                 last_name=user.last_name,
                 mobile_number=user.mobile_number,
                 profile_pic=user.profile_pic,
-                is_online=False,
+                is_online=is_user_online(user, now_utc),
                 last_message=last_msg,
                 last_message_at=last_time,
                 public_key=user.public_key,
@@ -426,6 +444,29 @@ def get_contacts(
         )
 
     return contacts
+
+
+@router.post(
+    "/presence/ping",
+    response_model=schemas.PresenceResponse,
+    tags=[settings.CONTACT_TAG]
+)
+def ping_presence(request: Request, db: deps.db_session):
+    user = deps.get_current_user(request, db)
+    now_utc = datetime.now(timezone.utc)
+    user.last_seen = now_utc
+    db.commit()
+
+    online_user_ids = [
+        user_id for (user_id,) in db.query(models.User.id).filter(
+            models.User.is_active == True,
+            models.User.is_deleted == False,
+            models.User.last_seen != None,
+            models.User.last_seen >= now_utc - ONLINE_WINDOW
+        ).all()
+    ]
+
+    return schemas.PresenceResponse(online_user_ids=online_user_ids)
 
 
 @router.post("/contacts/block", tags=[settings.CONTACT_TAG])
@@ -534,6 +575,7 @@ def create_message(
     db: deps.db_session
 ):
     user = deps.get_current_user(request, db)
+    now_utc = datetime.now(timezone.utc)
 
     blocking_exists = db.query(models.BlockedUser).filter(
         or_(
@@ -560,10 +602,12 @@ def create_message(
         content=payload.content,
         file_data=payload.file_data,
         file_type=payload.file_type,
-        reply_to_id=payload.reply_to_id
+        reply_to_id=payload.reply_to_id,
+        updated_at=now_utc
     )
 
     db.add(new_msg)
+    user.last_seen = now_utc
     db.commit()
     db.refresh(new_msg)
     return new_msg
@@ -604,6 +648,7 @@ def edit_message(
     msg.content = payload.content
     msg.is_edited = True
     msg.edited_at = now_utc
+    msg.updated_at = now_utc
     db.commit()
     db.refresh(msg)
     return msg
@@ -633,15 +678,55 @@ def mark_messages_read(
     if not msg_ids:
         return schemas.ReadReceiptResponse(contact_id=user.id, message_ids=[])
 
+    now_utc = datetime.now(timezone.utc)
+
     db.query(models.Message).filter(
         models.Message.id.in_(msg_ids)
     ).update(
-        {models.Message.is_read: True},
+        {
+            models.Message.is_read: True,
+            models.Message.updated_at: now_utc
+        },
         synchronize_session=False
     )
 
     db.commit()
     return schemas.ReadReceiptResponse(contact_id=user.id, message_ids=msg_ids)
+
+
+@router.get(
+    "/sync/messages",
+    response_model=List[schemas.MessageResponse],
+    tags=[settings.MESSAGE_TAG]
+)
+def sync_messages(
+    request: Request,
+    db: deps.db_session,
+    limit: int = 200,
+    updated_after: datetime | None = None
+):
+    user = deps.get_current_user(request, db)
+    limit = min(limit, 500)
+
+    query = db.query(models.Message).filter(
+        or_(
+            models.Message.sender_id == user.id,
+            models.Message.receiver_id == user.id
+        )
+    )
+
+    if updated_after is not None:
+        if updated_after.tzinfo is None:
+            updated_after = updated_after.replace(tzinfo=timezone.utc)
+        query = query.filter(models.Message.updated_at > updated_after)
+
+    inner_q = query.order_by(
+        models.Message.created_at.desc()
+    ).limit(limit)
+
+    msg_alias = aliased(models.Message, inner_q.subquery())
+
+    return db.query(msg_alias).order_by(msg_alias.created_at.asc()).all()
 
 
 @router.delete("/messages/{message_id}", tags=[settings.MESSAGE_TAG])
@@ -669,6 +754,7 @@ def delete_message(message_id: int, request: Request, db: deps.db_session):
         )
     
     msg.is_deleted = True
+    msg.updated_at = now_utc
     receiver_id = msg.receiver_id
     db.commit()
     return {

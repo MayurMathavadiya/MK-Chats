@@ -213,6 +213,25 @@ def test_contacts_endpoint_returns_contact_data(client, db_session, auth_cookie)
     assert contacts[0]["unread_count"] == 1
 
 
+def test_presence_ping_returns_recently_active_users(client, db_session, auth_cookie):
+    current_user = UserFactory(last_seen=datetime.now(timezone.utc) - timedelta(minutes=10))
+    online_contact = UserFactory(last_seen=datetime.now(timezone.utc))
+    offline_contact = UserFactory(last_seen=datetime.now(timezone.utc) - timedelta(minutes=10))
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    response = client.post("/api/presence/ping")
+
+    db_session.refresh(current_user)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert current_user.id in payload["online_user_ids"]
+    assert online_contact.id in payload["online_user_ids"]
+    assert offline_contact.id not in payload["online_user_ids"]
+    assert current_user.last_seen is not None
+
+
 def test_contacts_search_returns_matching_users_without_history(client, db_session, auth_cookie):
     current_user = UserFactory()
     searchable_only_user = UserFactory(first_name="Contactless", last_name="User")
@@ -337,6 +356,36 @@ def test_get_messages_respects_chat_clear(client, db_session, auth_cookie):
     assert response.status_code == 200
     assert [item["id"] for item in response.json()] == [new_message.id]
     assert response.json()[0]["id"] != old_message.id
+
+
+def test_sync_messages_returns_only_messages_updated_after_cursor(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    contact = UserFactory()
+    stale_message = MessageFactory(
+        sender=current_user,
+        receiver=contact,
+        content="stale",
+        created_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+        updated_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+    )
+    fresh_visible = MessageFactory(
+        sender=current_user,
+        receiver=contact,
+        content="fresh",
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    cursor = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+    response = client.get("/api/sync/messages", params={"updated_after": cursor})
+
+    assert response.status_code == 200
+    payload = response.json()
+    returned_ids = [item["id"] for item in payload]
+    assert fresh_visible.id in returned_ids
+    assert stale_message.id not in returned_ids
 
 
 def test_delete_message_applies_one_hour_rule(client, db_session, auth_cookie):

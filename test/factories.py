@@ -31,7 +31,6 @@ class UserFactory(BaseFactory):
     profile_pic = None
     is_active = True
     is_deleted = False
-    socket_sid = None
 
 
 class MessageFactory(BaseFactory):

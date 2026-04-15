@@ -263,8 +263,11 @@
     </main>
 </div>
 
-<div id="supabase-config" data-url="{{ supabase_url }}" data-anon-key="{{ supabase_anon_key }}"
-    data-user-id="{{ user.id }}" hidden></div>
+<div id="app-config"
+    data-user-id="{{ user.id }}"
+    data-supabase-url="{{ supabase_url }}"
+    data-supabase-anon-key="{{ supabase_anon_key }}"
+    hidden></div>
 
 <!-- Action Menu Modal -->
 <div id="actionMenuModal"
@@ -715,6 +718,6 @@
 </div>
 
 <!-- Scripts for WebCrypto and UI -->
-<script nonce="{{ request.state.nonce }}" src="/static/js/realtime_supabase.js"></script>
+<script nonce="{{ request.state.nonce }}" src="/static/js/realtime_polling.js"></script>
 <script nonce="{{ request.state.nonce }}" src="/static/js/chat_page.js"></script>
 {% endblock %}
