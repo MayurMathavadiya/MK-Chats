@@ -1322,7 +1322,9 @@ function syncOnlineUsers(nextOnlineUsers) {
 function handlePresenceIds(onlineIds) {
     hasPresenceSync = true;
     lastPresenceSyncAt = Date.now();
-    syncOnlineUsers(new Set((onlineIds || []).map((id) => Number(id))));
+    const onlineSet = new Set((onlineIds || []).map((id) => Number(id)));
+    console.log("[Presence] Received online IDs:", onlineSet);
+    syncOnlineUsers(onlineSet);
 }
 
 async function initRealtime() {
@@ -1948,6 +1950,14 @@ async function renderContactList(contactsArray) {
 
     // Keep presence updates O(1) per user by caching dot elements after render.
     rebuildPresenceDotCache();
+
+    // Re-apply presence state if we already have it from the socket
+    if (hasPresenceSync) {
+        console.log("[Presence] Re-applying presence state to newly rendered list");
+        for (const userId of onlineUserIds) {
+            updatePresenceUI(userId, true);
+        }
+    }
 }
 
 async function loadContacts() {

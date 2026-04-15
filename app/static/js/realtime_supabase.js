@@ -248,20 +248,45 @@
     };
 
     async function getOutboundChannel(userId) {
+      if (!realtimeClient) return null;
       const channelName = getDirectChannelName(userId);
       if (!outboundChannelPromises.has(channelName)) {
+        console.log(`[Realtime] Initializing outbound channel for user ${userId}`);
         const channel = realtimeClient.channel(channelName, {
           config: { broadcast: { self: false } },
         });
         outboundChannelPromises.set(channelName, subscribeChannel(channel));
       }
-      return await outboundChannelPromises.get(channelName);
+      try {
+        return await outboundChannelPromises.get(channelName);
+      } catch (err) {
+        console.error(`[Realtime] Failed to join outbound channel for user ${userId}`, err);
+        outboundChannelPromises.delete(channelName);
+        return null;
+      }
     }
 
     async function publishToUser(userId, eventName, payload) {
       if (!socket.connected || !realtimeClient) return;
+      if (!userId) {
+        console.error("[Realtime] publishToUser called without userId", { eventName, payload });
+        return;
+      }
+
       const channel = await getOutboundChannel(userId);
-      await channel.send({ type: "broadcast", event: eventName, payload });
+      if (!channel) return;
+
+      console.log(`[Realtime] Sending ${eventName} to user ${userId}`);
+      const status = await channel.send({ type: "broadcast", event: eventName, payload });
+      
+      if (status !== 'ok') {
+        console.warn(`[Realtime] Send ${eventName} to ${userId} returned status: ${status}. Retrying once...`);
+        await sleep(100);
+        const retryStatus = await channel.send({ type: "broadcast", event: eventName, payload });
+        if (retryStatus !== 'ok') {
+          console.error(`[Realtime] Failed to send ${eventName} to ${userId} after retry: ${retryStatus}`);
+        }
+      }
     }
 
     return socket;
