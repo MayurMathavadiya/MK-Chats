@@ -68,11 +68,17 @@ def test_login_returns_user_crypto_data(client, db_session):
     assert payload["encrypted_private_key"] == user.encrypted_private_key
 
 
-def test_logout_clears_cookie(client):
+def test_logout_clears_cookie_and_marks_user_offline(client, db_session, auth_cookie):
+    user = UserFactory(last_seen=datetime.now(timezone.utc))
+    db_session.commit()
+    authenticate_client(client, user.id, auth_cookie)
+
     response = client.post("/api/logout")
+    db_session.refresh(user)
 
     assert response.status_code == 200
     assert response.json()["msg"] == "Successfully logged out"
+    assert user.last_seen is None
 
 
 def test_get_and_update_profile(client, db_session, auth_cookie):

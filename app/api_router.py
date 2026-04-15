@@ -135,7 +135,14 @@ def login(
 
 
 @router.post("/logout", tags=[settings.AUTH_TAG])
-def logout(response: Response):
+def logout(request: Request, response: Response, db: deps.db_session):
+    user_id = auth.get_current_user_id(request)
+    if user_id:
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if user:
+            user.last_seen = None
+            db.commit()
+
     response.delete_cookie(
         key="access_token",
         samesite="lax",
