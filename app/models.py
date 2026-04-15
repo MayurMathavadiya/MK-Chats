@@ -23,7 +23,6 @@ class User(Base):
     last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     is_deleted = Column(Boolean, default=False)
-    socket_sid = Column(String, nullable=True)
 
     # Relationships
     messages_sent = relationship(
@@ -55,6 +54,7 @@ class Message(Base):
     edited_at = Column(DateTime, nullable=True)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
 

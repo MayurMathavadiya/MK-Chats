@@ -1,7 +1,6 @@
 import os
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
 from fastapi.templating import Jinja2Templates
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -9,7 +8,7 @@ class Settings(BaseSettings):
     # Database
     SQLALCHEMY_DATABASE_URL: str
 
-    # Supabase
+    # Supabase call signaling
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     
@@ -33,9 +32,7 @@ class Settings(BaseSettings):
     CALL_TAG: str = "Calls"
     WEB_TAG: str = "Web Pages"
 
-    model_config = ConfigDict(
-        env_file=".env"
-    )
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = Settings()

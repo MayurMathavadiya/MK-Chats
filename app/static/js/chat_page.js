@@ -669,7 +669,11 @@ function setupWebRTCSocketListeners() {
     });
 }
 
-const currentUserId = Number(document.getElementById('supabase-config')?.dataset.userId || 0);
+const appConfigEl = document.getElementById('app-config');
+const currentUserId = Number(appConfigEl?.dataset.userId || 0);
+const signalingSupabaseUrl = appConfigEl?.dataset.supabaseUrl || '';
+const signalingSupabaseAnonKey = appConfigEl?.dataset.supabaseAnonKey || '';
+const callSignalingEnabled = Boolean(signalingSupabaseUrl && signalingSupabaseAnonKey);
 let activeContactId = null;
 let activeSharedKey = null; // CryptoKey object (AES-GCM derived from ECDH)
 let myPrivateKey = null; // CryptoKey object (ECDH)
@@ -683,6 +687,7 @@ let currentCallPeerId = null;
 let callTimerIntervalId = null;
 let callStartedAt = null;
 let callRingTimeoutId = null;
+let isCallSignalingReady = false;
 
 function getPendingStatusIcon() {
     return '<span class="material-symbols-outlined text-amber-300 text-xs">schedule</span>';
@@ -1178,10 +1183,7 @@ async function decryptText(payload, sharedKey) {
     }
 }
 
-// --- Supabase Realtime ---
-const supabaseConfigEl = document.getElementById('supabase-config');
-const supabaseUrl = supabaseConfigEl?.dataset.url || '';
-const supabaseAnonKey = supabaseConfigEl?.dataset.anonKey || '';
+// --- HTTP Polling Realtime ---
 let onlineUserIds = new Set();
 let hasPresenceSync = false;
 let presenceDotCache = new Map();
@@ -1333,14 +1335,15 @@ async function initRealtime() {
     }
 
     socket = window.MKChatsRealtime.createSocket({
-        supabaseUrl,
-        supabaseAnonKey,
         currentUserId,
-        onPresenceIds: handlePresenceIds
+        onPresenceIds: handlePresenceIds,
+        signalingSupabaseUrl,
+        signalingSupabaseAnonKey
     });
+    setupWebRTCSocketListeners();
 
     socket.on('connect', async () => {
-        console.log('Supabase Realtime connected');
+        console.log('Polling sync connected');
         updateCurrentUserPresenceUI(true);
         rebuildPresenceDotCache();
         if (activeContactId) {
@@ -1356,73 +1359,12 @@ async function initRealtime() {
         });
     });
 
-    socket.on('typing', (msg) => {
-        const senderId = msg.sender_id;
-        const previewEl = document.getElementById(`contact-${senderId}-preview`);
-        if (previewEl) {
-            if (msg.is_typing) {
-                if (!previewEl.hasAttribute('data-original-text')) {
-                    previewEl.setAttribute('data-original-text', previewEl.innerHTML);
-                }
-                previewEl.innerHTML = `<div class="flex items-center gap-1"><span class="text-indigo-400 font-semibold opacity-90">typing</span><div class="flex items-center space-x-0.5 mt-1.5"><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1 h-1 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div></div>`;
-            } else if (previewEl.hasAttribute('data-original-text')) {
-                previewEl.innerHTML = previewEl.getAttribute('data-original-text');
-                previewEl.removeAttribute('data-original-text');
-            }
-        }
+    socket.on('signaling_ready', () => {
+        isCallSignalingReady = true;
+    });
 
-        if (senderId === activeContactId) {
-            const messagesArea = document.getElementById('messages-area');
-            const typingBubble = document.getElementById('typing-indicator-bubble');
-
-            if (msg.is_typing) {
-                if (!typingBubble && messagesArea) {
-                    const contactName = document.getElementById('chat-name').innerText;
-                    const avatarChar = contactName.charAt(0);
-                    const typingHtml = `
-                        <div class="flex justify-start items-end gap-2.5 message-container" id="typing-indicator-bubble">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 mb-5">
-                                ${window.activeContactData && window.activeContactData.profilePic ? `<img src="${window.activeContactData.profilePic}" class="w-full h-full object-cover rounded-full">` : avatarChar}
-                            </div>
-                            <div class="max-w-[75%] flex flex-col items-start relative">
-                                <div class="bg-white text-slate-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 px-4 py-3 transition-all h-[42px] flex items-center justify-center">
-                                    <div class="flex items-center space-x-1">
-                                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
-                                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
-                                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    messagesArea.insertAdjacentHTML('beforeend', typingHtml);
-                    scrollToBottom();
-                }
-
-                clearTimeout(windowTypingTimeouts[senderId]);
-                windowTypingTimeouts[senderId] = setTimeout(() => {
-                    const bubble = document.getElementById('typing-indicator-bubble');
-                    if (bubble) bubble.remove();
-                    if (previewEl && previewEl.hasAttribute('data-original-text')) {
-                        previewEl.innerHTML = previewEl.getAttribute('data-original-text');
-                        previewEl.removeAttribute('data-original-text');
-                    }
-                }, 3000);
-            } else {
-                if (typingBubble) typingBubble.remove();
-                clearTimeout(windowTypingTimeouts[senderId]);
-            }
-        } else if (msg.is_typing) {
-            clearTimeout(windowTypingTimeouts[senderId]);
-            windowTypingTimeouts[senderId] = setTimeout(() => {
-                if (previewEl && previewEl.hasAttribute('data-original-text')) {
-                    previewEl.innerHTML = previewEl.getAttribute('data-original-text');
-                    previewEl.removeAttribute('data-original-text');
-                }
-            }, 3000);
-        } else {
-            clearTimeout(windowTypingTimeouts[senderId]);
-        }
+    socket.on('signaling_unavailable', () => {
+        isCallSignalingReady = false;
     });
 
     socket.on('receive_message', async (msg) => {
@@ -1518,7 +1460,7 @@ async function initRealtime() {
     });
 
     socket.on('disconnect', () => {
-        console.log("Supabase Realtime disconnected");
+        console.log("Polling sync disconnected");
         updateCurrentUserPresenceUI(false);
     });
 
@@ -1716,9 +1658,11 @@ async function selectUser(id, name, pubKeyB64, mobile = null, profilePic = null,
     syncDynamicView(true);
 
     document.getElementById('chat-name').innerText = name;
-    document.getElementById('callContactBtn').classList.remove('hidden');
-    document.getElementById('videoCallBtn').classList.remove('hidden');
-
+    const callContactBtn = document.getElementById('callContactBtn');
+    const videoCallBtn = document.getElementById('videoCallBtn');
+    const shouldShowCallControls = callSignalingEnabled && !blockedByMe && !blockedMe;
+    if (callContactBtn) callContactBtn.classList.toggle('hidden', !shouldShowCallControls);
+    if (videoCallBtn) videoCallBtn.classList.toggle('hidden', !shouldShowCallControls);
     const avatarImg = document.getElementById('chat-avatar-img');
     const avatarChar = document.getElementById('chat-avatar-char');
     if (profilePic) {
@@ -2376,6 +2320,15 @@ function updateActionsVisibility(container, createdAt) {
 let myTypingTimeout = null;
 let lastTypingTime = 0;
 async function startCall(callType = 'audio') {
+    if (!callSignalingEnabled || !isCallSignalingReady) {
+        await showModal({
+            title: "Calling Unavailable",
+            description: "Call signaling is not ready yet. Check Supabase configuration and try again.",
+            isAlert: true
+        });
+        return;
+    }
+
     if (currentCallState !== 'idle') return;
 
     // Unlock media elements for autoplay policy
@@ -2501,7 +2454,7 @@ async function logout() {
 }
 
 // Init
-document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener("DOMContentLoaded", async () => {
     // --- STATE FOR INTERACTIVE HANDLERS ---
     let longPressTimer = null;
     let touchStartX = 0;
@@ -2824,7 +2777,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     syncDynamicView();
 
     // --- 2. START ASYNC SERVICES IN PARALLEL ---
-    // We launch these in parallel to avoid one service's delay (like Supabase) blocking the others.
+    // We launch these in parallel so the UI does not wait on polling setup.
 
     // Crypto is needed for decryption, but it usually initializes quickly.
     const cryptoPromise = initCrypto().catch(e => console.error("Crypto Error:", e));
@@ -2832,8 +2785,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Notifications don't block anything.
     initDesktopNotifications();
 
-    // Realtime can be slow, so we don't await it sequentially.
+    // Polling setup can fail independently without blocking the rest of the page.
     const realtimePromise = initRealtime().catch(e => console.error("Realtime Error:", e));
+
 
     // Search setup is fast.
     setupSearch();
@@ -2841,9 +2795,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Load contacts immediately. We'll wait for crypto inside loadContacts if needed, 
     // but at least we'll clear the "Syncing" message as soon as the fetch completes.
     const contactsPromise = loadContacts().catch(e => console.error("Load Contacts Error:", e));
-
-    // WebRTC setup.
-    setupWebRTCSocketListeners();
 
     // Wait for critical data for session restoration, but don't block the UI.
     Promise.allSettled([cryptoPromise, contactsPromise, realtimePromise]).then(() => {
