@@ -128,6 +128,7 @@
         document.addEventListener("visibilitychange", handleActivityStateChange);
         window.addEventListener("focus", handleActivityStateChange);
         window.addEventListener("blur", handleActivityStateChange);
+        window.addEventListener("pagehide", markOfflineOnExit);
       },
 
       disconnect() {
@@ -143,6 +144,7 @@
         document.removeEventListener("visibilitychange", handleActivityStateChange);
         window.removeEventListener("focus", handleActivityStateChange);
         window.removeEventListener("blur", handleActivityStateChange);
+        window.removeEventListener("pagehide", markOfflineOnExit);
         this.connected = false;
         this._dispatch("disconnect");
       }
@@ -175,6 +177,15 @@
     function handleActivityStateChange() {
       if (!socket.connected) return;
       scheduleMessageSync(1000);
+    }
+
+    function markOfflineOnExit() {
+      if (!navigator.sendBeacon) return;
+      try {
+        navigator.sendBeacon("/api/presence/offline");
+      } catch (err) {
+        console.warn("[PollingSocket] Offline beacon failed:", err);
+      }
     }
 
     function connectSignaling() {
