@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateT
 
 from app.core.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -36,6 +37,7 @@ class User(Base):
         foreign_keys="Message.receiver_id", 
         back_populates="receiver"
     )
+
 
 class Message(Base):
     __tablename__ = "messages"

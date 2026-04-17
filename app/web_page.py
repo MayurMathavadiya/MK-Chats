@@ -25,7 +25,6 @@ def read_root(request: Request, db: deps.db_session):
     return templates.TemplateResponse(request, "chat.html",{"user": user})
     
 
-
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, db: deps.db_session):
     """Render the login page, redirecting authenticated users to the Home page."""
@@ -62,6 +61,7 @@ def register_page(request: Request, db: deps.db_session):
             return response
     
     return templates.TemplateResponse(request, "register.html")
+
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request):

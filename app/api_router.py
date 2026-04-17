@@ -13,9 +13,11 @@ from app.services import backgound_jobs
 from app.core.email import send_password_reset_email
 
 
-VALID_CALL_TYPES = {"audio", "video"}
-VALID_CALL_STATUSES = {"initiated", "ringing", "accepted", "ended", "missed", "rejected"}
 ONLINE_WINDOW = timedelta(minutes=2)
+VALID_CALL_TYPES = {"audio", "video"}
+VALID_CALL_STATUSES = {
+    "initiated", "ringing", "accepted", "ended", "missed", "rejected"
+}
 
 
 router = APIRouter(prefix="/api")

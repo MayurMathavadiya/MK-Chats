@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.api_router import router as api_router
 from app.web_page import router as web_page_router
 
+
 OPENAPI_TAGS = [
     {
         "name": f"{settings.AUTH_TAG}",
@@ -47,10 +48,10 @@ socket_app = socketio.ASGIApp(sio)
 app.mount("/socket.io", socket_app)
 
 
-"""Content Security Policy (CSP) using cryptographic nonces.
-This guarantees that no unapproved scripts can execute, 
-entirely neutralizing Cross-Site Scripting (XSS) threats."""
 class CSPMiddleware(BaseHTTPMiddleware):
+    """Content Security Policy (CSP) using cryptographic nonces.
+    This guarantees that no unapproved scripts can execute, 
+    entirely neutralizing Cross-Site Scripting (XSS) threats."""
     async def dispatch(self, request: Request, call_next):
         nonce = secrets.token_urlsafe(16)
         request.state.nonce = nonce
