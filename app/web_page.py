@@ -71,15 +71,6 @@ def register_page(request: Request, db: deps.db_session):
     
     return templates.TemplateResponse(request, "register.html")
 
-
-@router.get("/logout")
-def logout_get():
-    """Clear the auth cookie and redirect the user to the login page."""
-    response = RedirectResponse(url="/login")
-    response.delete_cookie("access_token")
-    return response
-
-
 @router.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request):
     """Render the forgot-password page."""

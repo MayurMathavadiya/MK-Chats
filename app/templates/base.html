@@ -366,6 +366,8 @@
                     if (showIcon && hideIcon) {
                         showIcon.classList.toggle('is-hidden', !passwordHidden);
                         hideIcon.classList.toggle('is-hidden', passwordHidden);
+                        showIcon.style.display = passwordHidden ? 'block' : 'none';
+                        hideIcon.style.display = passwordHidden ? 'none' : 'block';
                     }
                 }
 
