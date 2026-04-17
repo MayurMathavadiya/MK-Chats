@@ -55,7 +55,7 @@ pydantic_core==2.41.5
 Pygments==2.19.2
 PyJWT==2.12.1
 pytailwindcss==0.3.0
-pytest==9.0.2
+pytest==8.3.4
 pytest-asyncio==0.24.0
 python-dotenv==1.2.2
 python-engineio==4.13.1
