@@ -7,10 +7,9 @@ class Settings(BaseSettings):
 
     # Database
     SQLALCHEMY_DATABASE_URL: str
-
-    # Supabase call signaling
-    SUPABASE_URL: str = ""
-    SUPABASE_ANON_KEY: str = ""
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # Auth
     SECRET_KEY: str
