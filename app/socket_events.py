@@ -36,7 +36,6 @@ async def request_presence(sid):
     await sio.emit('signaling_ready', room=sid)
 
 
-
 @sio.event
 async def disconnect(sid):
     try:
