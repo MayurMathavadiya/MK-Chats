@@ -13,7 +13,10 @@ from app.core.auth import get_user_from_environ
 # Socket.IO setup
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 
+
+# Redis Client setup
 redis_client = redis_async.from_url(settings.REDIS_URL, decode_responses=True)
+
 
 @sio.event
 async def connect(sid, environ):
