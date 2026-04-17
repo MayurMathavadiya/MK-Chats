@@ -76,3 +76,34 @@ def get_current_user_id(request: Request) -> Optional[int]:
     
     return decode_user_id_from_token(access_token)
 
+
+async def get_user_from_environ(environ):
+    # Try WSGI HTTP_COOKIE first
+    cookie_string = environ.get('HTTP_COOKIE', '')
+    
+    # Fallback to ASGI scope headers if missing
+    if not cookie_string and 'asgi.scope' in environ:
+        headers = environ['asgi.scope'].get('headers', [])
+        for name, value in headers:
+            if name.lower() == b'cookie':
+                cookie_string = value.decode('utf-8')
+                break
+                
+    token = None
+    if cookie_string:
+        for cookie in cookie_string.split(';'):
+            cookie = cookie.strip()
+            if cookie.startswith('access_token='):
+                token = cookie.split('access_token=')[1].strip()
+                token = token.strip('"') # Strip any quotes
+                token = token.replace('%20', ' ') # Decode URL spaces
+                break
+                
+    print("token: ", token)
+    if not token:
+        return None
+        
+    try:
+        return decode_user_id_from_token(token)
+    except Exception:
+        return None

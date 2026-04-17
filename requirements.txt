@@ -42,8 +42,8 @@ packaging==26.0
 passlib==1.7.4
 pluggy==1.6.0
 propcache==0.4.1
-# psycopg2==2.9.11 # For Linux
-psycopg2-binary # For Windows
+psycopg2==2.9.11
+redis>=5.0.0
 pyasn1==0.6.3
 pycparser==3.0
 pydantic==2.12.5
@@ -55,8 +55,10 @@ PyJWT==2.12.1
 pytailwindcss==0.3.0
 pytest==9.0.2
 python-dotenv==1.2.2
+python-engineio==4.13.1
 python-jose==3.5.0
 python-multipart==0.0.22
+python-socketio==5.11.2
 PyYAML==6.0.3
 requests==2.33.1
 rich==14.3.3

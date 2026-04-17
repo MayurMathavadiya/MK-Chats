@@ -1,14 +1,15 @@
 import os
 import secrets
+import socketio
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.socket_events import sio
 from app.core.config import settings
 from app.api_router import router as api_router
 from app.web_page import router as web_page_router
-
 
 OPENAPI_TAGS = [
     {
@@ -41,6 +42,11 @@ OPENAPI_TAGS = [
 app = FastAPI(title="MK Chats", openapi_tags=OPENAPI_TAGS, docs_url=None)
 
 
+# Mount Socket.IO
+socket_app = socketio.ASGIApp(sio)
+app.mount("/socket.io", socket_app)
+
+
 """Content Security Policy (CSP) using cryptographic nonces.
 This guarantees that no unapproved scripts can execute, 
 entirely neutralizing Cross-Site Scripting (XSS) threats."""
@@ -57,6 +63,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
                 f"default-src 'self'; "
                 f"script-src 'self' 'nonce-{nonce}' "
                 f"https://cdn.tailwindcss.com "
+                f"https://cdn.socket.io "
                 f"https://cdn.jsdelivr.net; "
                 f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 f"font-src 'self' https://fonts.gstatic.com; "

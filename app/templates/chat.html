@@ -201,7 +201,7 @@
                                 id="reply-preview-title">Replying to</p>
                             <p class="text-sm text-slate-300 truncate font-inter" id="reply-preview-text"></p>
                         </div>
-                        <button onclick="cancelReply()"
+                        <button id="cancelReplyBtn" type="button"
                             class="p-1.5 hover:bg-white/10 rounded-full transition-colors text-slate-500">
                             <span class="material-symbols-outlined text-xl">close</span>
                         </button>
@@ -263,8 +263,7 @@
     </main>
 </div>
 
-<div id="app-config" data-user-id="{{ user.id }}" data-supabase-url="{{ supabase_url }}"
-    data-supabase-anon-key="{{ supabase_anon_key }}" hidden></div>
+<div id="app-config" data-user-id="{{ user.id }}" hidden></div>
 
 <!-- Action Menu Modal -->
 <div id="actionMenuModal"
@@ -715,6 +714,5 @@
 </div>
 
 <!-- Scripts for WebCrypto and UI -->
-<script nonce="{{ request.state.nonce }}" src="/static/js/realtime_polling.js"></script>
 <script nonce="{{ request.state.nonce }}" src="/static/js/chat_page.js"></script>
 {% endblock %}

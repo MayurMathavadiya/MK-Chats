@@ -671,9 +671,7 @@ function setupWebRTCSocketListeners() {
 
 const appConfigEl = document.getElementById('app-config');
 const currentUserId = Number(appConfigEl?.dataset.userId || 0);
-const signalingSupabaseUrl = appConfigEl?.dataset.supabaseUrl || '';
-const signalingSupabaseAnonKey = appConfigEl?.dataset.supabaseAnonKey || '';
-const callSignalingEnabled = Boolean(signalingSupabaseUrl && signalingSupabaseAnonKey);
+const callSignalingEnabled = true;
 let activeContactId = null;
 let activeSharedKey = null; // CryptoKey object (AES-GCM derived from ECDH)
 let myPrivateKey = null; // CryptoKey object (ECDH)
@@ -1330,20 +1328,16 @@ function handlePresenceIds(onlineIds) {
 }
 
 async function initRealtime() {
-    if (!window.MKChatsRealtime || typeof window.MKChatsRealtime.createSocket !== 'function') {
-        throw new Error('Realtime adapter failed to load.');
-    }
-
-    socket = window.MKChatsRealtime.createSocket({
-        currentUserId,
-        onPresenceIds: handlePresenceIds,
-        signalingSupabaseUrl,
-        signalingSupabaseAnonKey
+    socket = io({ 
+        withCredentials: true,
+        transports: ['websocket', 'polling'] 
     });
     setupWebRTCSocketListeners();
 
     socket.on('connect', async () => {
         console.log('Polling sync connected');
+        hasPresenceSync = false;
+        socket.emit('request_presence');
         updateCurrentUserPresenceUI(true);
         rebuildPresenceDotCache();
         if (activeContactId) {
@@ -1357,6 +1351,21 @@ async function initRealtime() {
             description: msg.message,
             isAlert: true
         });
+    });
+
+    socket.on('presence_sync', (onlineIds) => {
+        handlePresenceIds(onlineIds);
+    });
+
+    socket.on('presence', (data) => {
+        const uid = Number(data.user_id);
+        const isOnline = data.status === 'online';
+        if (isOnline) {
+            onlineUserIds.add(uid);
+        } else {
+            onlineUserIds.delete(uid);
+        }
+        queuePresenceUiUpdate(uid, isOnline);
     });
 
     socket.on('signaling_ready', () => {
@@ -1402,7 +1411,7 @@ async function initRealtime() {
 
                     if (window.pendingReadReceipts && window.pendingReadReceipts.has(msg.id)) {
                         if (iconDiv) {
-                            iconDiv.innerHTML = '<span class="material-symbols-outlined text-sky-500 text-base" style="font-variation-settings: \'FILL\' 1;">done_all</span>';
+                            iconDiv.innerHTML = '<span class="material-symbols-outlined text-[14px] text-kin_tertiary" style="font-variation-settings: \'FILL\' 1;">done_all</span>';
                         }
                         window.pendingReadReceipts.delete(msg.id);
                     }
@@ -1415,6 +1424,7 @@ async function initRealtime() {
 
             appendMessageUI(msg, plainText, plainFileData);
 
+            // Mark as read only if window has strict FOCUS (user is actively interacting with it)
             if (Number(msg.sender_id) === Number(activeContactId) && Number(msg.sender_id) !== Number(currentUserId) && document.hasFocus()) {
                 await markChatAsRead(activeContactId);
             }
@@ -1446,12 +1456,27 @@ async function initRealtime() {
 
     socket.on('read_receipt', (msg) => {
         if (!window.pendingReadReceipts) window.pendingReadReceipts = new Set();
+        
+        // If this is a sync from another one of our own tabs
+        if (msg.is_self_sync) {
+            const contactEl = document.getElementById('contact-' + msg.contact_id);
+            if (contactEl) {
+                const badge = contactEl.querySelector('.unread-badge');
+                if (badge) badge.remove();
+            }
+            // Update local cache
+            cachedContacts = cachedContacts.map(c =>
+                Number(c.id) === Number(msg.contact_id) ? { ...c, unread_count: 0 } : c
+            );
+            return;
+        }
+
         msg.message_ids.forEach((id) => {
             const container = document.getElementById(`msg-container-${id}`);
             if (container) {
                 const iconDiv = container.querySelector('.msg-status-icon');
                 if (iconDiv) {
-                    iconDiv.innerHTML = '<span class="material-symbols-outlined text-sky-500 text-base" style="font-variation-settings: \'FILL\' 1;">done_all</span>';
+                    iconDiv.innerHTML = '<span class="material-symbols-outlined text-[14px] text-kin_tertiary" style="font-variation-settings: \'FILL\' 1;">done_all</span>';
                 }
             } else {
                 window.pendingReadReceipts.add(id);
@@ -2039,11 +2064,14 @@ function appendMessageUI(msg, plainText, plainFileData = null) {
 
     const canEditOrDelete = isMe && msg.id && (new Date() - dateObj < 3600000);
     const isPending = Boolean(msg.is_pending);
-    const statusIcon = msg.is_read
+    const isReadByReceipt = window.pendingReadReceipts && window.pendingReadReceipts.has(msg.id);
+    const statusIcon = (msg.is_read || isReadByReceipt)
         ? '<span class="material-symbols-outlined text-[14px] text-kin_tertiary" style="font-variation-settings: \'FILL\' 1;">done_all</span>'
         : isPending
             ? getPendingStatusIcon()
             : '<span class="material-symbols-outlined text-[14px] text-slate-500">done</span>';
+    
+    if (isReadByReceipt) window.pendingReadReceipts.delete(msg.id);
 
     const html = `
         <div class="flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 md:gap-3 message-container w-full ${!msg.id ? 'optimistic' : ''}"
@@ -2465,6 +2493,9 @@ async function logout() {
 
     // --- 1. ATTACH STATIC UI EVENT LISTENERS IMMEDIATELY ---
     const attachUIListeners = () => {
+        const cancelReplyBtn = document.getElementById("cancelReplyBtn");
+        if (cancelReplyBtn) cancelReplyBtn.addEventListener("click", cancelReply);
+
         const logoutBtn = document.getElementById("logoutBtn");
         if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
@@ -2626,6 +2657,10 @@ async function logout() {
             }
         });
 
+        window.addEventListener('focus', () => {
+            if (activeContactId) markChatAsRead(activeContactId);
+        });
+
         const messagesArea = document.getElementById("messages-area");
         if (messagesArea) {
             messagesArea.addEventListener("click", handleMessageAreaClick);
@@ -2777,7 +2812,7 @@ async function logout() {
     syncDynamicView();
 
     // --- 2. START ASYNC SERVICES IN PARALLEL ---
-    // We launch these in parallel so the UI does not wait on polling setup.
+    // We launch these in parallel so the UI does not wait on socket setup.
 
     // Crypto is needed for decryption, but it usually initializes quickly.
     const cryptoPromise = initCrypto().catch(e => console.error("Crypto Error:", e));
@@ -2785,7 +2820,7 @@ async function logout() {
     // Notifications don't block anything.
     initDesktopNotifications();
 
-    // Polling setup can fail independently without blocking the rest of the page.
+    // Socket setup can fail independently without blocking the rest of the page.
     const realtimePromise = initRealtime().catch(e => console.error("Realtime Error:", e));
 
 
