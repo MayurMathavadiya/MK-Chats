@@ -42,7 +42,8 @@ packaging==26.0
 passlib==1.7.4
 pluggy==1.6.0
 propcache==0.4.1
-psycopg2==2.9.11
+# psycopg2==2.9.11 # For Linux
+psycopg2-binary # For Windows
 redis>=5.0.0
 pyasn1==0.6.3
 pycparser==3.0
