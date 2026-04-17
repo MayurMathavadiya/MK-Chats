@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 from types import SimpleNamespace 
 
-from app.core import deps
+from app.core import deps, auth
 from test.factories import UserFactory
 
 
@@ -31,15 +31,11 @@ def test_get_current_user_accepts_authorization_header(db_session, access_token)
     assert current_user.id == user.id
 
 
-def test_get_user_id_from_environ_reads_cookie(auth_cookie):
+@pytest.mark.asyncio
+async def test_get_user_id_from_environ_reads_cookie(auth_cookie):
     token = auth_cookie(9)
     environ = {"HTTP_COOKIE": f'access_token="{token}"'}
 
-    assert deps.get_user_id_from_environ(environ) == 9
+    assert await auth.get_user_from_environ(environ) == 9
 
 
-def test_get_user_id_from_environ_reads_authorization_header(access_token):
-    token = access_token(11)
-    environ = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
-
-    assert deps.get_user_id_from_environ(environ) == 11

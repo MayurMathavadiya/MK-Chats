@@ -3,8 +3,9 @@ from sqlalchemy import or_, and_
 import redis.asyncio as redis_async
 from datetime import datetime, timezone
 
-from app import models, schemas
+from app import models
 from app.core.config import settings
+from app.schemas import MessageResponse
 from app.core.database import SessionLocal
 from app.core.auth import get_user_from_environ
 
@@ -143,8 +144,14 @@ async def send(sid, data):
     with SessionLocal() as db:
         blocking = db.query(models.BlockedUser).filter(
             or_(
-                and_(models.BlockedUser.user_id == user_id, models.BlockedUser.blocked_contact_id == receiver_id),
-                and_(models.BlockedUser.user_id == receiver_id, models.BlockedUser.blocked_contact_id == user_id)
+                and_(
+                    models.BlockedUser.user_id == user_id, 
+                    models.BlockedUser.blocked_contact_id == receiver_id
+                ),
+                and_(
+                    models.BlockedUser.user_id == receiver_id, 
+                    models.BlockedUser.blocked_contact_id == user_id
+                )
             )
         ).first()
         if blocking:
@@ -170,7 +177,7 @@ async def send(sid, data):
         db.commit()
         db.refresh(new_msg)
         
-        response_data = schemas.MessageResponse.model_validate(new_msg).model_dump()
+        response_data = MessageResponse.model_validate(new_msg).model_dump()
         for k, v in response_data.items():
             if isinstance(v, datetime):
                 response_data[k] = v.isoformat()
@@ -203,7 +210,7 @@ async def edit(sid, data):
         db.commit()
         db.refresh(msg)
         
-        response_data = schemas.MessageResponse.model_validate(msg).model_dump()
+        response_data = MessageResponse.model_validate(msg).model_dump()
         for k, v in response_data.items():
             if isinstance(v, datetime):
                 response_data[k] = v.isoformat()

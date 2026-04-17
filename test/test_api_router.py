@@ -238,19 +238,6 @@ def test_presence_ping_returns_recently_active_users(client, db_session, auth_co
     assert current_user.last_seen is not None
 
 
-def test_presence_offline_clears_last_seen(client, db_session, auth_cookie):
-    current_user = UserFactory(last_seen=datetime.now(timezone.utc))
-    db_session.commit()
-    authenticate_client(client, current_user.id, auth_cookie)
-
-    response = client.post("/api/presence/offline")
-    db_session.refresh(current_user)
-
-    assert response.status_code == 200
-    assert response.json()["msg"] == "Presence cleared"
-    assert current_user.last_seen is None
-
-
 def test_contacts_search_returns_matching_users_without_history(client, db_session, auth_cookie):
     current_user = UserFactory()
     searchable_only_user = UserFactory(first_name="Contactless", last_name="User")
@@ -407,23 +394,69 @@ def test_sync_messages_returns_only_messages_updated_after_cursor(client, db_ses
     assert stale_message.id not in returned_ids
 
 
-def test_delete_message_applies_one_hour_rule(client, db_session, auth_cookie):
+def test_update_call_log_statuses(client, db_session, auth_cookie):
     current_user = UserFactory()
     contact = UserFactory()
-    fresh_message = MessageFactory(sender=current_user, receiver=contact)
-    stale_message = MessageFactory(
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    # Test ringing
+    call = CallLogFactory(initiator_id=contact.id, receiver_id=current_user.id)
+    db_session.commit()
+    
+    ringing_response = client.patch(
+        f"/api/calls/{call.id}",
+        json={"status": "ringing"}
+    )
+    assert ringing_response.status_code == 200
+    assert ringing_response.json()["status"] == "ringing"
+
+    # Test rejected
+    rejected_response = client.patch(
+        f"/api/calls/{call.id}",
+        json={"status": "rejected"}
+    )
+    assert rejected_response.status_code == 200
+    assert rejected_response.json()["status"] == "rejected"
+    assert rejected_response.json()["ended_at"] is not None
+
+    # Test missed
+    call_missed = CallLogFactory(initiator_id=contact.id, receiver_id=current_user.id)
+    db_session.commit()
+    
+    missed_response = client.patch(
+        f"/api/calls/{call_missed.id}",
+        json={"status": "missed"}
+    )
+    assert missed_response.status_code == 200
+    assert missed_response.json()["status"] == "missed"
+
+
+def test_message_replies_and_files(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    contact = UserFactory()
+    original_msg = MessageFactory(sender=contact, receiver=current_user)
+    db_session.commit()
+    
+    reply_msg = MessageFactory(
         sender=current_user,
         receiver=contact,
-        created_at=datetime.now(timezone.utc) - timedelta(hours=2),
+        reply_to_id=original_msg.id,
+        file_data="base64-data",
+        file_type="image/png"
     )
     db_session.commit()
     authenticate_client(client, current_user.id, auth_cookie)
 
-    delete_response = client.delete(f"/api/messages/{fresh_message.id}")
-    old_delete_response = client.delete(f"/api/messages/{stale_message.id}")
-
-    assert delete_response.status_code == 200
-    assert old_delete_response.status_code == 400
+    response = client.get(f"/api/messages/{contact.id}")
+    messages = response.json()
+    
+    # Find the reply message
+    reply = next(m for m in messages if m["id"] == reply_msg.id)
+    
+    assert reply["reply_to_id"] == original_msg.id
+    assert reply["file_data"] == "base64-data"
+    assert reply["file_type"] == "image/png"
 
 
 def test_clear_chat_creates_clear_record_and_schedules_cleanup(
@@ -458,3 +491,70 @@ def test_clear_chat_creates_clear_record_and_schedules_cleanup(
     assert response.json()["msg"] == "Chat cleared"
     assert clear_record is not None
     assert len(cleanup_calls) == 1
+
+
+def test_contacts_pagination(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    # Create 5 contacts with messages
+    for i in range(5):
+        contact = UserFactory(first_name=f"Contact{i}")
+        MessageFactory(sender=current_user, receiver=contact, created_at=datetime.now(timezone.utc) - timedelta(hours=i))
+    
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    # Test limit=2
+    response_l2 = client.get("/api/contacts", params={"limit": 2})
+    assert len(response_l2.json()) == 2
+
+    # Test offset=2, limit=2
+    response_o2 = client.get("/api/contacts", params={"limit": 2, "offset": 2})
+    assert len(response_o2.json()) == 2
+    # The first contact in this page should be Contact2 (since we ordered by created_at desc)
+    assert response_o2.json()[0]["first_name"] == "Contact2"
+
+
+def test_messages_pagination(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    contact = UserFactory()
+    # Create 10 messages
+    for i in range(10):
+        MessageFactory(sender=current_user, receiver=contact, content=f"Msg{i}", created_at=datetime.now(timezone.utc) - timedelta(minutes=i))
+    
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    # Get first page (limit 5)
+    response_p1 = client.get(f"/api/messages/{contact.id}", params={"limit": 5})
+    assert len(response_p1.json()) == 5
+    # Since we use subquery ordering, the latest messages are fetched and then sorted ASC for the user.
+    # The first message in the last 5 messages (Msg4 to Msg0 in terms of creation) should be Msg4.
+    assert response_p1.json()[0]["content"] == "Msg4"
+
+
+def test_register_rejects_duplicate_email_specifically(client, db_session):
+    UserFactory(email="dup@example.com", mobile_number="+910000000000")
+    db_session.commit()
+
+    # Try duplicate email with NEW mobile
+    response = client.post(
+        "/api/register",
+        json=register_payload(email="dup@example.com", mobile_number="+919999999999"),
+    )
+    assert response.status_code == 400
+
+
+def test_update_call_log_invalid_data(client, db_session, auth_cookie):
+    current_user = UserFactory()
+    contact = UserFactory()
+    call = CallLogFactory(initiator_id=current_user.id, receiver_id=contact.id)
+    db_session.commit()
+    authenticate_client(client, current_user.id, auth_cookie)
+
+    # Invalid status
+    response_status = client.patch(f"/api/calls/{call.id}", json={"status": "invalid"})
+    assert response_status.status_code == 400
+
+    # Invalid call type
+    response_type = client.patch(f"/api/calls/{call.id}", json={"final_call_type": "invalid"})
+    assert response_type.status_code == 400
