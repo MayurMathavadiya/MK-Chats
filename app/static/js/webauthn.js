@@ -66,14 +66,20 @@ const WebAuthnHelper = {
 
     // Register a new biometric device
     register: async function(options) {
-        // Prepare options from server
+        // Handle options getting passed either directly or wrapped in publicKey
+        const publicKey = options.publicKey || options;
+        
+        if (!publicKey || !publicKey.challenge) {
+            throw new Error("Invalid registration options received from server.");
+        }
+
         const creationOptions = {
             publicKey: {
-                ...options.publicKey,
-                challenge: this.coerceToArrayBuffer(options.publicKey.challenge),
+                ...publicKey,
+                challenge: this.coerceToArrayBuffer(publicKey.challenge),
                 user: {
-                    ...options.publicKey.user,
-                    id: this.coerceToArrayBuffer(options.publicKey.user.id)
+                    ...publicKey.user,
+                    id: this.coerceToArrayBuffer(publicKey.user.id)
                 },
                 // Crucial for mobile biometrics
                 authenticatorSelection: {
@@ -107,13 +113,19 @@ const WebAuthnHelper = {
 
     // Login with biometric device
     authenticate: async function(options) {
+        const publicKey = options.publicKey || options;
+        
+        if (!publicKey || !publicKey.challenge) {
+            throw new Error("Invalid authentication options received from server.");
+        }
+
         const salt = new TextEncoder().encode("mk-chats-prf-salt-v1-32bytes-len");
         
         const requestOptions = {
             publicKey: {
-                ...options.publicKey,
-                challenge: this.coerceToArrayBuffer(options.publicKey.challenge),
-                allowCredentials: options.publicKey.allowCredentials.map(c => ({
+                ...publicKey,
+                challenge: this.coerceToArrayBuffer(publicKey.challenge),
+                allowCredentials: (publicKey.allowCredentials || []).map(c => ({
                     ...c,
                     id: this.coerceToArrayBuffer(c.id)
                 })),
