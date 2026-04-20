@@ -3748,7 +3748,7 @@ async function loadAuthenticators() {
 
     try {
         // Double check encryption metadata as well
-        const userRes = await fetch('/api/users/me');
+        const userRes = await fetch('/api/profile');
         const user = await userRes.json();
         const warningEl = document.getElementById('securitySetupWarning');
         
@@ -3903,7 +3903,7 @@ window.initiateSecuritySetup = async function() {
 
 async function enrollBiometricDevice() {
     // Check for missing metadata before proceeding
-    const userRes = await fetch('/api/users/me');
+    const userRes = await fetch('/api/profile');
     const user = await userRes.json();
     
     if (!user.encrypted_dek || !user.keys_salt) {
@@ -3939,7 +3939,7 @@ async function handleEnrollment(password) {
         console.log("Starting biometric enrollment...");
 
         // 1. Get current user data to derive KEK
-        const userRes = await fetch('/api/users/me');
+        const userRes = await fetch('/api/profile');
         const user = await userRes.json();
         
         console.log("User data retrieved. Checking encryption metadata...");
@@ -4097,21 +4097,31 @@ document.addEventListener('click', (e) => {
 });
 
 // Mobile Navigation Logic
-const toggleSidebar = () => {
+const toggleSidebar = (e) => {
+    if (e) e.stopPropagation();
     document.body.classList.toggle('sidebar-open');
 };
 
 document.getElementById('mobileMenuBtn').addEventListener('click', toggleSidebar);
 document.getElementById('sidebarToggleBtn').addEventListener('click', toggleSidebar);
-document.getElementById('sidebarOverlay').addEventListener('click', () => {
+document.getElementById('sidebarOverlay').addEventListener('click', (e) => {
+    e.stopPropagation();
     document.body.classList.remove('sidebar-open');
 });
 
-// Auto-close sidebar on mobile when navigating
+// Auto-close sidebar on mobile only when navigating to a different view
 document.querySelectorAll('#side-navbar a, #side-navbar button').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+        // IDs of buttons that shouldn't close the sidebar
+        const ignoreIds = ['sidebarSettingsBtn', 'sidebarToggleBtn', 'profileEditBtn', 'logoutBtn'];
+        if (ignoreIds.includes(el.id) || el.closest('#profileDropdown')) {
+            return;
+        }
+
         if (window.innerWidth < 1280) {
-            document.body.classList.remove('sidebar-open');
+            setTimeout(() => {
+                document.body.classList.remove('sidebar-open');
+            }, 100);
         }
     });
 });
