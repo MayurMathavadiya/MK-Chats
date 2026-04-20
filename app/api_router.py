@@ -819,7 +819,7 @@ def webauthn_register_options(request: Request, db: deps.db_session):
 
 @router.post("/auth/webauthn/register/verify", tags=[settings.AUTH_TAG])
 def webauthn_register_verify(
-    verify_data: schemas.WebAuthnRegisterVerify,
+    verify_data: schemas.WebAuthnRegisterVerifyRequest,
     request: Request,
     db: deps.db_session
 ):
@@ -857,7 +857,7 @@ def webauthn_register_verify(
 
 
 @router.post("/auth/webauthn/login/options", tags=[settings.AUTH_TAG])
-def webauthn_login_options(login_data: schemas.WebAuthnLoginRequest, db: deps.db_session):
+def webauthn_login_options(login_data: schemas.WebAuthnLoginOptionsRequest, db: deps.db_session):
     user = db.query(models.User).filter(models.User.mobile_number == login_data.mobile_number).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -878,7 +878,7 @@ def webauthn_login_options(login_data: schemas.WebAuthnLoginRequest, db: deps.db
 
 @router.post("/auth/webauthn/login/verify", tags=[settings.AUTH_TAG])
 def webauthn_login_verify(
-    verify_data: schemas.WebAuthnLoginVerify,
+    verify_data: schemas.WebAuthnLoginVerifyRequest,
     response: Response,
     db: deps.db_session
 ):
