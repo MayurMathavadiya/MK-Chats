@@ -102,15 +102,32 @@ body.sidebar-collapsed #side-navbar .sidebar-logo-text {
 
 /* Large Desktop Zone (>1280px) */
 @media (min-width: 1280px) {
-
-    /* On Desktop, everything is visible together */
-    #sidebar {
-        display: flex !important;
+    /* On Desktop, elements are managed by view-mode classes */
+    body.view-mode-chats #sidebar {
+        display: flex;
     }
 
-    #chat-container {
-        display: flex !important;
+    body.view-mode-chats #chat-container {
+        display: flex;
     }
+}
+
+/* --- View Mode Overrides --- */
+body.view-mode-calls #sidebar {
+    display: none !important;
+}
+
+body.view-mode-calls #chat-container {
+    display: none !important;
+}
+
+body.view-mode-calls #calls-screen {
+    display: flex !important;
+    width: 100%;
+}
+
+body.view-mode-chats #calls-screen {
+    display: none !important;
 }
 
 /* Video Call Stage (Full-screen + Compact + PiP) */
@@ -138,12 +155,26 @@ body.sidebar-collapsed #side-navbar .sidebar-logo-text {
     right: 1.5rem;
     bottom: auto;
     left: auto;
-    width: 320px;
+    width: 280px;
+    cursor: move;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #videoCallStage[data-layout="compact"] .video-stage-inner {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 9 / 16;
     height: auto;
+}
+
+#videoCallStage[data-layout="compact"] #localVideoEl {
+    width: 80px;
+    height: 110px;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    border-radius: 1rem;
 }
 
 #videoCallStage[data-layout="fullscreen"] .video-stage-inner {

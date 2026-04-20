@@ -217,6 +217,7 @@ async def edit(sid, data):
         for k, v in response_data.items():
             if isinstance(v, datetime):
                 response_data[k] = v.isoformat()
+        
         await sio.emit('edit', response_data, room=str(msg.receiver_id))
         await sio.emit('edit', response_data, room=str(user_id))
 

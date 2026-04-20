@@ -7,10 +7,9 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.core import auth
-from app.core.database import Base, get_db
+from app.core.database import Base
 
 from test import factories
-
 
 from sqlalchemy.pool import StaticPool
 

@@ -89,6 +89,16 @@
             </div>
         </form>
 
+        <!-- Biometric Login Button -->
+        <div id="biometricLoginContainer" class="mt-4 hidden animate-in fade-in duration-500">
+            <button id="biometricBtn"
+                class="w-full py-4 bg-surface-container-highest/50 hover:bg-surface-container-highest border border-white/5 rounded-xl font-manrope font-bold text-on-surface transition-all flex items-center justify-center gap-2 group shadow-lg active:scale-95"
+                type="button">
+                <span class="material-symbols-outlined text-xl text-kin_primary group-hover:scale-110 transition-transform">fingerprint</span>
+                Sign in with Biometrics
+            </button>
+        </div>
+
         <div class="mt-10 pt-8 border-t border-white/5 text-center">
             <p class="font-inter text-sm text-kin_on_surface_variant">
                 Don't have an account?
@@ -117,6 +127,7 @@
 <div class="fixed bottom-0 left-0 w-full h-64 bg-gradient-to-t from-indigo-500/5 to-transparent pointer-events-none">
 </div>
 
+<script src="/static/js/webauthn.js"></script>
 <script nonce="{{ request.state.nonce }}">
     const loginSubmitDefaultHtml = `
         <span>Sign In</span>
@@ -285,5 +296,129 @@
             btn.innerHTML = loginSubmitDefaultHtml;
         }
     });
+
+    // --- Biometric Login Logic ---
+    async function initBiometricLogin() {
+        const bioBtn = document.getElementById('biometricBtn');
+        const bioContainer = document.getElementById('biometricLoginContainer');
+        const isSupported = await WebAuthnHelper.isSupported();
+
+        if (isSupported) {
+            bioContainer.classList.remove('hidden');
+        }
+
+        bioBtn.addEventListener('click', async () => {
+            const mobile = document.getElementById('mobile').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!mobile) {
+                errorMsg.innerText = 'Please enter your mobile number first.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            bioBtn.disabled = true;
+            submitBtn.disabled = true;
+            errorMsg.classList.add('hidden');
+
+            try {
+                // 1. Get Login Options
+                const optionsRes = await fetch('/api/auth/webauthn/login/options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobile_number: mobile })
+                });
+
+                if (!optionsRes.ok) {
+                    const error = await optionsRes.json();
+                    throw new Error(error.detail || 'Failed to get biometric options');
+                }
+
+                const options = await optionsRes.json();
+
+                // 2. Browser Prompt (navigator.credentials.get)
+                const assertion = await WebAuthnHelper.authenticate(options);
+
+                // 3. Verify Login
+                const verifyRes = await fetch('/api/auth/webauthn/login/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mobile_number: mobile,
+                        credential: assertion
+                    })
+                });
+
+                if (!verifyRes.ok) {
+                    const error = await verifyRes.json();
+                    throw new Error(error.detail || 'Biometric verification failed');
+                }
+
+                const data = await verifyRes.json();
+                
+                // 4. Handle Encryption Keys (PRF)
+                if (data.is_biometric && data.prf_results || assertion.prfResults) {
+                    try {
+                        const prfResults = assertion.prfResults;
+                        if (!prfResults) throw new Error("Missing PRF results from browser");
+
+                        // Derive biometric-wrapping key
+                        const biometricKey = await WebAuthnHelper.deriveKeyFromPrf(prfResults);
+
+                        // Decrypt DEK using biometric-wrapping key
+                        const encryptedDekPrf = base64ToArrayBuffer(data.encrypted_dek_prf);
+                        const dekIvPrf = new Uint8Array(base64ToArrayBuffer(data.dek_iv_prf));
+
+                        const dekBuffer = await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: dekIvPrf },
+                            biometricKey,
+                            encryptedDekPrf
+                        );
+
+                        // Import DEK
+                        const dek = await window.crypto.subtle.importKey(
+                            "raw",
+                            dekBuffer,
+                            { name: "AES-GCM", length: 256 },
+                            false,
+                            ["decrypt"]
+                        );
+
+                        // Decrypt Private Key using DEK
+                        const privKeyIv = new Uint8Array(base64ToArrayBuffer(data.priv_key_iv));
+                        const encryptedPrivKey = base64ToArrayBuffer(data.encrypted_private_key);
+
+                        const decryptedPrivKeyBuffer = await window.crypto.subtle.decrypt(
+                            { name: "AES-GCM", iv: privKeyIv },
+                            dek,
+                            encryptedPrivKey
+                        );
+
+                        const dec = new TextDecoder();
+                        const privKeyStr = dec.decode(decryptedPrivKeyBuffer);
+
+                        sessionStorage.setItem('chat_priv_key', privKeyStr);
+                    } catch (e) {
+                        console.error("Biometric key derivation/decryption failed:", e);
+                        throw new Error("Biometric decryption failed. Please use your password.");
+                    }
+                }
+
+                localStorage.setItem('current_user_id', data.user_id);
+                window.location.replace('/');
+
+            } catch (err) {
+                console.error(err);
+                errorMsg.innerText = err.message;
+                errorMsg.classList.remove('hidden');
+                bioBtn.disabled = false;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Initialize biometric login availability check
+    initBiometricLogin();
 </script>
 {% endblock %}

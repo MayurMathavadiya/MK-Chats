@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     SMTP_FROM_EMAIL: str
 
+    # WebAuthn
+    WEBAUTHN_RP_ID: str = "localhost"
+    WEBAUTHN_RP_NAME: str = "MK Chats"
+
     # Tags
     AUTH_TAG: str = "Auth"
     PROFILE_TAG: str = "Profile"

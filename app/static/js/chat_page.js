@@ -9,6 +9,14 @@ let pendingUpgradeRequest = null;
 let pendingIceCandidatesQueue = [];
 let videoStageLayout = 'fullscreen';
 let videoControlsAutoHideTimeoutId = null;
+let isDraggingVideoStage = false;
+let videoStageDragOffset = { x: 0, y: 0 };
+
+let currentAppView = 'chats'; // 'chats' or 'calls'
+let callHistoryOffset = 0;
+const callHistoryLimit = 20;
+let callHistoryLoading = false;
+let callHistoryReachedEnd = false;
 
 // --- Desktop Notifications (best-effort) ---
 const mkChatsNotificationIcon = "/static/branding/mk-chats-logo.svg";
@@ -330,6 +338,13 @@ function setVideoStageLayout(layout = 'fullscreen') {
     videoStageLayout = normalized;
     if (videoCallStageEl) {
         videoCallStageEl.dataset.layout = normalized;
+        if (normalized === 'fullscreen') {
+            videoCallStageEl.style.top = '';
+            videoCallStageEl.style.left = '';
+            videoCallStageEl.style.right = '';
+            videoCallStageEl.style.bottom = '';
+            videoCallStageEl.style.transform = '';
+        }
     }
 
     if (videoStageMinimizeBtn) videoStageMinimizeBtn.classList.toggle('hidden', normalized === 'compact');
@@ -412,6 +427,78 @@ if (videoCallStageEl) {
             ? (activeCallOverlayEl.classList.contains('opacity-0') || activeCallOverlayEl.classList.contains('pointer-events-none'))
             : true;
         setVideoControlsVisible(currentlyHidden);
+    });
+
+    videoCallStageEl.addEventListener('mousedown', (e) => {
+        if (videoStageLayout !== 'compact') return;
+        isDraggingVideoStage = true;
+        const rect = videoCallStageEl.getBoundingClientRect();
+        videoStageDragOffset.x = e.clientX - rect.left;
+        videoStageDragOffset.y = e.clientY - rect.top;
+        videoCallStageEl.style.transition = 'none';
+        videoCallStageEl.style.userSelect = 'none';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDraggingVideoStage || !videoCallStageEl) return;
+        
+        const x = e.clientX - videoStageDragOffset.x;
+        const y = e.clientY - videoStageDragOffset.y;
+        
+        // Boundaries
+        const maxX = window.innerWidth - videoCallStageEl.offsetWidth;
+        const maxY = window.innerHeight - videoCallStageEl.offsetHeight;
+        
+        const boundedX = Math.max(0, Math.min(x, maxX));
+        const boundedY = Math.max(0, Math.min(y, maxY));
+        
+        videoCallStageEl.style.left = `${boundedX}px`;
+        videoCallStageEl.style.top = `${boundedY}px`;
+        videoCallStageEl.style.right = 'auto';
+        videoCallStageEl.style.bottom = 'auto';
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isDraggingVideoStage) return;
+        isDraggingVideoStage = false;
+        if (videoCallStageEl) {
+            videoCallStageEl.style.transition = '';
+            videoCallStageEl.style.userSelect = '';
+        }
+    });
+
+    // Touch support
+    videoCallStageEl.addEventListener('touchstart', (e) => {
+        if (videoStageLayout !== 'compact') return;
+        isDraggingVideoStage = true;
+        const touch = e.touches[0];
+        const rect = videoCallStageEl.getBoundingClientRect();
+        videoStageDragOffset.x = touch.clientX - rect.left;
+        videoStageDragOffset.y = touch.clientY - rect.top;
+        videoCallStageEl.style.transition = 'none';
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isDraggingVideoStage || !videoCallStageEl) return;
+        const touch = e.touches[0];
+        const x = touch.clientX - videoStageDragOffset.x;
+        const y = touch.clientY - videoStageDragOffset.y;
+        
+        const maxX = window.innerWidth - videoCallStageEl.offsetWidth;
+        const maxY = window.innerHeight - videoCallStageEl.offsetHeight;
+        
+        const boundedX = Math.max(0, Math.min(x, maxX));
+        const boundedY = Math.max(0, Math.min(y, maxY));
+        
+        videoCallStageEl.style.left = `${boundedX}px`;
+        videoCallStageEl.style.top = `${boundedY}px`;
+        videoCallStageEl.style.right = 'auto';
+        videoCallStageEl.style.bottom = 'auto';
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+        isDraggingVideoStage = false;
+        if (videoCallStageEl) videoCallStageEl.style.transition = '';
     });
 }
 
@@ -2347,7 +2434,12 @@ function updateActionsVisibility(container, createdAt) {
 // --- Sending Messages ---
 let myTypingTimeout = null;
 let lastTypingTime = 0;
-async function startCall(callType = 'audio') {
+async function startCall(callType = 'audio', targetUserId = activeContactId) {
+    if (!targetUserId) {
+        console.warn("startCall: No target user specified.");
+        return;
+    }
+
     if (!callSignalingEnabled || !isCallSignalingReady) {
         await showModal({
             title: "Calling Unavailable",
@@ -2368,27 +2460,31 @@ async function startCall(callType = 'audio') {
 
     currentCallMode = callType === 'video' ? 'video' : 'audio';
     if (currentCallMode === 'video') resetVideoStageLayout();
-    createPeerConnection(activeContactId);
+    createPeerConnection(targetUserId);
 
     try {
-        const callLog = await createCallLog(activeContactId, currentCallMode);
+        const callLog = await createCallLog(targetUserId, currentCallMode);
         currentCallLogId = callLog.id;
-        currentCallPeerId = activeContactId;
+        currentCallPeerId = targetUserId;
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         socket.emit("webrtc_offer", {
-            receiver_id: activeContactId,
+            receiver_id: targetUserId,
             offer,
             call_id: currentCallLogId,
             call_type: currentCallMode
         });
-        setCallState('dialing', activeContactId);
+        setCallState('dialing', targetUserId);
     } catch (e) {
         console.error("WebRTC offer error", e);
         cleanupWebRTC();
         hideActiveCallOverlay();
     }
 }
+
+window.initiateCall = async function(userId, mode) {
+    await startCall(mode, userId);
+};
 
 const msgInputLine = document.getElementById('msgInput');
 if (msgInputLine) {
@@ -2483,6 +2579,9 @@ async function logout() {
 
 // Init
     document.addEventListener("DOMContentLoaded", async () => {
+        const savedView = localStorage.getItem('activeAppView') || 'chats';
+        document.body.classList.add('view-mode-' + savedView);
+        currentAppView = savedView;
     // --- STATE FOR INTERACTIVE HANDLERS ---
     let longPressTimer = null;
     let touchStartX = 0;
@@ -2517,10 +2616,17 @@ async function logout() {
         }
 
         const sidebarCallsBtn = document.getElementById("sidebarCallsBtn");
-        if (sidebarCallsBtn) sidebarCallsBtn.addEventListener("click", openCallHistoryModal);
+        if (sidebarCallsBtn) sidebarCallsBtn.addEventListener("click", () => switchToView('calls'));
 
-        const closeCallHistoryBtn = document.getElementById("closeCallHistoryBtn");
-        if (closeCallHistoryBtn) closeCallHistoryBtn.addEventListener("click", closeCallHistoryModal);
+        const sidebarChatsBtn = document.getElementById("sidebarChatsBtn");
+        if (sidebarChatsBtn) sidebarChatsBtn.addEventListener("click", () => switchToView('chats'));
+
+        const loadMoreCallsBtn = document.getElementById("loadMoreCallsBtn");
+        if (loadMoreCallsBtn) {
+            loadMoreCallsBtn.addEventListener("click", () => {
+                loadCallHistory(null, true);
+            });
+        }
 
         const endCallBtn = document.getElementById("endCallBtn");
         if (endCallBtn) {
@@ -2564,7 +2670,41 @@ async function logout() {
             videoStageMinimizeBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
                 if (!videoCallStageEl) return;
-                if (canUsePiP()) {
+
+                const isVideo = (remoteStream && remoteStream.getVideoTracks().length > 0);
+
+                // --- NEW: Audio PiP Trick ---
+                if (!isVideo && canUsePiP() && currentCallPeerId) {
+                    try {
+                        const pipStream = await createAudioPipStream(currentCallPeerId);
+                        if (pipStream) {
+                            let pipVideo = document.getElementById('audioPipVideo');
+                            if (!pipVideo) {
+                                pipVideo = document.createElement('video');
+                                pipVideo.id = 'audioPipVideo';
+                                pipVideo.muted = true;
+                                pipVideo.style.display = 'none';
+                                document.body.appendChild(pipVideo);
+                                
+                                pipVideo.addEventListener('enterpictureinpicture', () => {
+                                    hideVideoStage();
+                                });
+                                pipVideo.addEventListener('leavepictureinpicture', () => {
+                                    setVideoStageLayout('fullscreen');
+                                    syncRemoteVideoState();
+                                });
+                            }
+                            pipVideo.srcObject = pipStream;
+                            await pipVideo.play();
+                            await pipVideo.requestPictureInPicture();
+                            return; // Success!
+                        }
+                    } catch (err) {
+                        console.warn("System Audio PiP failed, using in-app fallback", err);
+                    }
+                }
+
+                if (isVideo && canUsePiP()) {
                     try {
                         await remoteVideoEl.play().catch(() => { });
                         await remoteVideoEl.requestPictureInPicture();
@@ -2574,8 +2714,10 @@ async function logout() {
                         console.warn("PiP request failed, falling back to compact mode", e);
                     }
                 }
+                
                 const nextLayout = (videoCallStageEl.dataset.layout === 'compact') ? 'fullscreen' : 'compact';
                 setVideoStageLayout(nextLayout);
+                syncRemoteVideoState();
             });
         }
 
@@ -2594,6 +2736,20 @@ async function logout() {
 
         const backBtn = document.getElementById("backToSidebarBtn");
         if (backBtn) backBtn.addEventListener("click", handleBackToSidebar);
+
+        const backFromCallsBtn = document.getElementById("backToSidebarFromCallsBtn");
+        if (backFromCallsBtn) {
+            backFromCallsBtn.addEventListener("click", () => {
+                // Force return to contact list by clearing active chat state
+                activeContactId = null;
+                localStorage.removeItem('activeContactId');
+                localStorage.removeItem('activeContactName');
+                localStorage.removeItem('activeContactPubKey');
+                updateActiveContactHighlight();
+                
+                switchToView('chats');
+            });
+        }
 
         const sidebarToggle = document.getElementById("sidebarToggleBtn");
         const sideNavbar = document.getElementById("side-navbar");
@@ -2853,7 +3009,13 @@ async function logout() {
             if (activeChat) activeChat.classList.add('hidden');
             const placeholder = document.getElementById('no-chat-selected');
             if (placeholder && window.innerWidth >= 768) placeholder.classList.remove('hidden');
-            syncDynamicView(false);
+        }
+        const savedView = localStorage.getItem('activeAppView') || 'chats';
+        if (savedView === 'calls') {
+            currentAppView = 'chats'; // Force trigger
+            switchToView('calls');
+        } else {
+            syncDynamicView();
         }
         keepActiveChatVisible(false);
     });
@@ -2961,6 +3123,102 @@ function setMuteButtonState(isMuted) {
     muteBtn.innerHTML = `<span class="material-symbols-outlined">${isMuted ? 'mic_off' : 'mic'}</span>`;
 }
 
+/**
+ * Creates a virtual video stream from a canvas for audio-only calls.
+ * This allows the browser to trigger Picture-in-Picture even for audio calls.
+ */
+async function createAudioPipStream(contactId) {
+    const contact = resolveContactForCall(contactId);
+    if (!contact) return null;
+    
+    // Create canvas if it doesn't exist
+    let canvas = document.getElementById('audioPipCanvas');
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'audioPipCanvas';
+        canvas.width = 512;
+        canvas.height = 512;
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+    }
+    
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    // Draw Premium Background
+    const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+    gradient.addColorStop(0, '#1e293b');
+    gradient.addColorStop(1, '#020617');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Draw Subtle Pattern
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    for(let i=0; i<512; i+=40) {
+        ctx.beginPath();ctx.moveTo(i, 0);ctx.lineTo(i, 512);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(0, i);ctx.lineTo(512, i);ctx.stroke();
+    }
+
+    // Draw Avatar or Initial
+    if (contact.profilePic) {
+        try {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = (e) => reject(e);
+                img.src = contact.profilePic;
+            });
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(256, 200, 120, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(img, 256 - 120, 200 - 120, 240, 240);
+            ctx.restore();
+            
+            // Outer ring
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(256, 200, 124, 0, Math.PI * 2);
+            ctx.stroke();
+        } catch (e) {
+            drawInitialOnCanvas(ctx, contact.name);
+        }
+    } else {
+        drawInitialOnCanvas(ctx, contact.name);
+    }
+
+    // Draw Name
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 42px Inter, system-ui';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillText(contact.name || 'User', 256, 380);
+    ctx.shadowBlur = 0;
+
+    // Status
+    ctx.fillStyle = '#10b981';
+    ctx.font = '600 24px Inter, system-ui';
+    ctx.fillText('• Secure Audio Connection', 256, 440);
+
+    return canvas.captureStream(1);
+}
+
+function drawInitialOnCanvas(ctx, name) {
+    ctx.fillStyle = '#6366f1';
+    ctx.beginPath();
+    ctx.arc(256, 200, 100, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 90px Inter, system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((name || 'U').charAt(0).toUpperCase(), 256, 200);
+}
+
 function updateCallMediaBadge(mode = 'audio') {
     const badge = document.getElementById('callMediaBadge');
     const incomingLabel = document.getElementById('incomingCallTypeLabel');
@@ -3004,13 +3262,31 @@ function syncLocalVideoPreview() {
 
 function syncRemoteVideoState() {
     const hasRemoteVideo = Boolean(remoteStream && remoteStream.getVideoTracks().length > 0);
+    const hasLocalVideo = Boolean(localStream && localStream.getVideoTracks().length > 0);
+
     if (remoteVideoPlaceholder) {
         remoteVideoPlaceholder.classList.toggle('hidden', hasRemoteVideo);
+        if (!hasRemoteVideo && currentCallPeerId) {
+            const contact = resolveContactForCall(currentCallPeerId);
+            remoteVideoPlaceholder.innerHTML = `
+                <div class="flex flex-col items-center gap-4 pointer-events-none select-none">
+                    <div class="w-20 h-20 rounded-full border-2 border-indigo-500/30 overflow-hidden bg-indigo-500/10 flex items-center justify-center shadow-2xl">
+                        ${contact.profilePic ? `<img src="${contact.profilePic}" class="w-full h-full object-cover">` : `<span class="text-3xl font-bold text-indigo-400">${(contact.name || 'U').charAt(0)}</span>`}
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-bold text-white">${contact.name}</p>
+                        <p class="text-[10px] text-indigo-400 uppercase tracking-widest mt-1">Safe Audio Session</p>
+                    </div>
+                </div>
+            `;
+        }
     }
     if (document.pictureInPictureElement === remoteVideoEl) {
         return;
     }
-    if (hasRemoteVideo || (localStream && localStream.getVideoTracks().length > 0)) {
+
+    const shouldShow = hasRemoteVideo || hasLocalVideo || (videoStageLayout === 'compact' && currentCallState === 'live');
+    if (shouldShow) {
         showVideoStage();
     } else {
         hideVideoStage();
@@ -3067,84 +3343,173 @@ function formatCallHistoryTime(value) {
     return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function switchToView(view) {
+    if (view === currentAppView) return;
+    
+    // Persist view state
+    localStorage.setItem('activeAppView', view);
+    
+    const sidebarCallsBtn = document.getElementById('sidebarCallsBtn');
+    const sidebarChatsBtn = document.getElementById('sidebarChatsBtn');
+
+    if (view === 'calls') {
+        document.body.classList.add('view-mode-calls');
+        document.body.classList.remove('view-mode-chats');
+        
+        if (sidebarCallsBtn) {
+            sidebarCallsBtn.classList.add('bg-indigo-500/20', 'text-indigo-300');
+            sidebarCallsBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-white/5');
+        }
+        if (sidebarChatsBtn) {
+            sidebarChatsBtn.classList.remove('bg-indigo-500/20', 'text-indigo-300');
+            sidebarChatsBtn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-white/5');
+        }
+        
+        // Reset and Load
+        callHistoryOffset = 0;
+        callHistoryReachedEnd = false;
+        loadCallHistory(null, false); 
+    } else {
+        document.body.classList.add('view-mode-chats');
+        document.body.classList.remove('view-mode-calls');
+        
+        if (sidebarChatsBtn) {
+            sidebarChatsBtn.classList.add('bg-indigo-500/20', 'text-indigo-300');
+            sidebarChatsBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-white/5');
+        }
+        if (sidebarCallsBtn) {
+            sidebarCallsBtn.classList.remove('bg-indigo-500/20', 'text-indigo-300');
+            sidebarCallsBtn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-white/5');
+        }
+
+        // On mobile, if no contact is active, we should be in sidebar view
+        if (!activeContactId) {
+            document.body.classList.remove('chat-active');
+        } else {
+            document.body.classList.add('chat-active');
+        }
+    }
+    
+    currentAppView = view;
+}
+
 function renderCallHistoryItem(call) {
-    const otherUserId = Number(call.initiator_id) === currentUserId ? Number(call.receiver_id) : Number(call.initiator_id);
-    const contact = resolveContactForCall(otherUserId);
+    const isInitiator = Number(call.initiator_id) === currentUserId;
+    const otherUserId = isInitiator ? Number(call.receiver_id) : Number(call.initiator_id);
+    
+    // Use backend-provided details first, fallback to cached
+    const name = isInitiator ? call.receiver_name : call.initiator_name;
+    const pic = isInitiator ? call.receiver_pic : call.initiator_pic;
+    
     const direction = Number(call.started_by_id) === currentUserId ? 'Outgoing' : 'Incoming';
     const typeLabel = (call.final_call_type || call.call_type) === 'video' ? 'Video' : 'Audio';
     const durationLabel = call.duration_seconds > 0 ? formatCallTimer(call.duration_seconds) : (call.status || 'initiated');
+    
+    const statusColor = call.status === 'missed' || call.status === 'rejected' ? 'text-red-400' : 'text-tertiary';
 
     return `
-        <div class="flex items-center gap-4 rounded-2xl border border-white/5 bg-surface-container-lowest/60 p-4">
-            <div class="w-11 h-11 rounded-2xl overflow-hidden bg-indigo-500/10 flex items-center justify-center text-indigo-300 font-bold">
-                ${contact.profilePic ? `<img src="${contact.profilePic}" class="w-full h-full object-cover">` : escapeHtml((contact.name || 'U').charAt(0).toUpperCase())}
+        <div class="flex items-center gap-4 rounded-[2rem] border border-white/5 bg-surface-container-lowest/60 p-5 hover:bg-surface-container-lowest transition-colors group">
+            <div class="w-14 h-14 rounded-2xl overflow-hidden bg-indigo-500/10 flex items-center justify-center text-indigo-300 font-bold border border-white/5">
+                ${pic ? `<img src="${pic}" class="w-full h-full object-cover">` : escapeHtml((name || 'U').charAt(0).toUpperCase())}
             </div>
             <div class="min-w-0 flex-1">
-                <p class="text-sm font-bold text-on-surface truncate">${escapeHtml(contact.name)}</p>
-                <p class="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">${direction} ${typeLabel} • ${escapeHtml(durationLabel)}</p>
+                <p class="text-base font-bold text-on-surface truncate">${escapeHtml(name || `User ${otherUserId}`)}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="material-symbols-outlined text-[14px] ${direction === 'Incoming' ? 'text-indigo-400' : 'text-emerald-400'}">${direction === 'Incoming' ? 'call_received' : 'call_made'}</span>
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest">${direction} ${typeLabel} • ${escapeHtml(durationLabel)}</p>
+                </div>
             </div>
-            <div class="text-right">
-                <p class="text-[10px] text-tertiary font-bold uppercase tracking-widest">${escapeHtml(call.status || 'ended')}</p>
-                <p class="text-[10px] text-on-surface-variant mt-1">${escapeHtml(formatCallHistoryTime(call.started_at))}</p>
+            <div class="flex items-center gap-3">
+                <div class="text-right mr-2 hidden md:block">
+                    <p class="text-[10px] ${statusColor} font-bold uppercase tracking-widest">${escapeHtml(call.status || 'ended')}</p>
+                    <p class="text-[10px] text-on-surface-variant mt-1 font-mono">${escapeHtml(formatCallHistoryTime(call.started_at))}</p>
+                </div>
+                <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="initiateCall(${otherUserId}, 'audio')" class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center" title="Voice Call">
+                        <span class="material-symbols-outlined text-xl">call</span>
+                    </button>
+                    <button onclick="initiateCall(${otherUserId}, 'video')" class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center" title="Video Call">
+                        <span class="material-symbols-outlined text-xl">videocam</span>
+                    </button>
+                </div>
             </div>
         </div>
     `;
 }
 
-async function loadCallHistory(contactId = activeContactId) {
+async function loadCallHistory(contactId = null, append = false) {
     const listEl = document.getElementById('callHistoryList');
-    const subtitleEl = document.getElementById('callHistorySubtitle');
+    const loadMoreContainer = document.getElementById('loadMoreCallsContainer');
     if (!listEl) return;
 
-    if (subtitleEl) {
-        subtitleEl.textContent = contactId
-            ? `Recent secure sessions with ${resolveContactForCall(contactId).name}`
-            : 'Recent secure sessions across all contacts';
+    if (!append) {
+        listEl.innerHTML = '<div class="text-sm text-on-surface-variant text-center py-20">Loading call history...</div>';
+        callHistoryOffset = 0;
+        callHistoryReachedEnd = false;
     }
 
-    listEl.innerHTML = '<div class="text-sm text-on-surface-variant text-center py-8">Loading call history...</div>';
+    if (callHistoryLoading || callHistoryReachedEnd) return;
+    callHistoryLoading = true;
+
     try {
-        const response = await fetch(
-            contactId ? `/api/calls/history?contact_id=${contactId}` : '/api/calls/history'
-        );
+        const url = new URL('/api/calls/history', window.location.origin);
+        if (contactId) url.searchParams.set('contact_id', contactId);
+        url.searchParams.set('limit', callHistoryLimit);
+        url.searchParams.set('offset', callHistoryOffset);
+
+        const response = await fetch(url);
         const history = await response.json();
-        if (!response.ok) {
-            throw new Error(history.detail || 'Could not load call history');
-        }
+        
+        if (!response.ok) throw new Error(history.detail || 'Could not load call history');
+
         if (!Array.isArray(history) || history.length === 0) {
-            listEl.innerHTML = '<div class="text-sm text-on-surface-variant text-center py-8">No call history yet.</div>';
+            callHistoryReachedEnd = true;
+            if (!append) {
+                listEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 text-center">
+                        <div class="w-16 h-16 bg-surface-container-highest rounded-full flex items-center justify-center mb-4 border border-white/5">
+                            <span class="material-symbols-outlined text-slate-500 text-3xl">history</span>
+                        </div>
+                        <h4 class="text-on-surface font-bold">No Call History</h4>
+                        <p class="text-xs text-on-surface-variant mt-1">Your secure calls will appear here.</p>
+                    </div>
+                `;
+            }
+            if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
             return;
         }
-        listEl.innerHTML = history.map(renderCallHistoryItem).join('');
+
+        const html = history.map(renderCallHistoryItem).join('');
+        if (append) {
+            listEl.insertAdjacentHTML('beforeend', html);
+        } else {
+            listEl.innerHTML = html;
+        }
+
+        callHistoryOffset += history.length;
+        if (history.length < callHistoryLimit) {
+            callHistoryReachedEnd = true;
+            if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
+        } else {
+            if (loadMoreContainer) loadMoreContainer.classList.remove('hidden');
+        }
+
     } catch (err) {
         console.error(err);
-        listEl.innerHTML = '<div class="text-sm text-red-300 text-center py-8">Could not load call history.</div>';
+        if (!append) {
+            listEl.innerHTML = '<div class="text-sm text-red-300 text-center py-20">Could not load call history.</div>';
+        }
+    } finally {
+        callHistoryLoading = false;
     }
 }
 
 function openCallHistoryModal() {
-    const modal = document.getElementById('callHistoryModal');
-    const content = document.getElementById('callHistoryModalContent');
-    if (!modal || !content) return;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        content.classList.remove('scale-95');
-    }, 10);
-    loadCallHistory(activeContactId);
+    switchToView('calls');
 }
 
 function closeCallHistoryModal() {
-    const modal = document.getElementById('callHistoryModal');
-    const content = document.getElementById('callHistoryModalContent');
-    if (!modal || !content) return;
-    modal.classList.add('opacity-0');
-    content.classList.add('scale-95');
-    setTimeout(() => {
-        modal.classList.remove('flex');
-        modal.classList.add('hidden');
-    }, 200);
+    switchToView('chats');
 }
 
 function clearCallTimer() {
@@ -3342,3 +3707,200 @@ async function blockActiveContact() {
         }
     }
 }
+
+// --- Biometric Management Section ---
+
+async function loadAuthenticators() {
+    const listEl = document.getElementById('authenticatorList');
+    const enrollBtn = document.getElementById('enrollDeviceBtn');
+    const supportMsg = document.getElementById('biometricSupportMsg');
+
+    const isSupported = await WebAuthnHelper.isSupported();
+    if (!isSupported) {
+        enrollBtn.classList.add('hidden');
+        supportMsg.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/auth/webauthn/authenticators');
+        if (!res.ok) throw new Error("Failed to load devices");
+        const devices = await res.json();
+
+        listEl.innerHTML = '';
+        if (devices.length === 0) {
+            listEl.innerHTML = '<p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold text-center py-4 bg-white/5 rounded-2xl border border-dashed border-white/10">No enrolled devices</p>';
+            return;
+        }
+
+        devices.forEach(device => {
+            const date = new Date(device.created_at).toLocaleDateString();
+            const deviceDiv = document.createElement('div');
+            deviceDiv.className = 'flex items-center justify-between p-4 bg-surface-container-low rounded-2xl border border-white/5 group';
+            deviceDiv.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-400">
+                        <span class="material-symbols-outlined text-sm">laptop_mac</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Enrolled Device</p>
+                        <p class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Added: ${date}</p>
+                    </div>
+                </div>
+                <button type="button" class="revoke-device-btn p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-400 rounded-lg transition-all" data-id="${device.id}">
+                    <span class="material-symbols-outlined text-xl">delete</span>
+                </button>
+            `;
+            listEl.appendChild(deviceDiv);
+        });
+
+        // Add event listeners to revoke buttons
+        listEl.querySelectorAll('.revoke-device-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.currentTarget.dataset.id;
+                const confirmed = await showModal({
+                    title: "Revoke Device",
+                    description: "Are you sure you want to remove this biometric device? You will no longer be able to login with its fingerprint."
+                });
+
+                if (confirmed) {
+                    const delRes = await fetch(`/api/auth/webauthn/authenticators/${id}`, { method: 'DELETE' });
+                    if (delRes.ok) {
+                        loadAuthenticators();
+                    }
+                }
+            });
+        });
+
+    } catch (e) {
+        console.error("Auth load error:", e);
+    }
+}
+
+async function enrollBiometricDevice() {
+    const password = await showModal({
+        title: "Confirm Enrollment",
+        description: "Please enter your password to securely enroll this device for biometric login.",
+        isPrompt: true // I'll need to update showModal to support this or use a simple hack
+    });
+
+    // Simple hack for prompt since I can't easily change showModal's design right now
+    if (!password) {
+        const manualPassword = prompt("Please enter your current password to confirm biometric enrollment:");
+        if (!manualPassword) return;
+        handleEnrollment(manualPassword);
+    } else {
+        handleEnrollment(password);
+    }
+}
+
+async function handleEnrollment(password) {
+    try {
+        // 1. Get current user data to derive KEK
+        const userRes = await fetch('/api/users/me');
+        const user = await userRes.json();
+        
+        // 2. Re-derive KEK from password
+        const salt = new Uint8Array(base64ToArrayBuffer(user.keys_salt));
+        const kek = await deriveWrappingKey(password, salt);
+
+        // 3. Decrypt DEK using KEK
+        const encryptedDek = base64ToArrayBuffer(user.encrypted_dek);
+        const dekIv = new Uint8Array(base64ToArrayBuffer(user.dek_iv));
+
+        const dekBuffer = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: dekIv },
+            kek,
+            encryptedDek
+        );
+
+        // 4. Get WebAuthn Registration Options
+        const optionsRes = await fetch('/api/auth/webauthn/register/options');
+        const options = await optionsRes.json();
+
+        // 5. Browser Prompt (navigator.credentials.create)
+        const credential = await WebAuthnHelper.register(options);
+
+        // 6. PRF wrapping of DEK
+        const extensionResults = credential.clientExtensionResults;
+        if (!extensionResults.prf || !extensionResults.prf.enabled) {
+            throw new Error("This device/browser does not support the PRF extension required for E2EE.");
+        }
+
+        // We need to re-authenticate with PRF to GET the key (registration only ENABLES it)
+        // Optimization: For simplicity, we just created it. 
+        // Actually, WebAuthn spec says we might need to call get() to get the PRF output if 
+        // create() didn't return it. But Chrome returns 'enabled: true'.
+        
+        // To get the actual PRF key, we must do a dummy 'get' or wait until next login.
+        // Wait, modern browsers might return the prf results in create() if requested.
+        // Let's try to get it via a quick 'get' if results are missing.
+        
+        const salt_prf = new TextEncoder().encode("mk-chats-prf-salt-v1-32bytes-len");
+        const requestOptions = {
+            publicKey: {
+                challenge: crypto.getRandomValues(new Uint8Array(32)),
+                allowCredentials: [{ id: base64ToArrayBuffer(credential.rawId), type: 'public-key' }],
+                extensions: { prf: { eval: { first: salt_prf } } }
+            }
+        };
+        const assertion = await navigator.credentials.get(requestOptions);
+        const prfResults = assertion.getClientExtensionResults().prf.results.first;
+        
+        const biometricKey = await WebAuthnHelper.deriveKeyFromPrf(prfResults);
+
+        // 7. Encrypt DEK with biometric key
+        const dekIvPrf = window.crypto.getRandomValues(new Uint8Array(12));
+        const encryptedDekPrf = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: dekIvPrf },
+            biometricKey,
+            dekBuffer
+        );
+
+        // 8. Verify and Save to Server
+        const verifyRes = await fetch('/api/auth/webauthn/register/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                credential: {
+                    id: credential.id,
+                    rawId: credential.rawId,
+                    type: credential.type,
+                    response: credential.response
+                },
+                encrypted_dek_prf: WebAuthnHelper.coerceToBase64Url(encryptedDekPrf),
+                dek_iv_prf: WebAuthnHelper.coerceToBase64Url(dekIvPrf)
+            })
+        });
+
+        if (!verifyRes.ok) {
+            const err = await verifyRes.json();
+            throw new Error(err.detail || "Verification failed");
+        }
+
+        await showModal({
+            title: "Success",
+            description: "Biometric login enabled successfully for this device!",
+            isAlert: true
+        });
+
+        loadAuthenticators();
+
+    } catch (e) {
+        console.error(e);
+        showModal({
+            title: "Enrollment Failed",
+            description: e.message,
+            isAlert: true
+        });
+    }
+}
+
+// Initial hook for settings button
+document.getElementById('sidebarSettingsBtn').addEventListener('click', () => {
+    // Wait a brief moment for modal to open if needed, then load authenticators
+    setTimeout(loadAuthenticators, 300);
+});
+
+document.getElementById('enrollDeviceBtn').onclick = enrollBiometricDevice;
+

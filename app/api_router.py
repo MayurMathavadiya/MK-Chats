@@ -11,6 +11,7 @@ from app.core import auth, deps
 from app.core.config import settings
 from app.services import backgound_jobs
 from app.core.email import send_password_reset_email
+from app.core import webauthn_utils, redis_client
 
 
 ONLINE_WINDOW = timedelta(minutes=2)
@@ -664,7 +665,20 @@ def get_call_history(
     user = deps.get_current_user(request, db)
     limit = min(limit, 100)
 
-    query = db.query(models.CallLog).filter(
+    initiator = aliased(models.User)
+    receiver = aliased(models.User)
+
+    query = db.query(
+        models.CallLog,
+        (initiator.first_name + " " + initiator.last_name).label("initiator_name"),
+        initiator.profile_pic.label("initiator_pic"),
+        (receiver.first_name + " " + receiver.last_name).label("receiver_name"),
+        receiver.profile_pic.label("receiver_pic")
+    ).join(
+        initiator, models.CallLog.initiator_id == initiator.id
+    ).join(
+        receiver, models.CallLog.receiver_id == receiver.id
+    ).filter(
         or_(
             models.CallLog.initiator_id == user.id,
             models.CallLog.receiver_id == user.id
@@ -685,9 +699,20 @@ def get_call_history(
             )
         )
 
-    return query.order_by(
+    results = query.order_by(
         models.CallLog.started_at.desc()
     ).limit(limit).offset(offset).all()
+
+    logs = []
+    for call, ini_name, ini_pic, rec_name, rec_pic in results:
+        resp = schemas.CallLogResponse.model_validate(call)
+        resp.initiator_name = ini_name
+        resp.initiator_pic = ini_pic
+        resp.receiver_name = rec_name
+        resp.receiver_pic = rec_pic
+        logs.append(resp)
+
+    return logs
 
 
 @router.post(
@@ -776,3 +801,155 @@ def update_call_log(
     db.commit()
     db.refresh(call)
     return call
+
+
+# --- WebAuthn (Biometric) Endpoints ---
+
+
+@router.get("/auth/webauthn/register/options", tags=[settings.AUTH_TAG])
+def webauthn_register_options(request: Request, db: deps.db_session):
+    user = deps.get_current_user(request, db)
+    options = webauthn_utils.get_registration_options(user.id, user.email)
+    
+    # STORE IN REDIS: This is where we use Redis to keep the challenge for 5 minutes
+    redis_client.store_webauthn_challenge(str(user.id), options["challenge"], "register")
+    
+    return options
+
+
+@router.post("/auth/webauthn/register/verify", tags=[settings.AUTH_TAG])
+def webauthn_register_verify(
+    verify_data: schemas.WebAuthnRegisterVerify,
+    request: Request,
+    db: deps.db_session
+):
+    user = deps.get_current_user(request, db)
+    
+    # GET FROM REDIS: We fetch the original challenge to make sure it matches the browser signature
+    challenge = redis_client.get_webauthn_challenge(str(user.id), "register")
+    if not challenge:
+        raise HTTPException(status_code=400, detail="Registration session expired")
+    
+    try:
+        verification = webauthn_utils.verify_registration(
+            {"challenge": challenge},
+            verify_data.credential
+        )
+        
+        # Save authenticator to DB
+        new_auth = models.UserAuthenticator(
+            user_id=user.id,
+            credential_id=verify_data.credential.id,
+            public_key=verification.credential_public_key,
+            sign_count=verification.sign_count,
+            encrypted_dek_prf=verify_data.encrypted_dek_prf,
+            dek_iv_prf=verify_data.dek_iv_prf
+        )
+        db.add(new_auth)
+        db.commit()
+        
+        # Cleanup Redis
+        redis_client.delete_webauthn_challenge(str(user.id), "register")
+        
+        return {"msg": "Success"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/auth/webauthn/login/options", tags=[settings.AUTH_TAG])
+def webauthn_login_options(login_data: schemas.WebAuthnLoginRequest, db: deps.db_session):
+    user = db.query(models.User).filter(models.User.mobile_number == login_data.mobile_number).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user's enrolled credentials
+    allowed_credentials = [
+        {"id": auth.credential_id, "type": "public-key"} 
+        for auth in user.authenticators
+    ]
+    
+    options = webauthn_utils.get_authentication_options(allowed_credentials)
+    
+    # STORE IN REDIS: Saving the login challenge
+    redis_client.store_webauthn_challenge(str(user.id), options["challenge"], "login")
+    
+    return options
+
+
+@router.post("/auth/webauthn/login/verify", tags=[settings.AUTH_TAG])
+def webauthn_login_verify(
+    verify_data: schemas.WebAuthnLoginVerify,
+    response: Response,
+    db: deps.db_session
+):
+    user = db.query(models.User).filter(models.User.mobile_number == verify_data.mobile_number).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # GET FROM REDIS: Fetching the challenge to verify the login signature
+    challenge = redis_client.get_webauthn_challenge(str(user.id), "login")
+    if not challenge:
+        raise HTTPException(status_code=400, detail="Login session expired")
+    
+    # Find the specific authenticator used
+    authenticator = db.query(models.UserAuthenticator).filter(
+        models.UserAuthenticator.credential_id == verify_data.credential.id
+    ).first()
+    
+    if not authenticator:
+        raise HTTPException(status_code=404, detail="Authenticator not found")
+
+    try:
+        verification = webauthn_utils.verify_authentication(
+            {"challenge": challenge},
+            verify_data.credential,
+            authenticator.public_key,
+            authenticator.sign_count
+        )
+        
+        # Update sign count
+        authenticator.sign_count = verification.new_sign_count
+        db.commit()
+        
+        # Cleanup Redis
+        redis_client.delete_webauthn_challenge(str(user.id), "login")
+        
+        # Issue JWT
+        token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = auth.create_access_token(
+            data={"sub": str(user.id)}, expires_delta=token_expires
+        )
+        
+        response.set_cookie(
+            key="access_token", 
+            value=f"Bearer {access_token}", 
+            httponly=True,
+            samesite="lax",
+            secure=True
+        )
+        
+        return {
+            "access_token": access_token,
+            "user_id": user.id,
+            "encrypted_dek_prf": authenticator.encrypted_dek_prf,
+            "dek_iv_prf": authenticator.dek_iv_prf
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/auth/webauthn/authenticators", tags=[settings.PROFILE_TAG])
+def list_authenticators(request: Request, db: deps.db_session):
+    user = deps.get_current_user(request, db)
+    return user.authenticators
+
+
+@router.delete("/auth/webauthn/authenticators/{auth_id}", tags=[settings.PROFILE_TAG])
+def delete_authenticator(auth_id: int, request: Request, db: deps.db_session):
+    user = deps.get_current_user(request, db)
+    db.query(models.UserAuthenticator).filter(
+        models.UserAuthenticator.id == auth_id,
+        models.UserAuthenticator.user_id == user.id
+    ).delete()
+    db.commit()
+    return {"msg": "Authenticator removed"}

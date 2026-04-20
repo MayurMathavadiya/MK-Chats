@@ -173,6 +173,10 @@ class CallLogResponse(BaseModel):
     answered_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
     duration_seconds: int
+    initiator_name: Optional[str] = None
+    initiator_pic: Optional[str] = None
+    receiver_name: Optional[str] = None
+    receiver_pic: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -182,5 +186,37 @@ class CallLogResponse(BaseModel):
 
 class BlockUserRequest(BaseModel):
     blocked_contact_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- WebAuthn Base Models ---
+
+
+class WebAuthnRegisterOptionsRequest(BaseModel):
+    # Potential future inputs for registration
+    pass
+
+
+class WebAuthnRegisterVerifyRequest(BaseModel):
+    credential: dict # The credential object from the browser
+    # E2EE wrapping data
+    encrypted_dek_prf: str
+    dek_iv_prf: str
+
+
+class WebAuthnLoginOptionsRequest(BaseModel):
+    mobile_number: str
+
+
+class WebAuthnLoginVerifyRequest(BaseModel):
+    mobile_number: str
+    credential: dict # The assertion object from the browser
+
+
+class UserAuthenticatorResponse(BaseModel):
+    id: int
+    credential_id: str
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
