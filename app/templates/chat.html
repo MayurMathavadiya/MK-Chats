@@ -9,9 +9,11 @@
     <div class="fixed inset-0 pointer-events-none bloom-top-right z-0"></div>
     <div class="fixed inset-0 pointer-events-none bloom-bottom-left z-0"></div>
 
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- SideNavBar (Left) -->
     <aside id="side-navbar"
-        class="fixed left-0 top-0 h-full z-[60] flex flex-col p-4 bg-slate-900/60 backdrop-blur-3xl w-64 border-r border-white/10 shadow-[0_0_40px_rgba(79,70,229,0.08)]">
+        class="xl:relative z-[100] flex flex-col p-4 bg-slate-900/60 backdrop-blur-3xl w-64 border-r border-white/10 shadow-[0_0_40px_rgba(79,70,229,0.08)]">
         <div class="flex items-center gap-3 mb-10 px-2">
             <button id="sidebarToggleBtn" class="text-slate-400 hover:text-white p-1 mr-1">
                 <span class="material-symbols-outlined text-2xl">menu</span>
@@ -105,6 +107,9 @@
             class="flex flex-col bg-surface-container-lowest border-r border-white/5 transition-all duration-300">
             <div class="p-6 md:px-6">
                 <div class="flex items-center gap-3 mb-6">
+                    <button id="mobileMenuBtn" class="xl:hidden w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 mr-1 active:scale-90 transition-transform">
+                        <span class="material-symbols-outlined text-2xl">menu</span>
+                    </button>
                     <h2 class="manrope text-2xl font-bold tracking-tight truncate flex-1">Messages</h2>
                 </div>
                 <div class="relative">
@@ -322,7 +327,7 @@
 
 <!-- Profile Update Modal (Stitch Alignment) -->
 <div id="profileModal"
-    class="fixed inset-0 bg-kin_surf_target/80 backdrop-blur-md hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+    class="fixed inset-0 bg-kin_surf_target/80 backdrop-blur-md hidden items-center justify-center z-40 p-4 opacity-0 transition-opacity duration-300">
     <div class="glass-card w-[95vw] md:max-w-2xl p-0 transform scale-95 transition-all outline-none max-h-[95vh] overflow-hidden rounded-[2.5rem] ghost-border flex flex-col"
         id="profileModalContent">
 
@@ -510,6 +515,22 @@
                 </div>
 
                 <div class="mt-8 pt-8 border-t border-white/5">
+                    <div id="securitySetupWarning" class="hidden mb-8 bg-indigo-500/10 border border-indigo-500/20 p-6 rounded-[2rem] animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                                <span class="material-symbols-outlined text-2xl">security</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-sm font-black font-manrope text-indigo-200 uppercase tracking-widest mb-1">Security Setup Required</h4>
+                                <p class="text-xs text-slate-400 leading-relaxed mb-4">Your account is currently using legacy authentication. To enable fingerprints and secure messaging, you need to complete a one-time security setup.</p>
+                                <button type="button" onclick="initiateSecuritySetup()" 
+                                    class="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg active:scale-95">
+                                    Set Up Security Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="flex items-center justify-between mb-6 px-1">
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-indigo-400">fingerprint</span>
@@ -518,8 +539,8 @@
                     </div>
 
                     <div id="biometricSupportMsg" class="hidden text-xs text-slate-500 mb-6 bg-amber-900/10 border border-amber-900/20 p-4 rounded-2xl">
-                        <span class="font-bold text-amber-500 block mb-1">Limited Browser Support</span>
-                        Your browser doesn't support the Fingerprint PRF extension. You can still login with your password.
+                        <span class="font-bold text-amber-500 block mb-1" id="biometricSupportTitle">Limited Browser Support</span>
+                        <span id="biometricSupportDesc">Your browser doesn't support the Fingerprint PRF extension. You can still login with your password.</span>
                     </div>
 
                     <div class="space-y-4">

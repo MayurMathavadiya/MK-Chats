@@ -837,7 +837,17 @@ function arrayBufferToBase64(buffer) {
 }
 
 function base64ToArrayBuffer(base64) {
-    const binary_string = window.atob(base64);
+    if (!base64) return new Uint8Array(0).buffer;
+    
+    // Convert base64url to base64
+    let standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Add padding if missing
+    while (standardBase64.length % 4 !== 0) {
+        standardBase64 += '=';
+    }
+
+    const binary_string = window.atob(standardBase64);
     const len = binary_string.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
@@ -3715,14 +3725,41 @@ async function loadAuthenticators() {
     const enrollBtn = document.getElementById('enrollDeviceBtn');
     const supportMsg = document.getElementById('biometricSupportMsg');
 
-    const isSupported = await WebAuthnHelper.isSupported();
-    if (!isSupported) {
+    const supportTitle = document.getElementById('biometricSupportTitle');
+    const supportDesc = document.getElementById('biometricSupportDesc');
+
+    const support = await WebAuthnHelper.getSupportStatus();
+    if (!support.ok) {
         enrollBtn.classList.add('hidden');
         supportMsg.classList.remove('hidden');
+
+        if (support.reason === 'no_hardware') {
+            if (supportTitle) supportTitle.innerText = "No Fingerprint Reader Detected";
+            if (supportDesc) supportDesc.innerText = "We couldn't find a compatible biometric sensor on this device. You can still login securely with your password.";
+        } else if (support.reason === 'no_prf') {
+            if (supportTitle) supportTitle.innerText = "Limited Extension Support";
+            if (supportDesc) supportDesc.innerText = "Your browser doesn't support the required encryption extensions for fingerprint login.";
+        } else {
+            if (supportTitle) supportTitle.innerText = "Biometrics Unsupported";
+            if (supportDesc) supportDesc.innerText = "Your current browser or operating system does not support biometric authentication.";
+        }
         return;
     }
 
     try {
+        // Double check encryption metadata as well
+        const userRes = await fetch('/api/users/me');
+        const user = await userRes.json();
+        const warningEl = document.getElementById('securitySetupWarning');
+        
+        if (warningEl) {
+            if (!user.encrypted_dek || !user.keys_salt) {
+                warningEl.classList.remove('hidden');
+            } else {
+                warningEl.classList.add('hidden');
+            }
+        }
+
         const res = await fetch('/api/auth/webauthn/authenticators');
         if (!res.ok) throw new Error("Failed to load devices");
         const devices = await res.json();
@@ -3777,14 +3814,117 @@ async function loadAuthenticators() {
     }
 }
 
+window.initiateSecuritySetup = async function() {
+    const password = await showModal({
+        title: "Complete Security Setup",
+        description: "Your account is missing end-to-end encryption metadata. Please enter your current password to securely initialize your encryption keys.",
+        isPrompt: true,
+        inputType: "password"
+    });
+
+    if (!password) return;
+
+    try {
+        showModal({ title: "Initializing...", description: "Generating your secure keys. Please wait...", isAlert: true });
+        
+        // 1. Generate new Salt and derive KEK
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        const kek = await deriveWrappingKey(password, salt);
+
+        // 2. Generate random DEK
+        const dek = window.crypto.getRandomValues(new Uint8Array(32)); // 256-bit DEK
+        const dekIv = window.crypto.getRandomValues(new Uint8Array(12));
+
+        // 3. Encrypt DEK with KEK
+        const encryptedDek = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: dekIv },
+            kek,
+            dek
+        );
+
+        // 4. Generate RSA Key Pair for E2EE
+        const rsaKeyPair = await window.crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: "SHA-256",
+            },
+            true,
+            ["encrypt", "decrypt"]
+        );
+
+        const publicKey = await window.crypto.subtle.exportKey("spki", rsaKeyPair.publicKey);
+        const privateKey = await window.crypto.subtle.exportKey("pkcs8", rsaKeyPair.privateKey);
+
+        const privKeyIv = window.crypto.getRandomValues(new Uint8Array(12));
+        
+        // Use DEK as an AES-GCM key to encrypt the private key
+        const dekKey = await window.crypto.subtle.importKey(
+            "raw", dek, "AES-GCM", false, ["encrypt"]
+        );
+
+        const encryptedPrivKey = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: privKeyIv },
+            dekKey,
+            privateKey
+        );
+
+        // 5. Upload to Server
+        const updateRes = await fetch('/api/profile', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                public_key: arrayBufferToBase64(publicKey),
+                encrypted_private_key: arrayBufferToBase64(encryptedPrivKey),
+                encrypted_dek: arrayBufferToBase64(encryptedDek),
+                keys_salt: arrayBufferToBase64(salt),
+                dek_iv: arrayBufferToBase64(dekIv),
+                priv_key_iv: arrayBufferToBase64(privKeyIv)
+            })
+        });
+
+        if (!updateRes.ok) throw new Error("Failed to save security metadata.");
+
+        await showModal({
+            title: "Security Initialized",
+            description: "Your encryption keys have been successfully created! You can now enroll for biometric login.",
+            isAlert: true
+        });
+
+        // Trigger biometric detection again
+        loadAuthenticators();
+        
+    } catch (e) {
+        console.error("Security initialization failed:", e);
+        showModal({ title: "Setup Failed", description: "Could not initialize security: " + e.message, isAlert: true });
+    }
+}
+
 async function enrollBiometricDevice() {
+    // Check for missing metadata before proceeding
+    const userRes = await fetch('/api/users/me');
+    const user = await userRes.json();
+    
+    if (!user.encrypted_dek || !user.keys_salt) {
+        const repair = await showModal({
+            title: "Security Setup Required",
+            description: "Your account needs a one-time security initialization before you can use fingerprints. Would you like to set it up now?",
+            isConfirm: true
+        });
+        if (repair) {
+            initiateSecuritySetup();
+        }
+        return;
+    }
+
     const password = await showModal({
         title: "Confirm Enrollment",
         description: "Please enter your password to securely enroll this device for biometric login.",
-        isPrompt: true // I'll need to update showModal to support this or use a simple hack
+        isPrompt: true,
+        inputType: "password"
     });
 
-    // Simple hack for prompt since I can't easily change showModal's design right now
     if (!password) {
         const manualPassword = prompt("Please enter your current password to confirm biometric enrollment:");
         if (!manualPassword) return;
@@ -3796,10 +3936,21 @@ async function enrollBiometricDevice() {
 
 async function handleEnrollment(password) {
     try {
+        console.log("Starting biometric enrollment...");
+
         // 1. Get current user data to derive KEK
         const userRes = await fetch('/api/users/me');
         const user = await userRes.json();
         
+        console.log("User data retrieved. Checking encryption metadata...");
+        console.log("- keys_salt length:", user.keys_salt ? user.keys_salt.length : 0);
+        console.log("- encrypted_dek length:", user.encrypted_dek ? user.encrypted_dek.length : 0);
+        console.log("- dek_iv length:", user.dek_iv ? user.dek_iv.length : 0);
+
+        if (!user.encrypted_dek || !user.dek_iv || !user.keys_salt) {
+            throw new Error("Missing encryption metadata. Please ensure your account's end-to-end encryption is initialized.");
+        }
+
         // 2. Re-derive KEK from password
         const salt = new Uint8Array(base64ToArrayBuffer(user.keys_salt));
         const kek = await deriveWrappingKey(password, salt);
@@ -3808,11 +3959,21 @@ async function handleEnrollment(password) {
         const encryptedDek = base64ToArrayBuffer(user.encrypted_dek);
         const dekIv = new Uint8Array(base64ToArrayBuffer(user.dek_iv));
 
+        console.log("Buffers prepared for decryption:");
+        console.log("- encryptedDek (ArrayBuffer) byteLength:", encryptedDek.byteLength);
+        console.log("- dekIv (Uint8Array) length:", dekIv.length);
+
+        if (encryptedDek.byteLength < 16) {
+            throw new Error(`The encrypted security key is too short (${encryptedDek.byteLength} bytes). It must be at least 16 bytes for AES-GCM.`);
+        }
+
         const dekBuffer = await window.crypto.subtle.decrypt(
             { name: "AES-GCM", iv: dekIv },
             kek,
             encryptedDek
         );
+        
+        console.log("Successfully decrypted DEK.");
 
         // 4. Get WebAuthn Registration Options
         const optionsRes = await fetch('/api/auth/webauthn/register/options');
@@ -3896,10 +4057,63 @@ async function handleEnrollment(password) {
     }
 }
 
-// Initial hook for settings button
-document.getElementById('sidebarSettingsBtn').addEventListener('click', () => {
-    // Wait a brief moment for modal to open if needed, then load authenticators
-    setTimeout(loadAuthenticators, 300);
+function openProfileModal() {
+    const modal = document.getElementById('profileModal');
+    const content = document.getElementById('profileModalContent');
+    if (!modal || !content) return;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.classList.add('opacity-100');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+    
+    // Load authenticators when opening settings/profile
+    loadAuthenticators();
+}
+
+// Profile Dropdown & Modal Logic
+const sidebarSettingsBtn = document.getElementById('sidebarSettingsBtn');
+const profileDropdown = document.getElementById('profileDropdown');
+const profileEditBtn = document.getElementById('profileEditBtn');
+
+sidebarSettingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileDropdown.classList.toggle('hidden');
+});
+
+profileEditBtn.addEventListener('click', () => {
+    profileDropdown.classList.add('hidden');
+    openProfileModal();
+});
+
+document.addEventListener('click', (e) => {
+    if (!profileDropdown.contains(e.target) && !sidebarSettingsBtn.contains(e.target)) {
+        profileDropdown.classList.add('hidden');
+    }
+});
+
+// Mobile Navigation Logic
+const toggleSidebar = () => {
+    document.body.classList.toggle('sidebar-open');
+};
+
+document.getElementById('mobileMenuBtn').addEventListener('click', toggleSidebar);
+document.getElementById('sidebarToggleBtn').addEventListener('click', toggleSidebar);
+document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.body.classList.remove('sidebar-open');
+});
+
+// Auto-close sidebar on mobile when navigating
+document.querySelectorAll('#side-navbar a, #side-navbar button').forEach(el => {
+    el.addEventListener('click', () => {
+        if (window.innerWidth < 1280) {
+            document.body.classList.remove('sidebar-open');
+        }
+    });
 });
 
 document.getElementById('enrollDeviceBtn').onclick = enrollBiometricDevice;

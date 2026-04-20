@@ -11,55 +11,53 @@
         transform var(--transition-speed) var(--transition-timing) !important;
 }
 
-#main-shell {
-    transition: padding-left var(--transition-speed) var(--transition-timing) !important;
-    padding-left: var(--navbar-expanded-w);
-    width: 100%;
-    display: flex;
-}
+/* Layout Breakpoints */
+@media (min-width: 1280px) {
+    #side-navbar {
+        position: relative !important;
+        height: 100vh;
+        z-index: 50;
+        width: var(--navbar-expanded-w);
+        transition: width var(--transition-speed) var(--transition-timing) !important;
+    }
 
-/* Collapsed SideNavBar State */
-body.sidebar-collapsed #side-navbar {
-    width: var(--navbar-collapsed-w) !important;
-}
+    #main-shell {
+        flex: 1;
+        padding-left: 0;
+        display: flex;
+    }
 
-body.sidebar-collapsed #main-shell {
-    padding-left: var(--navbar-collapsed-w) !important;
-}
+    body.sidebar-collapsed #side-navbar {
+        width: var(--navbar-collapsed-w) !important;
+    }
 
-body.sidebar-collapsed #side-navbar .sidebar-label,
-body.sidebar-collapsed #side-navbar .sidebar-logo-text {
-    opacity: 0;
-    pointer-events: none;
-    display: none !important;
-}
+    body.sidebar-collapsed #side-navbar .sidebar-label,
+    body.sidebar-collapsed #side-navbar .sidebar-logo-text {
+        opacity: 0;
+        pointer-events: none;
+        display: none !important;
+    }
 
-/* Pane Sizing and Transitions */
-#sidebar {
-    width: var(--contact-list-w);
-    min-width: var(--contact-list-w);
-    transition: transform var(--transition-speed) var(--transition-timing),
-        width var(--transition-speed) var(--transition-timing);
-}
-
-@media (max-width: 1279px) {
-    #sidebar {
-        width: 100% !important;
-        min-width: 0 !important;
+    body.sidebar-collapsed #sidebarSettingsBtn {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 
-#chat-container {
-    flex: 1;
-    min-width: 0;
-}
-
-/* Mobile Zone (<768px) */
-@media (max-width: 767px) {
+/* Mobile & Tablet Toggleable SideNav Logic */
+@media (max-width: 1279px) {
     #side-navbar {
+        position: fixed !important;
+        left: 0;
+        top: 0;
+        height: 100dvh;
+        width: 280px !important;
         transform: translateX(-100%);
-        width: var(--navbar-expanded-w) !important;
-        z-index: 50;
+        z-index: 100;
+        display: flex !important;
+        /* Always flex but hidden via transform */
+        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
     }
 
     body.sidebar-open #side-navbar {
@@ -70,27 +68,26 @@ body.sidebar-collapsed #side-navbar .sidebar-logo-text {
         padding-left: 0 !important;
     }
 
-    /* Mutual Exclusivity on Mobile */
-    body.chat-active #sidebar {
-        display: none !important;
+    /* Overlay for mobile sidebar */
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 90;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition-speed) ease;
     }
 
-    body:not(.chat-active) #chat-container {
-        display: none !important;
+    body.sidebar-open .sidebar-overlay {
+        opacity: 1;
+        pointer-events: auto;
     }
 }
 
-/* Tablet/Small Laptop Zone (768px - 1280px) */
-@media (min-width: 768px) and (max-width: 1279px) {
-    #main-shell {
-        padding-left: var(--navbar-collapsed-w) !important;
-    }
-
-    body:not(.sidebar-collapsed) #main-shell {
-        padding-left: var(--navbar-expanded-w) !important;
-    }
-
-    /* Mutual Exclusivity on Tablet to prevent cramped chat */
+/* Mobile Mutual Exclusivity (<768px only) */
+@media (max-width: 767px) {
     body.chat-active #sidebar {
         display: none !important;
     }
@@ -102,6 +99,7 @@ body.sidebar-collapsed #side-navbar .sidebar-logo-text {
 
 /* Large Desktop Zone (>1280px) */
 @media (min-width: 1280px) {
+
     /* On Desktop, elements are managed by view-mode classes */
     body.view-mode-chats #sidebar {
         display: flex;

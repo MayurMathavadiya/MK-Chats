@@ -1,11 +1,36 @@
 const WebAuthnHelper = {
-    // Check if browser supports WebAuthn and PRF
-    isSupported: async function() {
-        if (!window.PublicKeyCredential) return false;
+    // Check if browser supports WebAuthn and biometrics
+    getSupportStatus: async function() {
+        // 1. Browser check
+        if (!window.PublicKeyCredential) {
+            return { ok: false, reason: 'browser_unsupported' };
+        }
         
-        // Check for PRF extension support
-        const extensions = await PublicKeyCredential.getClientCapabilities();
-        return !!extensions.prf;
+        // 2. Hardware check
+        const isPlatformAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (!isPlatformAvailable) {
+            return { ok: false, reason: 'no_hardware' };
+        }
+
+        // 3. PRF extension check
+        try {
+            if (PublicKeyCredential.getClientCapabilities) {
+                const caps = await PublicKeyCredential.getClientCapabilities();
+                if (!caps.prf) {
+                    return { ok: false, reason: 'no_prf' };
+                }
+            }
+        } catch (e) {
+            console.warn("Error checking client capabilities:", e);
+        }
+        
+        return { ok: true };
+    },
+
+    // Legacy alias for compatibility during transition
+    isSupported: async function() {
+        const status = await this.getSupportStatus();
+        return status.ok;
     },
 
     // Convert base64 to ArrayBuffer
@@ -49,27 +74,25 @@ const WebAuthnHelper = {
                 user: {
                     ...options.publicKey.user,
                     id: this.coerceToArrayBuffer(options.publicKey.user.id)
+                },
+                // Crucial for mobile biometrics
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required",
+                    residentKey: "required",
+                    requireResidentKey: true
+                },
+                extensions: {
+                    prf: { enabled: true }
                 }
             }
         };
 
-        // Add PRF extension if supported
-        if (await this.isSupported()) {
-            creationOptions.publicKey.extensions = {
-                prf: { enabled: true }
-            };
-        }
-
         const credential = await navigator.credentials.create(creationOptions);
         
-        // Extract PRF output to wrap the DEK
-        let prfOutput = null;
+        // Extract PRF output
         const extensionResults = credential.getClientExtensionResults();
-        if (extensionResults.prf && extensionResults.prf.enabled) {
-            // We'll use this later to wrap the DEK
-            console.log("PRF enabled for this credential");
-        }
-
+        
         return {
             id: credential.id,
             rawId: this.coerceToBase64Url(credential.rawId),
@@ -94,6 +117,7 @@ const WebAuthnHelper = {
                     ...c,
                     id: this.coerceToArrayBuffer(c.id)
                 })),
+                userVerification: "required", // Explicitly trigger biometrics
                 extensions: {
                     prf: {
                         eval: { first: salt }

@@ -24,6 +24,12 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     profile_pic: Optional[str] = None
+    public_key: Optional[str] = None
+    encrypted_private_key: Optional[str] = None
+    encrypted_dek: Optional[str] = None
+    keys_salt: Optional[str] = None
+    dek_iv: Optional[str] = None
+    priv_key_iv: Optional[str] = None
 
 
 class UserLogin(BaseModel):

@@ -255,6 +255,20 @@ def update_profile(
     if user_update.profile_pic is not None:
         user.profile_pic = user_update.profile_pic
     
+    # Allow initializing security fields if they are not already set
+    if user_update.public_key is not None:
+        user.public_key = user_update.public_key
+    if user_update.encrypted_private_key is not None:
+        user.encrypted_private_key = user_update.encrypted_private_key
+    if user_update.encrypted_dek is not None:
+        user.encrypted_dek = user_update.encrypted_dek
+    if user_update.keys_salt is not None:
+        user.keys_salt = user_update.keys_salt
+    if user_update.dek_iv is not None:
+        user.dek_iv = user_update.dek_iv
+    if user_update.priv_key_iv is not None:
+        user.priv_key_iv = user_update.priv_key_iv
+    
     db.commit()
     db.refresh(user)
     return schemas.UserResponse.model_validate(user).model_copy(
