@@ -73,3 +73,15 @@ def forgot_password_page(request: Request):
 def reset_password_page(request: Request):
     """Render the password reset page."""
     return templates.TemplateResponse(request, "reset_password.html")
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    """Render the privacy policy page."""
+    return templates.TemplateResponse(request, "privacy.html")
+
+
+@router.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request):
+    """Render the terms and conditions page."""
+    return templates.TemplateResponse(request, "terms.html")

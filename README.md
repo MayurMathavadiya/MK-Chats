@@ -31,6 +31,7 @@ MK Chats is a FastAPI-based chat application featuring End-to-End Encryption (E2
 - Chat clear flow with background cleanup
 - Block and unblock contacts
 - CSP middleware for stronger browser-side script protections
+- Privacy Policy and Terms and Conditions pages
 
 ## Project Structure
 
@@ -116,6 +117,8 @@ Useful routes:
 - `/register` - registration page
 - `/forgot-password` - password reset request page
 - `/reset-password` - password reset page
+- `/privacy` - privacy policy page
+- `/terms` - terms and conditions page
 
 ## REST API Overview
 
