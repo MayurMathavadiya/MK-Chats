@@ -18,7 +18,6 @@ const recentNotificationTags = new Map(); // tag -> timestamp
 function initDesktopNotifications() {
     if (!('Notification' in window)) return;
     if (!window.isSecureContext && location.hostname !== 'localhost') {
-        console.warn("Notifications require a secure context (HTTPS or localhost).");
         return;
     }
 
@@ -27,9 +26,7 @@ function initDesktopNotifications() {
         document.addEventListener('click', async () => {
             try {
                 await Notification.requestPermission();
-            } catch (e) {
-                console.warn("Notification permission request failed", e);
-            }
+            } catch (e) {}
         }, { once: true, capture: true });
     }
 }
@@ -70,14 +67,13 @@ function showDesktopNotification({ title, body, tag, icon, onClick } = {}) {
                 // Allow a small tick for focus to propagate
                 setTimeout(() => {
                     try { window.focus(); } catch (e) { }
-                    try { onClick(); } catch (e) { console.error("onClick error:", e); }
+                    try { onClick(); } catch (e) {}
                     try { notif.close(); } catch (e) { }
                 }, 0);
             };
         }
         return notif;
     } catch (e) {
-        console.warn("Desktop notification failed", e);
         return null;
     }
 }
@@ -121,14 +117,12 @@ async function getSharedKeyForUser(userId) {
         sharedKeyCache.set(numericUserId, sharedKey || null);
         return sharedKey || null;
     } catch (e) {
-        console.warn("Shared key derivation failed", e);
         sharedKeyCache.set(numericUserId, null);
         return null;
     }
 }
 
 function focusAndOpenChat(userId) {
-    console.log("Redirecting to chat for user:", userId);
     try { window.focus(); } catch (e) { }
 
     // Ensure we are not on a sub-page if needed (not applicable for this monolith)
@@ -139,13 +133,20 @@ function focusAndOpenChat(userId) {
 
     const contact = getContactById(userId);
     if (!contact) {
-        console.warn("Contact not found for focus:", userId);
         // Fallback: If contact not in cache, trigger a reload then select
         loadContacts().then(() => {
             const reContact = getContactById(userId);
             if (reContact) {
                 const name = `${reContact.first_name || ''} ${reContact.last_name || ''}`.trim() || `User ${Number(userId)}`;
-                selectUser(Number(reContact.id), name, reContact.public_key, reContact.mobile_number, reContact.profile_pic, Boolean(reContact.blocked_by_me), Boolean(reContact.blocked_me)).catch(console.error);
+                selectUser(
+                    Number(reContact.id), 
+                    name, 
+                    reContact.public_key, 
+                    reContact.mobile_number, 
+                    reContact.profile_pic, 
+                    Boolean(reContact.blocked_by_me), 
+                    Boolean(reContact.blocked_me)
+                ).catch(() => {});
             }
         });
         return;
@@ -160,7 +161,7 @@ function focusAndOpenChat(userId) {
         contact.profile_pic || null,
         Boolean(contact.blocked_by_me),
         Boolean(contact.blocked_me)
-    ).catch(console.error);
+    ).catch(() => {});
 }
 
 function shouldNotifyForIncomingMessage(msg) {
@@ -192,7 +193,6 @@ async function notifyIncomingMessage(msg) {
             preview = "Attachment";
         }
     } catch (e) {
-        console.warn("Notification preview failed", e);
     }
 
     if (preview && preview.length > 120) preview = preview.slice(0, 117) + '...';
@@ -254,7 +254,6 @@ async function initLocalStream(mode = 'audio') {
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: wantsVideo });
         } catch (e) {
-            console.error("Media access denied", e);
             alert(wantsVideo ? "Camera and microphone access are required for video calling." : "Microphone access is required for calling.");
             return false;
         }
@@ -273,7 +272,6 @@ async function initLocalStream(mode = 'audio') {
                 }
             });
         } catch (e) {
-            console.error("Camera access denied", e);
             alert("Camera access is required to switch to video.");
             return false;
         }
@@ -439,17 +437,17 @@ function createPeerConnection(remoteUserId) {
                     remoteVideoEl.srcObject = remoteStream;
                 }
                 // Try playing through video element first (often more reliable sync)
-                remoteVideoEl.play().catch(e => console.warn("Remote video play blocked", e));
+                remoteVideoEl.play().catch(() => {});
             }
             audioEl.srcObject = remoteStream;
-            audioEl.play().catch(e => console.warn("Audio play blocked", e));
+            audioEl.play().catch(() => {});
         }
 
         if (event.track.kind === 'video') {
             if (remoteVideoEl && remoteVideoEl.srcObject !== remoteStream) {
                 remoteVideoEl.srcObject = remoteStream;
             }
-            remoteVideoEl.play().catch(e => console.warn("Remote video play blocked", e));
+            remoteVideoEl.play().catch(() => {});
 
             // Mute the backup audioEl if video is active to avoid double-audio/echo
             audioEl.muted = true;
@@ -469,7 +467,6 @@ function createPeerConnection(remoteUserId) {
         if (state === 'connected' || state === 'completed') {
             setCallState('live', remoteUserId);
         } else if (state === 'failed' || state === 'disconnected') {
-            console.warn("ICE Connection state:", state);
         }
     };
 
@@ -484,7 +481,6 @@ async function processPendingIceCandidates() {
         try {
             await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (e) {
-            console.error("Failed to add queued ICE candidate", e);
         }
     }
     pendingIceCandidatesQueue = [];
@@ -517,7 +513,6 @@ function setupWebRTCSocketListeners() {
                 syncLocalVideoPreview();
                 return;
             } catch (e) {
-                console.error(e);
                 return;
             }
         }
@@ -525,7 +520,7 @@ function setupWebRTCSocketListeners() {
         if (currentCallState !== 'idle' && Number(currentCallPeerId) !== Number(data.sender_id)) {
             socket.emit("webrtc_end", { receiver_id: data.sender_id, call_id: data.call_id, reason: "busy" });
             if (data.call_id) {
-                patchCallLog('missed', data.call_type || 'audio', data.call_id).catch(console.error);
+                patchCallLog('missed', data.call_type || 'audio', data.call_id).catch(() => {});
             }
             return;
         }
@@ -559,7 +554,7 @@ function setupWebRTCSocketListeners() {
                 }
                 socket.emit("webrtc_answer", { receiver_id: data.sender_id, answer: answer, call_id: currentCallLogId, call_type: currentCallMode });
                 setCallState('live', data.sender_id);
-            } catch (e) { console.error(e); }
+            } catch (e) { }
         };
 
         document.getElementById('rejectCallBtn').onclick = () => {
@@ -568,7 +563,7 @@ function setupWebRTCSocketListeners() {
             currentCallState = 'idle';
             currentCallPeerId = null;
             if (currentCallLogId) {
-                patchCallLog('rejected', currentCallMode, currentCallLogId).catch(console.error);
+                patchCallLog('rejected', currentCallMode, currentCallLogId).catch(() => {});
             }
             socket.emit("webrtc_end", { receiver_id: data.sender_id, call_id: currentCallLogId, reason: 'rejected' });
             cleanupWebRTC();
@@ -585,7 +580,7 @@ function setupWebRTCSocketListeners() {
                 currentCallMode = data.call_type === 'video' ? 'video' : currentCallMode;
                 if (!wasVideo && currentCallMode === 'video') resetVideoStageLayout();
                 setCallState('connecting', data.sender_id);
-            } catch (e) { console.error(e); }
+            } catch (e) { }
         }
     });
 
@@ -593,7 +588,7 @@ function setupWebRTCSocketListeners() {
         if (peerConnection && peerConnection.remoteDescription) {
             try {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            } catch (e) { console.error(e); }
+            } catch (e) { }
         } else {
             pendingIceCandidatesQueue.push(data.candidate);
         }
@@ -816,7 +811,6 @@ async function initCrypto() {
     try {
         const privKeyJwkStr = sessionStorage.getItem('chat_priv_key');
         if (!privKeyJwkStr) {
-            console.warn("Private key not found in sessionStorage! Cannot decrypt messages. Logging out...");
             let seconds = 10;
             const modalPromise = showModal({
                 title: "Security Session Locked",
@@ -846,7 +840,7 @@ async function initCrypto() {
             false,
             ["deriveKey", "deriveBits"]
         );
-    } catch (e) { console.error("Crypto init error:", e); }
+    } catch (e) { }
 }
 
 // --- Profile Modal Logic ---
@@ -991,7 +985,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new Error(pwErr.detail || "Password update failed");
                         }
                     } catch (pwErr) {
-                        console.error("Password change failed:", pwErr);
                         alert("Profile updated, but password change failed: " + pwErr.message);
                     }
                 }
@@ -1008,7 +1001,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert(err.detail || "Failed to update profile");
                 }
             } catch (err) {
-                console.error(err);
                 alert(err.message || 'Failed to update profile');
             } finally {
                 btn.innerText = oldText;
@@ -1131,7 +1123,7 @@ async function importContactPublicKey(b64Key) {
             false,
             []
         );
-    } catch (e) { console.error("Import public key error:", e); return null; }
+    } catch (e) { return null; }
 }
 
 async function deriveSharedSecret(contactPubKey) {
@@ -1176,7 +1168,6 @@ async function decryptText(payload, sharedKey) {
         let dec = new TextDecoder();
         return dec.decode(decrypted);
     } catch (e) {
-        console.error(e);
         return "[Decryption Error]";
     }
 }
@@ -1227,10 +1218,10 @@ function updatePresenceUI(userId, isOnline) {
     }
 
     cachedContacts = cachedContacts.map((contact) => (
-        Number(contact.id) === numericUserId ? { ...contact, is_online: isOnline } : contact
+        Number(contact.id) === numericUserId ? { ...contact } : contact
     ));
     if (temporaryPinnedContact && Number(temporaryPinnedContact.id) === numericUserId) {
-        temporaryPinnedContact = { ...temporaryPinnedContact, is_online: isOnline };
+        temporaryPinnedContact = { ...temporaryPinnedContact };
     }
 
     if (activeContactId === numericUserId) {
@@ -1323,19 +1314,17 @@ function handlePresenceIds(onlineIds) {
     hasPresenceSync = true;
     lastPresenceSyncAt = Date.now();
     const onlineSet = new Set((onlineIds || []).map((id) => Number(id)));
-    console.log("[Presence] Received online IDs:", onlineSet);
     syncOnlineUsers(onlineSet);
 }
 
 async function initRealtime() {
-    socket = io({ 
+    socket = io({
         withCredentials: true,
-        transports: ['websocket', 'polling'] 
+        transports: ['websocket', 'polling']
     });
     setupWebRTCSocketListeners();
 
     socket.on('connect', async () => {
-        console.log('Polling sync connected');
         hasPresenceSync = false;
         socket.emit('request_presence');
         updateCurrentUserPresenceUI(true);
@@ -1378,7 +1367,7 @@ async function initRealtime() {
 
     socket.on('receive_message', async (msg) => {
         if (Number(msg.receiver_id) === Number(currentUserId) && Number(msg.sender_id) !== Number(currentUserId)) {
-            notifyIncomingMessage(msg).catch(console.error);
+            notifyIncomingMessage(msg).catch(() => {});
         }
         if ((Number(msg.sender_id) === Number(activeContactId) && Number(msg.receiver_id) === Number(currentUserId)) ||
             (Number(msg.sender_id) === Number(currentUserId) && Number(msg.receiver_id) === Number(activeContactId))) {
@@ -1456,7 +1445,7 @@ async function initRealtime() {
 
     socket.on('read_receipt', (msg) => {
         if (!window.pendingReadReceipts) window.pendingReadReceipts = new Set();
-        
+
         // If this is a sync from another one of our own tabs
         if (msg.is_self_sync) {
             const contactEl = document.getElementById('contact-' + msg.contact_id);
@@ -1485,7 +1474,6 @@ async function initRealtime() {
     });
 
     socket.on('disconnect', () => {
-        console.log("Polling sync disconnected");
         updateCurrentUserPresenceUI(false);
     });
 
@@ -1626,7 +1614,6 @@ async function loadMessageHistory(contactId) {
         scrollToBottom();
         await markChatAsRead(contactId);
     } catch (e) {
-        console.error(e);
         if (loadToken !== activeHistoryLoadToken || Number(contactId) !== Number(activeContactId)) {
             return;
         }
@@ -1762,13 +1749,12 @@ async function selectUser(id, name, pubKeyB64, mobile = null, profilePic = null,
     // Import their public key and derive shared secret
     try {
         if (!pubKeyB64 || pubKeyB64 === "null") {
-            console.warn("User has no public key yet.");
             activeSharedKey = null;
         } else {
             let contactPubKey = await importContactPublicKey(pubKeyB64);
             activeSharedKey = await deriveSharedSecret(contactPubKey);
         }
-    } catch (e) { console.error("Key derivation failed", e); }
+    } catch (e) { }
 
     await loadMessageHistory(id);
 }
@@ -1855,7 +1841,6 @@ async function renderContactList(contactsArray) {
                     lastMsgText = "Legacy message";
                 }
             } catch (e) {
-                console.warn("Could not decrypt preview for contact", contact.id, e);
                 lastMsgText = "Encrypted message";
             }
         } else if (contact.last_message_at) {
@@ -1922,7 +1907,6 @@ async function renderContactList(contactsArray) {
 
     // Re-apply presence state if we already have it from the socket
     if (hasPresenceSync) {
-        console.log("[Presence] Re-applying presence state to newly rendered list");
         for (const userId of onlineUserIds) {
             updatePresenceUI(userId, true);
         }
@@ -1942,11 +1926,9 @@ async function loadContacts() {
             }
             await renderContactList(cachedContacts);
         } else {
-            console.error("Failed to fetch contacts", res.status);
             if (listDiv) listDiv.innerHTML = '<div class="text-center text-red-300 text-xs mt-10">Could not load contacts</div>';
         }
     } catch (e) {
-        console.error("Error loading contacts", e);
         if (listDiv) listDiv.innerHTML = '<div class="text-center text-red-300 text-xs mt-10">Server unreachable</div>';
     }
 }
@@ -1972,7 +1954,7 @@ function setupSearch() {
                     const results = (await res.json()).map(normalizeContactData);
                     await renderContactList(results);
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { }
         }, 300);
     });
 }
@@ -2070,7 +2052,7 @@ function appendMessageUI(msg, plainText, plainFileData = null) {
         : isPending
             ? getPendingStatusIcon()
             : '<span class="material-symbols-outlined text-[14px] text-slate-500">done</span>';
-    
+
     if (isReadByReceipt) window.pendingReadReceipts.delete(msg.id);
 
     const html = `
@@ -2134,7 +2116,6 @@ function scrollToBottom() {
 }
 
 window.scrollToMessage = function (targetId) {
-    console.log('Attempting to scroll to message:', targetId);
     let msgEl = document.getElementById(`msg-container-${targetId}`);
     if (msgEl) {
         msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2154,8 +2135,6 @@ window.scrollToMessage = function (targetId) {
                 msgEl.style.borderRadius = '';
             }, 500); // wait for fade out to complete
         }, 1000);
-    } else {
-        console.log('Message element not found in DOM.');
     }
 };
 
@@ -2275,7 +2254,7 @@ async function startEdit(msgId) {
                 id: msgId,
                 content: encryptedPayload
             });
-        } catch (err) { console.error(err); }
+        } catch (err) { }
     }
 }
 
@@ -2323,7 +2302,7 @@ async function clearChat() {
             if (res.ok) {
                 document.getElementById('messages-area').innerHTML = '';
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { }
     }
 }
 
@@ -2384,7 +2363,6 @@ async function startCall(callType = 'audio') {
         });
         setCallState('dialing', activeContactId);
     } catch (e) {
-        console.error("WebRTC offer error", e);
         cleanupWebRTC();
         hideActiveCallOverlay();
     }
@@ -2441,7 +2419,6 @@ document.getElementById('messageForm').addEventListener('submit', async (e) => {
         input.style.height = 'auto';
         cancelReply();
     } catch (err) {
-        console.error("Encryption/Send error:", err);
         alert("An error occurred while encrypting the message.");
     }
 });
@@ -2466,7 +2443,6 @@ async function handleFileSelection(e) {
         });
 
     } catch (err) {
-        console.error("File processing error:", err);
         await showModal({ title: "Error", description: "Could not process file for secure transfer.", isAlert: true });
     } finally {
         prog.classList.add('hidden');
@@ -2482,7 +2458,7 @@ async function logout() {
 }
 
 // Init
-    document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", async () => {
     // --- STATE FOR INTERACTIVE HANDLERS ---
     let longPressTimer = null;
     let touchStartX = 0;
@@ -2528,7 +2504,7 @@ async function logout() {
                 hideActiveCallOverlay();
                 if (currentCallPeerId && socket) socket.emit("webrtc_end", { receiver_id: currentCallPeerId, call_id: currentCallLogId, reason: 'ended' });
                 if (currentCallLogId) {
-                    patchCallLog('ended', currentCallMode, currentCallLogId).catch(console.error);
+                    patchCallLog('ended', currentCallMode, currentCallLogId).catch(() => {});
                 }
                 cleanupWebRTC();
                 loadCallHistory(activeContactId);
@@ -2571,7 +2547,6 @@ async function logout() {
                         hideVideoStage();
                         return;
                     } catch (e) {
-                        console.warn("PiP request failed, falling back to compact mode", e);
                     }
                 }
                 const nextLayout = (videoCallStageEl.dataset.layout === 'compact') ? 'fullscreen' : 'compact';
@@ -2815,13 +2790,13 @@ async function logout() {
     // We launch these in parallel so the UI does not wait on socket setup.
 
     // Crypto is needed for decryption, but it usually initializes quickly.
-    const cryptoPromise = initCrypto().catch(e => console.error("Crypto Error:", e));
+    const cryptoPromise = initCrypto().catch(() => {});
 
     // Notifications don't block anything.
     initDesktopNotifications();
 
     // Socket setup can fail independently without blocking the rest of the page.
-    const realtimePromise = initRealtime().catch(e => console.error("Realtime Error:", e));
+    const realtimePromise = initRealtime().catch(() => {});
 
 
     // Search setup is fast.
@@ -2829,7 +2804,7 @@ async function logout() {
 
     // Load contacts immediately. We'll wait for crypto inside loadContacts if needed, 
     // but at least we'll clear the "Syncing" message as soon as the fetch completes.
-    const contactsPromise = loadContacts().catch(e => console.error("Load Contacts Error:", e));
+    const contactsPromise = loadContacts().catch(() => {});
 
     // Wait for critical data for session restoration, but don't block the UI.
     Promise.allSettled([cryptoPromise, contactsPromise, realtimePromise]).then(() => {
@@ -2993,7 +2968,7 @@ function syncLocalVideoPreview() {
             localVideoEl.srcObject = localStream;
             localVideoEl.style.transform = "scaleX(-1)"; // Mirror effect for local preview
             localVideoEl.classList.remove('hidden');
-            localVideoEl.play().catch(e => console.warn("Local video play blocked", e));
+            localVideoEl.play().catch(() => {});
         } else {
             localVideoEl.classList.add('hidden');
             localVideoEl.srcObject = null;
@@ -3117,7 +3092,6 @@ async function loadCallHistory(contactId = activeContactId) {
         }
         listEl.innerHTML = history.map(renderCallHistoryItem).join('');
     } catch (err) {
-        console.error(err);
         listEl.innerHTML = '<div class="text-sm text-red-300 text-center py-8">Could not load call history.</div>';
     }
 }
@@ -3191,7 +3165,7 @@ function scheduleCallRingTimeout(peerId) {
             socket.emit("webrtc_end", { receiver_id: peerId, call_id: currentCallLogId, reason: "missed" });
         }
         if (currentCallLogId) {
-            patchCallLog('missed', currentCallMode, currentCallLogId).catch(console.error);
+            patchCallLog('missed', currentCallMode, currentCallLogId).catch(() => {});
         }
         cleanupWebRTC();
         hideIncomingCallOverlay();
@@ -3333,7 +3307,6 @@ async function blockActiveContact() {
                 });
             }
         } catch (e) {
-            console.error(e);
             showModal({
                 title: "Error",
                 description: "An unexpected error occurred.",

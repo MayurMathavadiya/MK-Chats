@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy - MK Chats{% endblock %}
+
+{% block content %}
+<div class="fixed inset-0 cinematic-glow pointer-events-none"></div>
+<div class="fixed -top-24 -left-24 w-96 h-96 bg-kin_primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="fixed -bottom-24 -right-24 w-96 h-96 bg-kin_tertiary/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+<main class="w-full max-w-3xl px-6 z-10 flex flex-col items-center py-12 md:py-20 my-auto">
+    <!-- Privacy Card -->
+    <div class="glass-card rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+        
+        <!-- Header -->
+        <div class="mb-10 text-center">
+            <div class="flex justify-center mb-6">
+                <span class="material-symbols-outlined text-kin_primary text-5xl opacity-80" style="font-variation-settings: 'FILL' 1;">security</span>
+            </div>
+            <h1 class="font-manrope text-3xl font-black tracking-tighter text-kin_on_surface mb-2">Privacy Policy</h1>
+            <p class="font-inter text-sm text-kin_on_surface_variant mt-1Caps">Last updated: April 21, 2026</p>
+        </div>
+
+        <div class="space-y-8 font-inter text-sm leading-relaxed text-kin_on_surface_variant">
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">emergency</span>
+                    Our Philosophy
+                </h2>
+                <p>MK Chats is built on the principle of absolute privacy. We believe that your conversations are yours alone. Our architecture is designed to minimize data collection and maximize security through end-to-end encryption.</p>
+            </section>
+
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">shield</span>
+                    End-to-End Encryption
+                </h2>
+                <p>All messages sent through MK Chats are encrypted on your device and can only be decrypted by the intended recipient. We do not have the keys to read your messages, nor do we store them in a readable format on our servers.</p>
+            </section>
+
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">database</span>
+                    Information We Collect
+                </h2>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong class="text-kin_on_surface">Account Information:</strong> We require a phone number and email for account registration and recovery purposes.</li>
+                    <li><strong class="text-kin_on_surface">Profile Data:</strong> Names and profile pictures are shared only with the contacts you interact with.</li>
+                    <li><strong class="text-kin_on_surface">Metadata:</strong> We store minimal metadata necessary for message delivery, which is regularly purged.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">lock</span>
+                    Your Rights
+                </h2>
+                <p>You have the right to delete your account at any time. Upon deletion, all associated data, including your public key and profile information, will be permanently removed from our active systems.</p>
+            </section>
+
+            <section class="pt-6 border-t border-white/5">
+                <p class="text-xs text-center font-bold uppercase tracking-widest text-kin_outline_variant">
+                    Secure Communication Protocol v4.0
+                </p>
+            </section>
+        </div>
+
+        <div class="mt-10 text-center">
+            <a href="/login" class="text-indigo-400 font-bold hover:underline decoration-indigo-500/30 underline-offset-4 transition-all text-sm">Back to Home</a>
+        </div>
+    </div>
+</main>
+
+<!-- Decorative Bottom Gradient -->
+<div class="fixed bottom-0 left-0 w-full h-64 bg-gradient-to-t from-indigo-500/5 to-transparent pointer-events-none"></div>
+{% endblock %}

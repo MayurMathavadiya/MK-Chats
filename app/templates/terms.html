@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Terms and Conditions - MK Chats{% endblock %}
+
+{% block content %}
+<div class="fixed inset-0 cinematic-glow pointer-events-none"></div>
+<div class="fixed -top-24 -left-24 w-96 h-96 bg-kin_primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="fixed -bottom-24 -right-24 w-96 h-96 bg-kin_tertiary/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+<main class="w-full max-w-3xl px-6 z-10 flex flex-col items-center py-12 md:py-20 my-auto">
+    <!-- Terms Card -->
+    <div class="glass-card rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
+        
+        <!-- Header -->
+        <div class="mb-10 text-center">
+            <div class="flex justify-center mb-6">
+                <span class="material-symbols-outlined text-kin_primary text-5xl opacity-80" style="font-variation-settings: 'FILL' 1;">gavel</span>
+            </div>
+            <h1 class="font-manrope text-3xl font-black tracking-tighter text-kin_on_surface mb-2">Terms and Conditions</h1>
+            <p class="font-inter text-sm text-kin_on_surface_variant mt-1">Last updated: April 21, 2026</p>
+        </div>
+
+        <div class="space-y-8 font-inter text-sm leading-relaxed text-kin_on_surface_variant">
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">rocket_launch</span>
+                    Service Overview
+                </h2>
+                <p>MK Chats provides an end-to-end encrypted messaging service. By using our service, you agree to these terms. Our goal is to provide a safe and secure environment for digital communication.</p>
+            </section>
+
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">handyman</span>
+                    User Responsibilities
+                </h2>
+                <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree not to use MK Chats for any illegal or unauthorized purpose.</p>
+            </section>
+
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">block</span>
+                    Acceptable Use
+                </h2>
+                <p>Users are prohibited from:</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li>Engaging in harassment, bullying, or abusive behavior.</li>
+                    <li>Distributing malware or attempting to breach our security systems.</li>
+                    <li>Impersonating others or creating accounts through automated means.</li>
+                    <li>Sending unsolicited advertisements or "spam".</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-400 text-sm">warning</span>
+                    Limitation of Liability
+                </h2>
+                <p>MK Chats is provided "as is" without any warranties. We are not liable for any damages resulting from your use of the service, including data loss or service interruptions.</p>
+            </section>
+
+            <section class="pt-6 border-t border-white/5">
+                <p class="text-xs text-center font-bold uppercase tracking-widest text-kin_outline_variant">
+                    Terms of User Service Agreement v2.1
+                </p>
+            </section>
+        </div>
+
+        <div class="mt-10 text-center">
+            <a href="/login" class="text-indigo-400 font-bold hover:underline decoration-indigo-500/30 underline-offset-4 transition-all text-sm">Back to Home</a>
+        </div>
+    </div>
+</main>
+
+<!-- Decorative Bottom Gradient -->
+<div class="fixed bottom-0 left-0 w-full h-64 bg-gradient-to-t from-indigo-500/5 to-transparent pointer-events-none"></div>
+{% endblock %}

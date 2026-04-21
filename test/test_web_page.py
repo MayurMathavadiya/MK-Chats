@@ -35,3 +35,17 @@ def test_forgot_password_page_renders(client):
 
     assert response.status_code == 200
     assert "Reset Password" in response.text
+
+
+def test_privacy_page_renders(client):
+    response = client.get("/privacy")
+
+    assert response.status_code == 200
+    assert "Privacy Policy" in response.text
+
+
+def test_terms_page_renders(client):
+    response = client.get("/terms")
+
+    assert response.status_code == 200
+    assert "Terms and Conditions" in response.text

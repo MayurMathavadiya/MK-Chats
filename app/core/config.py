@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from fastapi.templating import Jinja2Templates
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -41,3 +42,10 @@ settings = Settings()
 parent_path = os.path.dirname(os.path.dirname(__file__))
 templates_dir = os.path.join(parent_path, "templates")
 templates = Jinja2Templates(directory=templates_dir)
+
+
+ONLINE_WINDOW = timedelta(minutes=2)
+VALID_CALL_TYPES = {"audio", "video"}
+VALID_CALL_STATUSES = {
+    "initiated", "ringing", "accepted", "ended", "missed", "rejected"
+}

@@ -44,7 +44,6 @@ class UserResponse(BaseModel):
     dek_iv: Optional[str] = None
     priv_key_iv: Optional[str] = None
     profile_pic: Optional[str] = None
-    is_online: bool = False
     last_seen: Optional[datetime] = None
     is_active: bool
 
@@ -86,7 +85,6 @@ class ContactResponse(BaseModel):
     last_name: str
     mobile_number: str
     profile_pic: Optional[str] = None
-    is_online: bool = False
     last_message: Optional[str] = None
     last_message_at: Optional[datetime] = None
     public_key: Optional[str] = None

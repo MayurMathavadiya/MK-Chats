@@ -18,6 +18,15 @@ sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 redis_client = redis_async.from_url(settings.REDIS_URL, decode_responses=True)
 
 
+def update_user_last_seen(user_id: int):
+    """Updates the last_seen timestamp for a user in the database."""
+    with SessionLocal() as db:
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if user:
+            user.last_seen = datetime.now(timezone.utc)
+            db.commit()
+
+
 @sio.event
 async def connect(sid, environ):
     user_id = await get_user_from_environ(environ)
@@ -29,9 +38,15 @@ async def connect(sid, environ):
     
     # Track presence in Redis
     conn_count = await redis_client.incr(f"user:{user_id}:connections")
+    await redis_client.expire(f"user:{user_id}:connections", 600)
+    
     if conn_count == 1:
         await redis_client.sadd("online_users", user_id)
         await sio.emit('presence', {'user_id': user_id, 'status': 'online'})
+    
+    # Always update last_seen on connect
+    update_user_last_seen(int(user_id))
+
 
 @sio.event
 async def request_presence(sid):
@@ -51,6 +66,9 @@ async def disconnect(sid):
                 await redis_client.delete(f"user:{user_id}:connections")
                 await redis_client.srem("online_users", user_id)
                 await sio.emit('presence', {'user_id': user_id, 'status': 'offline'})
+
+            # Update last_seen when the final connection is closed
+            update_user_last_seen(int(user_id))
     except Exception as e:
         print(f"Disconnect error: {e}")
 

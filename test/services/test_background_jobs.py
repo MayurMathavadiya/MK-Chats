@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app import models
-from app.services import backgound_jobs
+from app.services import background_jobs
 from test.factories import ChatClearFactory, MessageFactory, UserFactory
 
 
@@ -31,9 +31,9 @@ def test_delete_cleared_messages_removes_mutually_cleared_history(
     new_message_id = new_message.id
     db_session.commit()
 
-    monkeypatch.setattr(backgound_jobs, "SessionLocal", testing_session_factory)
+    monkeypatch.setattr(background_jobs, "SessionLocal", testing_session_factory)
 
-    backgound_jobs.delete_cleared_messages(
+    background_jobs.delete_cleared_messages(
         contact_id=contact.id,
         user_id=user.id,
         now_utc=datetime.now(timezone.utc),

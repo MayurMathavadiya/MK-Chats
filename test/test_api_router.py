@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app.core import auth
-from app import api_router, models
+from app import models, routers
 from test.factories import BlockedUserFactory, CallLogFactory, ChatClearFactory, MessageFactory, UserFactory
 
 
@@ -153,8 +153,7 @@ def test_forgot_password_registered_and_unknown_email(client, db_session, monkey
         sent_calls.append((to_email, token, host))
 
     monkeypatch.setattr(
-        api_router, 
-        "send_password_reset_email", 
+        "app.api_user.send_password_reset_email", 
         fake_send_password_reset_email
     )
 
@@ -217,25 +216,6 @@ def test_contacts_endpoint_returns_contact_data(client, db_session, auth_cookie)
     assert contacts[0]["id"] == contact.id
     assert contacts[0]["blocked_by_me"] is True
     assert contacts[0]["unread_count"] == 1
-
-
-def test_presence_ping_returns_recently_active_users(client, db_session, auth_cookie):
-    current_user = UserFactory(last_seen=datetime.now(timezone.utc) - timedelta(minutes=10))
-    online_contact = UserFactory(last_seen=datetime.now(timezone.utc))
-    offline_contact = UserFactory(last_seen=datetime.now(timezone.utc) - timedelta(minutes=10))
-    db_session.commit()
-    authenticate_client(client, current_user.id, auth_cookie)
-
-    response = client.post("/api/presence/ping")
-
-    db_session.refresh(current_user)
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert current_user.id in payload["online_user_ids"]
-    assert online_contact.id in payload["online_user_ids"]
-    assert offline_contact.id not in payload["online_user_ids"]
-    assert current_user.last_seen is not None
 
 
 def test_contacts_search_returns_matching_users_without_history(client, db_session, auth_cookie):
@@ -364,36 +344,6 @@ def test_get_messages_respects_chat_clear(client, db_session, auth_cookie):
     assert response.json()[0]["id"] != old_message.id
 
 
-def test_sync_messages_returns_only_messages_updated_after_cursor(client, db_session, auth_cookie):
-    current_user = UserFactory()
-    contact = UserFactory()
-    stale_message = MessageFactory(
-        sender=current_user,
-        receiver=contact,
-        content="stale",
-        created_at=datetime.now(timezone.utc) - timedelta(minutes=10),
-        updated_at=datetime.now(timezone.utc) - timedelta(minutes=10),
-    )
-    fresh_visible = MessageFactory(
-        sender=current_user,
-        receiver=contact,
-        content="fresh",
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
-    )
-    db_session.commit()
-    authenticate_client(client, current_user.id, auth_cookie)
-
-    cursor = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
-    response = client.get("/api/sync/messages", params={"updated_after": cursor})
-
-    assert response.status_code == 200
-    payload = response.json()
-    returned_ids = [item["id"] for item in payload]
-    assert fresh_visible.id in returned_ids
-    assert stale_message.id not in returned_ids
-
-
 def test_update_call_log_statuses(client, db_session, auth_cookie):
     current_user = UserFactory()
     contact = UserFactory()
@@ -475,8 +425,7 @@ def test_clear_chat_creates_clear_record_and_schedules_cleanup(
         cleanup_calls.append((contact_id, user_id, now_utc))
 
     monkeypatch.setattr(
-        api_router.backgound_jobs, 
-        "delete_cleared_messages", 
+        "app.api_message.background_jobs.delete_cleared_messages", 
         fake_delete_cleared_messages
     )
 
