@@ -98,8 +98,7 @@ async def get_user_from_environ(environ):
                 token = token.strip('"') # Strip any quotes
                 token = token.replace('%20', ' ') # Decode URL spaces
                 break
-                
-    print("token: ", token)
+
     if not token:
         return None
         

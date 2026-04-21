@@ -9,6 +9,7 @@ from app.main import app
 from app.core import auth
 from app.core.database import Base, get_db
 
+from app import routers
 from test import factories
 
 
@@ -42,7 +43,7 @@ def global_db_monkeypatch(monkeypatch, db_session):
     This ensures all parts of the app use the same test session and engine.
     """
     from app.core import database, auth
-    from app import socket_events, api_router
+    from app import socket_events
     
     # We use a context manager factory that returns the existing db_session
     class DBContextManager:
@@ -58,7 +59,7 @@ def global_db_monkeypatch(monkeypatch, db_session):
             return getattr(self.session, name)
             
     # List of targets to monkeypatch
-    targets = [database, auth, socket_events, api_router]
+    targets = [database, auth, socket_events, routers]
     
     for target in targets:
         if hasattr(target, "SessionLocal"):

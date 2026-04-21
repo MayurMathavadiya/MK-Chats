@@ -1,6 +1,6 @@
 # MK Chats
 
-MK Chats is a FastAPI-based chat application with server-rendered pages, REST APIs, real-time messaging using Socket.IO, and WebRTC signaling for audio/video calls. The project includes authentication, profile management, contact search, message history, chat clearing, blocking, password reset, and real-time presence/typing indicators.
+MK Chats is a FastAPI-based chat application featuring End-to-End Encryption (E2EE), server-rendered pages, REST APIs, real-time messaging via Socket.IO, and WebRTC signaling for audio/video calls. The project includes secure authentication, profile management, contact search, message history with background cleanup, blocking, and real-time indicators for presence and typing.
 
 ## Tech Stack
 
@@ -17,6 +17,7 @@ MK Chats is a FastAPI-based chat application with server-rendered pages, REST AP
 ## Features
 
 - User registration and login with cookie-based authentication
+- End-to-End Encryption (E2EE) for text messages and file transfers
 - Profile view and profile update endpoints
 - Password change and email-based password reset flow
 - Real-time messaging using Socket.IO (with fallback support)
@@ -35,21 +36,20 @@ MK Chats is a FastAPI-based chat application with server-rendered pages, REST AP
 
 ```text
 app/
-  api_router.py        REST API endpoints
+  routers.py           Root API router
+  api_user.py          Auth and profile logic
+  api_contact.py       Contacts and blocking logic
+  api_message.py       Message and chat logic
+  api_call.py          Call history logic
   main.py              FastAPI app setup and middleware
   models.py            SQLAlchemy models
   schemas.py           Pydantic schemas
   web_page.py          HTML page routes
   socket_events.py     Socket.IO event handlers
-  core/
-    auth.py            Auth helpers
-    config.py          Settings and template config
-    database.py        Engine and DB session setup
-    deps.py            Dependency helpers
-    email.py           Password reset email sending
-  services/
-    backgound_jobs.py  Async cleanup/background tasks
-  templates/           Jinja templates for auth and chat pages
+  core/                Core engine, database, and auth utilities
+  services/            Background tasks and jobs
+  static/              Static assets (JS, CSS, images)
+  templates/           Jinja2 templates
 test/                  Automated tests
 alembic/               Database migrations
 ```
@@ -133,16 +133,12 @@ Useful routes:
 ### Contacts
 
 - `GET /api/contacts`
-- `GET /api/contacts?query=...`
 - `POST /api/contacts/block`
 - `POST /api/contacts/unblock`
-- `POST /api/presence/ping`
 
 ### Messages
 
 - `GET /api/messages/{contact_id}`
-- `GET /api/sync/messages`
-- `DELETE /api/messages/{message_id}`
 - `POST /api/messages/clear/{contact_id}`
 
 ### Calls
@@ -183,3 +179,4 @@ pytest
 - Authentication is stored in an `access_token` cookie or in Header Authorization `bearer <token>`.
 - Real-time updates use Socket.IO with Redis as the message broker.
 - Audio/video media uses WebRTC peer connections facilitated by Socket.IO signaling.
+- End-to-End Encryption: Cryptographic keys (DEK/KEK) are derived on the client and stored encrypted on the server to ensure message privacy.

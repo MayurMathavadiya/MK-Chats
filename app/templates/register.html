@@ -310,7 +310,6 @@
             }
             
         } catch (err) {
-            console.error(err);
             errorMsg.innerText = 'An error occurred during registration/key generation.';
             errorMsg.classList.remove('hidden');
             btn.disabled = false;
@@ -374,11 +373,9 @@
             if (res.ok) {
                 window.location.href = '/';
             } else {
-                console.error("Profile update failed");
                 window.location.href = '/';
             }
         } catch (err) {
-            console.error(err);
             window.location.href = '/';
         }
     });

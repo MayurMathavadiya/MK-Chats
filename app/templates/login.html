@@ -256,10 +256,8 @@
 
                         sessionStorage.setItem('chat_priv_key', privKeyStr);
                     } else {
-                        console.warn("Missing encryption data from server.");
-                    }
-                } catch (e) {
-                    console.error("Failed to decrypt private key:", e);
+                     }
+                 } catch (e) {
                     showModal({
                         title: "Decryption Failed",
                         description: "Failed to decrypt your private key. This usually happens if you are not in a Secure Context (Localhost or HTTPS).",

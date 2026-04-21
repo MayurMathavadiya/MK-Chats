@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.socket_events import sio
 from app.core.config import settings
-from app.api_router import router as api_router
+from app.routers import router as api_router
 from app.web_page import router as web_page_router
 
 
@@ -62,10 +62,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
             csp = (
                 f"default-src 'self'; "
-                f"script-src 'self' 'nonce-{nonce}' "
-                f"https://cdn.tailwindcss.com "
-                f"https://cdn.socket.io "
-                f"https://cdn.jsdelivr.net; "
+                f"script-src 'self' 'nonce-{nonce}' https://cdn.socket.io; "
                 f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 f"font-src 'self' https://fonts.gstatic.com; "
                 f"img-src 'self' data: http: https: blob:; "
@@ -94,6 +91,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
