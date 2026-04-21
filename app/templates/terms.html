@@ -3,76 +3,89 @@
 {% block title %}Terms and Conditions - MK Chats{% endblock %}
 
 {% block content %}
+<!-- Cinematic Background Elements -->
 <div class="fixed inset-0 cinematic-glow pointer-events-none"></div>
-<div class="fixed -top-24 -left-24 w-96 h-96 bg-kin_primary/5 blur-[120px] rounded-full pointer-events-none"></div>
-<div class="fixed -bottom-24 -right-24 w-96 h-96 bg-kin_tertiary/5 blur-[120px] rounded-full pointer-events-none"></div>
+<div
+    class="fixed -top-48 -left-48 w-[600px] h-[600px] bg-kin_primary/10 blur-[150px] rounded-full pointer-events-none animate-pulse duration-[10s]">
+</div>
+<div
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none">
+</div>
+<div
+    class="fixed -bottom-48 -right-48 w-[600px] h-[600px] bg-kin_tertiary/10 blur-[150px] rounded-full pointer-events-none animate-pulse duration-[15s]">
+</div>
 
-<main class="w-full max-w-3xl px-6 z-10 flex flex-col items-center py-12 md:py-20 my-auto">
-    <!-- Terms Card -->
-    <div class="glass-card rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
-        
-        <!-- Header -->
-        <div class="mb-10 text-center">
-            <div class="flex justify-center mb-6">
-                <span class="material-symbols-outlined text-kin_primary text-5xl opacity-80" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<main class="w-full max-w-4xl px-4 z-10 flex flex-col items-center py-12 md:py-24 my-auto relative">
+    <!-- Breadcrumb / Meta Header -->
+    <div class="mb-8 flex items-center gap-4 animate-in slide-in-from-top-4 duration-700">
+        <div class="h-px w-12 bg-gradient-to-r from-transparent to-indigo-500/50"></div>
+        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/80">Legal Framework</span>
+        <div class="h-px w-12 bg-gradient-to-l from-transparent to-indigo-500/50"></div>
+    </div>
+
+    <!-- Main Terms Card -->
+    <div
+        class="glass-card rounded-[2.5rem] shadow-2xl relative overflow-hidden w-full border border-white/10 animate-in fade-in zoom-in-95 duration-700">
+        <!-- Inner Glossy Border -->
+        <div class="absolute inset-0 border border-white/5 rounded-[2.5rem] pointer-events-none"></div>
+        <div
+            class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent">
+        </div>
+
+        <!-- Premium Header Section -->
+        <div class="relative p-8 md:p-16 border-b border-white/5 bg-white/[0.02]">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                            <span class="material-symbols-outlined text-indigo-400 text-2xl"
+                                style="font-variation-settings: 'FILL' 1;">gavel</span>
+                        </div>
+                        <span class="text-xs font-bold text-indigo-300/60 uppercase tracking-widest">Document</span>
+                    </div>
+                    <h1
+                        class="font-manrope text-4xl md:text-5xl font-black tracking-tight text-white mb-2 leading-tight">
+                        Terms and <span
+                            class="text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 to-indigo-600">Conditions</span>
+                    </h1>
+                    <p class="font-inter text-sm text-kin_on_surface_variant flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                        Last revision effective: April 21, 2026
+                    </p>
+                </div>
+                <div class="hidden md:block text-right">
+                    <p class="text-[10px] font-bold text-kin_outline_variant uppercase tracking-widest mb-1">Status</p>
+                    <span
+                        class="px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] font-black border border-green-500/20 uppercase tracking-tighter">Active
+                        Protocol</span>
+                </div>
             </div>
-            <h1 class="font-manrope text-3xl font-black tracking-tighter text-kin_on_surface mb-2">Terms and Conditions</h1>
-            <p class="font-inter text-sm text-kin_on_surface_variant mt-1">Last updated: April 21, 2026</p>
         </div>
 
-        <div class="space-y-8 font-inter text-sm leading-relaxed text-kin_on_surface_variant">
-            <section>
-                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-indigo-400 text-sm">rocket_launch</span>
-                    Service Overview
-                </h2>
-                <p>MK Chats provides an end-to-end encrypted messaging service. By using our service, you agree to these terms. Our goal is to provide a safe and secure environment for digital communication.</p>
-            </section>
+        <!-- Content Area -->
+        <div
+            class="p-8 md:p-16 font-inter text-sm md:text-base leading-relaxed text-kin_on_surface_variant max-h-[70vh] overflow-y-auto custom-scrollbar">
 
-            <section>
-                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-indigo-400 text-sm">handyman</span>
-                    User Responsibilities
-                </h2>
-                <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree not to use MK Chats for any illegal or unauthorized purpose.</p>
-            </section>
+            {% include 'partials/terms_content.html' %}
 
-            <section>
-                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-indigo-400 text-sm">block</span>
-                    Acceptable Use
-                </h2>
-                <p>Users are prohibited from:</p>
-                <ul class="list-disc pl-5 space-y-2">
-                    <li>Engaging in harassment, bullying, or abusive behavior.</li>
-                    <li>Distributing malware or attempting to breach our security systems.</li>
-                    <li>Impersonating others or creating accounts through automated means.</li>
-                    <li>Sending unsolicited advertisements or "spam".</li>
-                </ul>
-            </section>
-
-            <section>
-                <h2 class="font-manrope text-lg font-bold text-kin_on_surface mb-3 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-indigo-400 text-sm">warning</span>
-                    Limitation of Liability
-                </h2>
-                <p>MK Chats is provided "as is" without any warranties. We are not liable for any damages resulting from your use of the service, including data loss or service interruptions.</p>
-            </section>
-
-            <section class="pt-6 border-t border-white/5">
-                <p class="text-xs text-center font-bold uppercase tracking-widest text-kin_outline_variant">
-                    Terms of User Service Agreement v2.1
-                </p>
-            </section>
         </div>
 
-        <div class="mt-10 text-center">
-            <a href="/login" class="text-indigo-400 font-bold hover:underline decoration-indigo-500/30 underline-offset-4 transition-all text-sm">Back to Home</a>
+        <!-- Footer Action -->
+        <div class="p-8 md:p-12 bg-white/[0.02] border-t border-white/5 flex justify-center">
+            <a href="/login"
+                class="flex items-center gap-2 text-indigo-400 font-bold hover:text-white transition-colors group">
+                <span
+                    class="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                Return to Command Center
+            </a>
         </div>
     </div>
 </main>
 
-<!-- Decorative Bottom Gradient -->
-<div class="fixed bottom-0 left-0 w-full h-64 bg-gradient-to-t from-indigo-500/5 to-transparent pointer-events-none"></div>
+<!-- Decorative Bottom Glow -->
+<div class="fixed bottom-0 left-0 w-full h-96 bg-gradient-to-t from-indigo-500/10 to-transparent pointer-events-none">
+</div>
+
+
 {% endblock %}

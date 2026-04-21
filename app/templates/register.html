@@ -9,16 +9,20 @@
 
 <main class="w-full max-w-lg px-6 z-10 flex flex-col items-center py-10 md:py-20 my-auto">
     <!-- Register Card -->
-    <div class="glass-card rounded-[2rem] p-6 md:p-10 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
-        
+    <div
+        class="glass-card rounded-[2rem] p-6 md:p-10 shadow-2xl relative overflow-hidden w-full animate-in fade-in zoom-in-95 duration-500">
+        <div
+            class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent">
+        </div>
+
         <!-- Brand Identity -->
         <div class="flex flex-col items-center mb-8 text-center">
             <div class="w-24 h-24 flex items-center justify-center mb-6">
                 <img src="/static/branding/mk-chats-logo.svg" alt="MK" class="w-full h-full object-contain">
             </div>
             <h1 class="font-manrope text-2xl font-black tracking-tighter text-kin_on_surface mb-1">MK Chats</h1>
-            <p class="font-inter text-[10px] text-kin_on_surface_variant tracking-widest uppercase font-bold">Secure Communication</p>
+            <p class="font-inter text-[10px] text-kin_on_surface_variant tracking-widest uppercase font-bold">Secure
+                Communication</p>
         </div>
 
         <div class="mb-8 text-center">
@@ -30,78 +34,118 @@
             <!-- Name Row -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">First Name</label>
+                    <label
+                        class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">First
+                        Name</label>
                     <div class="relative group input-glow transition-all duration-300 rounded-xl">
-                        <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 px-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
-                               id="firstName" placeholder="First Name" type="text" required />
+                        <input
+                            class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 px-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm"
+                            id="firstName" placeholder="First Name" type="text" required />
                     </div>
                 </div>
                 <div class="space-y-2">
-                    <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Last Name</label>
+                    <label
+                        class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Last
+                        Name</label>
                     <div class="relative group input-glow transition-all duration-300 rounded-xl">
-                        <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 px-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
-                               id="lastName" placeholder="Last Name" type="text" required />
+                        <input
+                            class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 px-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm"
+                            id="lastName" placeholder="Last Name" type="text" required />
                     </div>
                 </div>
             </div>
 
             <!-- Mobile Field -->
             <div class="space-y-2">
-                <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Phone Number</label>
+                <label
+                    class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Phone
+                    Number</label>
                 <div class="relative group input-glow transition-all duration-300 rounded-xl">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span class="material-symbols-outlined text-kin_outline text-lg">call</span>
                     </div>
-                    <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
-                           id="mobile" placeholder="e.g. 1234567890" type="text" required />
+                    <input
+                        class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm"
+                        id="mobile" placeholder="e.g. 1234567890" type="text" required />
                 </div>
             </div>
 
             <!-- Email Field -->
             <div class="space-y-2">
-                <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Email Address</label>
+                <label
+                    class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Email
+                    Address</label>
                 <div class="relative group input-glow transition-all duration-300 rounded-xl">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span class="material-symbols-outlined text-kin_outline text-lg">alternate_email</span>
                     </div>
-                    <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
-                           id="email" placeholder="identity@secure.net" type="email" required />
+                    <input
+                        class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-4 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm"
+                        id="email" placeholder="identity@secure.net" type="email" required />
                 </div>
             </div>
 
             <!-- Password Field -->
             <div class="space-y-2">
-                <label class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Password</label>
+                <label
+                    class="block font-inter text-[10px] font-bold text-kin_on_surface_variant ml-1 uppercase tracking-widest">Password</label>
                 <div class="relative group input-glow transition-all duration-300 rounded-xl password-input-wrap">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <span class="material-symbols-outlined text-kin_outline text-lg">lock</span>
                     </div>
-                    <input class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-12 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm" 
-                           id="password" placeholder="••••••••••••" type="password" required />
-                    
-                    <button type="button" class="absolute inset-y-0 right-0 pr-4 flex items-center text-kin_outline_variant hover:text-indigo-400 transition-colors" data-password-toggle="password">
+                    <input
+                        class="w-full bg-kin_surf_lowest border-none rounded-xl py-3.5 pl-12 pr-12 text-kin_on_surface placeholder:text-kin_outline_variant/50 focus:ring-1 focus:ring-kin_primary/30 transition-all font-inter text-sm"
+                        id="password" placeholder="••••••••••••" type="password" required />
+
+                    <button type="button"
+                        class="absolute inset-y-0 right-0 pr-4 flex items-center text-kin_outline_variant hover:text-indigo-400 transition-colors"
+                        data-password-toggle="password">
                         <span class="material-symbols-outlined text-lg" data-password-toggle-show>visibility</span>
-                        <span class="material-symbols-outlined text-lg hidden" data-password-toggle-hide>visibility_off</span>
+                        <span class="material-symbols-outlined text-lg hidden"
+                            data-password-toggle-hide>visibility_off</span>
                     </button>
                 </div>
             </div>
 
-            <div id="statusMsg" class="text-[12px] text-kin_tertiary font-bold text-center hidden animate-pulse bg-kin_primary/10 p-3 rounded-xl border border-kin_primary/20 uppercase tracking-widest">Processing...</div>
-            <div id="errorMsg" class="text-[12px] font-bold text-kin_tertiary bg-red-900/20 border border-kin_tertiary/20 rounded-xl p-3 text-center hidden animate-in fade-in duration-300"></div>
+            <!-- Terms Agreement -->
+            <div class="flex items-start gap-3 px-1 py-1">
+                <div class="relative flex items-center h-5">
+                    <input type="checkbox" id="termsAgree"
+                        class="w-4 h-4 rounded border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0 transition-all cursor-pointer accent-indigo-500"
+                        required>
+                </div>
+                <div class="text-[11px] text-kin_on_surface_variant leading-relaxed">
+                    I agree to the <button type="button" id="openTermsModal"
+                        class="text-indigo-400 font-bold hover:underline">Terms and Conditions</button> and have read
+                    the <button type="button" id="openPrivacyModal"
+                        class="text-indigo-400 font-bold hover:underline">Privacy Policy</button>.
+                </div>
+            </div>
+
+            <div id="statusMsg"
+                class="text-[12px] text-kin_tertiary font-bold text-center hidden animate-pulse bg-kin_primary/10 p-3 rounded-xl border border-kin_primary/20 uppercase tracking-widest">
+                Processing...</div>
+            <div id="errorMsg"
+                class="text-[12px] font-bold text-kin_tertiary bg-red-900/20 border border-kin_tertiary/20 rounded-xl p-3 text-center hidden animate-in fade-in duration-300">
+            </div>
 
             <!-- Submit Button -->
             <div class="pt-2">
-                <button id="submitBtn" class="gradient-button w-full py-4 rounded-xl font-manrope font-extrabold text-white shadow-[0_4px_20px_rgba(79,70,229,0.2)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 group" type="submit">
+                <button id="submitBtn"
+                    class="gradient-button w-full py-4 rounded-xl font-manrope font-extrabold text-white shadow-[0_4px_20px_rgba(79,70,229,0.2)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 group"
+                    type="submit">
                     Create Account
-                    <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">verified</span>
+                    <span
+                        class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">verified</span>
                 </button>
             </div>
         </form>
 
         <div class="mt-10 pt-8 border-t border-white/5 text-center">
             <p class="font-inter text-sm text-kin_on_surface_variant">
-                Already have an account? 
-                <a class="text-indigo-400 font-bold ml-1 hover:underline decoration-indigo-500/30 underline-offset-4 transition-all" href="/login">Sign in here</a>
+                Already have an account?
+                <a class="text-indigo-400 font-bold ml-1 hover:underline decoration-indigo-500/30 underline-offset-4 transition-all"
+                    href="/login">Sign in here</a>
             </p>
         </div>
     </div>
@@ -109,33 +153,117 @@
     <!-- Footer Meta -->
     <div class="mt-8 flex flex-col items-center gap-4 animate-in fade-in duration-1000">
         <div class="flex items-center gap-3 px-4 py-2 bg-kin_surf_low rounded-full border border-white/5">
-            <span class="material-symbols-outlined text-kin_tertiary text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
-            <span class="text-[9px] font-bold text-kin_on_surface_variant uppercase tracking-[0.2em]">Secure Communication</span>
+            <span class="material-symbols-outlined text-kin_tertiary text-sm"
+                style="font-variation-settings: 'FILL' 1;">verified_user</span>
+            <span class="text-[9px] font-bold text-kin_on_surface_variant uppercase tracking-[0.2em]">Secure
+                Communication</span>
         </div>
         <div class="flex gap-6 text-[9px] font-bold text-kin_outline_variant uppercase tracking-widest">
-            <a class="hover:text-kin_on_surface transition-colors" href="/privacy">Privacy Policy</a>
-            <a class="hover:text-kin_on_surface transition-colors" href="/terms">Terms and Conditions</a>
+            <a href="/privacy" class="hover:text-kin_on_surface transition-colors cursor-pointer">Privacy Policy</a>
+            <a href="/terms" class="hover:text-kin_on_surface transition-colors cursor-pointer">Terms and Conditions</a>
         </div>
     </div>
 </main>
 
-<!-- Decorative Bottom Gradient -->
-<div class="fixed bottom-0 left-0 w-full h-64 bg-gradient-to-t from-indigo-500/5 to-transparent pointer-events-none"></div>
+<!-- Terms and Conditions Modal Wrapper -->
+<div id="termsModal" class="fixed inset-0 z-[100] hidden opacity-0 transition-opacity duration-300 overflow-y-auto">
+    <!-- Backdrop Layer (Visual) -->
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-xl pointer-events-none"></div>
+
+    <!-- Centering & Click-to-Close Layer -->
+    <div class="relative min-h-screen flex items-center justify-center p-4 cursor-pointer" id="termsBackdrop">
+        <!-- Modal Card (Stop Propagation via targeted check) -->
+        <div class="glass-panel rounded-[2rem] shadow-2xl relative overflow-hidden w-full max-w-2xl transform scale-95 transition-all duration-300 flex flex-col h-auto max-h-[85vh] border border-white/10 cursor-default"
+            id="termsModalContent">
+            <!-- Modal Header -->
+            <div class="flex-none p-6 md:p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                        <span class="material-symbols-outlined text-indigo-400 text-xl"
+                            style="font-variation-settings: 'FILL' 1;">gavel</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white leading-none mb-1">Terms of Service</h3>
+                        <p class="text-[10px] text-kin_on_surface_variant uppercase tracking-widest font-black">Secure
+                            protocol</p>
+                    </div>
+                </div>
+                <button type="button" id="closeTermsModal"
+                    class="p-2 rounded-full hover:bg-white/5 text-kin_on_surface_variant hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="flex-grow overflow-y-auto custom-scrollbar p-6 md:p-10 text-sm md:text-base text-kin_on_surface_variant leading-relaxed min-h-0">
+                {% include 'partials/terms_content.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Privacy Policy Modal Wrapper -->
+<div id="privacyModal" class="fixed inset-0 z-[100] hidden opacity-0 transition-opacity duration-300 overflow-y-auto">
+    <!-- Backdrop Layer (Visual) -->
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-xl pointer-events-none"></div>
+
+    <!-- Centering & Click-to-Close Layer -->
+    <div class="relative min-h-screen flex items-center justify-center p-4 cursor-pointer" id="privacyBackdrop">
+        <!-- Modal Card -->
+        <div class="glass-panel rounded-[2rem] shadow-2xl relative overflow-hidden w-full max-w-2xl transform scale-95 transition-all duration-300 flex flex-col h-auto max-h-[85vh] border border-white/10 cursor-default"
+            id="privacyModalContent">
+            <!-- Modal Header -->
+            <div class="flex-none p-6 md:p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                        <span class="material-symbols-outlined text-cyan-400 text-xl"
+                            style="font-variation-settings: 'FILL' 1;">security</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white leading-none mb-1">Privacy Policy</h3>
+                        <p class="text-[10px] text-kin_on_surface_variant uppercase tracking-widest font-black">
+                            Directive</p>
+                    </div>
+                </div>
+                <button type="button" id="closePrivacyModal"
+                    class="p-2 rounded-full hover:bg-white/5 text-kin_on_surface_variant hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="flex-grow overflow-y-auto custom-scrollbar p-6 md:p-10 text-sm md:text-base text-kin_on_surface_variant leading-relaxed min-h-0">
+                {% include 'partials/privacy_content.html' %}
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Success & Profile Pic Modal -->
-<div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 transition-all duration-300 opacity-0">
-    <div class="glass-panel p-6 sm:p-10 rounded-2xl w-full max-w-sm shadow-2xl relative text-center transform scale-95 transition-all" id="successModalContent">
+<div id="successModal"
+    class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 transition-all duration-300 opacity-0">
+    <div class="glass-panel p-6 sm:p-10 rounded-2xl w-full max-w-sm shadow-2xl relative text-center transform scale-95 transition-all"
+        id="successModalContent">
         <h3 class="text-xl font-bold mb-2 text-white">Success!</h3>
-        <p class="text-sm text-gray-400 mb-8">Account created successfully. Would you like to set a profile picture now?</p>
-        
+        <p class="text-sm text-gray-400 mb-8">Account created successfully. Would you like to set a profile picture now?
+        </p>
+
         <div class="flex flex-col items-center mb-8">
             <div class="relative group cursor-pointer" id="regProfilePicContainer">
-                <div class="w-28 h-28 rounded-full border-4 border-indigo-500/30 overflow-hidden bg-white/5 flex items-center justify-center text-4xl text-white font-bold transition-all group-hover:bg-white/10 group-hover:border-indigo-400">
+                <div
+                    class="w-28 h-28 rounded-full border-4 border-indigo-500/30 overflow-hidden bg-white/5 flex items-center justify-center text-4xl text-white font-bold transition-all group-hover:bg-white/10 group-hover:border-indigo-400">
                     <img src="" alt="Profile" class="w-full h-full object-cover hidden" id="regProfileImg">
                     <span id="regProfileChar">?</span>
                 </div>
-                <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                <div
+                    class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                        </path>
+                    </svg>
                 </div>
             </div>
             <input type="file" id="regProfilePicInput" class="hidden" accept="image/*">
@@ -153,11 +281,76 @@
     </div>
 </div>
 
+
+
 <script nonce="{{ request.state.nonce }}">
     const registerSubmitDefaultHtml = `
         <span>Create Account</span>
         <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">verified</span>
     `;
+
+    // Modal Registry
+    const modals = {
+        terms: {
+            el: document.getElementById('termsModal'),
+            content: document.getElementById('termsModalContent')
+        },
+        privacy: {
+            el: document.getElementById('privacyModal'),
+            content: document.getElementById('privacyModalContent')
+        },
+        success: {
+            el: document.getElementById('successModal'),
+            content: document.getElementById('successModalContent')
+        }
+    };
+
+    const termsAgreeCheckbox = document.getElementById('termsAgree');
+
+    function openModal(type) {
+        const modal = modals[type];
+        if (!modal) return;
+        modal.el.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => {
+            modal.el.classList.remove('opacity-0');
+            modal.content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeModal(type) {
+        const modal = modals[type];
+        if (!modal) return;
+        modal.el.classList.add('opacity-0');
+        modal.content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.el.classList.add('hidden');
+            const anyOpen = Object.values(modals).some(m => !m.el.classList.contains('hidden'));
+            if (!anyOpen) document.body.classList.remove('overflow-hidden');
+        }, 300);
+    }
+
+    // Modal Action Bindings
+    const bindBtn = (id, action) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', action);
+    };
+
+    // Terms
+    bindBtn('openTermsModal', () => openModal('terms'));
+    bindBtn('closeTermsModal', () => closeModal('terms'));
+    // Backdrop click-to-close with target check
+    bindBtn('termsBackdrop', (e) => {
+        if (e.target.id === 'termsBackdrop') closeModal('terms');
+    });
+
+    // Privacy
+    bindBtn('openPrivacyModal', () => openModal('privacy'));
+    bindBtn('closePrivacyModal', () => closeModal('privacy'));
+    // Backdrop click-to-close with target check
+    bindBtn('privacyBackdrop', (e) => {
+        if (e.target.id === 'privacyBackdrop') closeModal('privacy');
+    });
 
     // Utility to convert ArrayBuffer to Base64
     function arrayBufferToBase64(buffer) {
@@ -174,7 +367,7 @@
         const keyMaterial = await window.crypto.subtle.importKey(
             "raw",
             enc.encode(password),
-            {name: "PBKDF2"},
+            { name: "PBKDF2" },
             false,
             ["deriveBits", "deriveKey"]
         );
@@ -188,7 +381,7 @@
             keyMaterial,
             { name: "AES-GCM", length: 256 },
             false,
-            [ "encrypt", "decrypt" ]
+            ["encrypt", "decrypt"]
         );
     }
 
@@ -197,7 +390,15 @@
         const btn = document.getElementById('submitBtn');
         const statusMsg = document.getElementById('statusMsg');
         const errorMsg = document.getElementById('errorMsg');
-        
+
+        // Validation: Terms Agreement
+        if (!termsAgreeCheckbox.checked) {
+            errorMsg.innerText = 'You must agree to the Terms and Conditions to proceed.';
+            errorMsg.classList.remove('hidden');
+            termsAgreeCheckbox.focus();
+            return;
+        }
+
         if (!window.isSecureContext) {
             errorMsg.innerText = 'Key generation requires a Secure Context (HTTPS or localhost).';
             errorMsg.classList.remove('hidden');
@@ -211,22 +412,22 @@
             btn.innerHTML = '<span>Generating...</span>';
             statusMsg.innerText = "Generating ECDH Keys & Wrapping locally...";
             statusMsg.classList.remove('hidden');
-            
+
             // 1. Generate ECDH Key Pair
             const keyPair = await window.crypto.subtle.generateKey(
                 { name: "ECDH", namedCurve: "P-256" },
                 true,
                 ["deriveKey", "deriveBits"]
             );
-            
+
             // Export Public Key to send to server
             const exportedPubKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
             const pubKeyBase64 = arrayBufferToBase64(exportedPubKey);
-            
+
             // Export Private Key as JWK string
             const exportedPrivKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
             const privKeyStr = JSON.stringify(exportedPrivKey);
-            
+
             const password = document.getElementById('password').value;
 
             // 2. Generate random DEK (Data Encryption Key)
@@ -236,7 +437,7 @@
                 ["encrypt", "decrypt"]
             );
             const exportedDEK = await window.crypto.subtle.exportKey("raw", dek);
-            
+
             // 3. Encrypt Private Key with DEK
             const privKeyIv = window.crypto.getRandomValues(new Uint8Array(12));
             const enc = new TextEncoder();
@@ -249,7 +450,7 @@
             // 4. Derive KEK (Key Encryption Key) from password
             const salt = window.crypto.getRandomValues(new Uint8Array(16));
             const kek = await deriveWrappingKey(password, salt);
-            
+
             // 5. Encrypt DEK with KEK
             const dekIv = window.crypto.getRandomValues(new Uint8Array(12));
             const encryptedDekBuffer = await window.crypto.subtle.encrypt(
@@ -265,7 +466,7 @@
             const dekIvB64 = arrayBufferToBase64(dekIv);
 
             statusMsg.innerText = "Keys generated. Registering account...";
-            
+
             // Step 2: Register user via API
             const payload = {
                 first_name: document.getElementById('firstName').value,
@@ -280,30 +481,23 @@
                 dek_iv: dekIvB64,
                 priv_key_iv: privKeyIvB64
             };
-            
+
             const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            
+
             const data = await res.json();
-            
+
             if (res.ok) {
                 // Store raw private key in sessionStorage for this session only!
                 sessionStorage.setItem('chat_priv_key', privKeyStr);
                 localStorage.setItem('current_user_id', data.id);
-                
+
                 // Show Profile Pic Modal
                 statusMsg.classList.add('hidden');
-                const modal = document.getElementById('successModal');
-                const modalContent = document.getElementById('successModalContent');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                setTimeout(() => {
-                    modal.classList.remove('opacity-0');
-                    modalContent.classList.remove('scale-95');
-                }, 10);
+                openModal('success');
                 document.getElementById('regProfileChar').innerText = document.getElementById('firstName').value[0];
             } else {
                 errorMsg.innerText = data.detail || 'Registration failed';
@@ -312,7 +506,7 @@
                 btn.innerHTML = registerSubmitDefaultHtml;
                 statusMsg.classList.add('hidden');
             }
-            
+
         } catch (err) {
             errorMsg.innerText = 'An error occurred during registration/key generation.';
             errorMsg.classList.remove('hidden');
@@ -356,24 +550,24 @@
     }
 
     document.getElementById('saveProfilePicBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('saveProfilePicBtn');
-        const file = regPicInput.files[0];
-        if (!file) {
+        const btnSave = document.getElementById('saveProfilePicBtn');
+        const filePic = regPicInput.files[0];
+        if (!filePic) {
             window.location.href = '/';
             return;
         }
 
-        btn.innerText = 'Archiving...';
-        btn.disabled = true;
+        btnSave.innerText = 'Archiving...';
+        btnSave.disabled = true;
 
         try {
-            const b64Data = await fileToBase64(file);
+            const b64Data = await fileToBase64(filePic);
             const res = await fetch('/api/profile', {
-                method: 'PATCH',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ profile_pic: b64Data })
             });
-            
+
             if (res.ok) {
                 window.location.href = '/';
             } else {
