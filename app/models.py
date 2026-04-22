@@ -113,3 +113,11 @@ class CallLog(Base):
     answered_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
     duration_seconds = Column(Integer, nullable=False, default=0)
+class CallClear(Base):
+    __tablename__ = "call_clears"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # If contact_id is NULL, it means the user cleared their entire history.
+    contact_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cleared_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

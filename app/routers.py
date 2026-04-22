@@ -268,3 +268,17 @@ def update_call_log(
         request=request, 
         db=db
     )
+@router.post(
+    "/calls/clear",
+    tags=[settings.CALL_TAG]
+)
+def clear_call_history(
+    request: Request,
+    db: deps.db_session,
+    contact_id: int | None = None
+):
+    return api_call.clear_call_history(
+        request=request,
+        db=db,
+        contact_id=contact_id
+    )

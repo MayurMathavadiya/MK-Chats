@@ -22,7 +22,7 @@ MK Chats is a FastAPI-based chat application featuring End-to-End Encryption (E2
 - Password change and email-based password reset flow
 - Real-time messaging using Socket.IO (with fallback support)
 - Real-time presence updates and typing indicators
-- WebRTC signaling for audio/video calls via Socket.IO
+- WebRTC signaling for audio/video calls and real-time screen sharing via Socket.IO
 - Read receipts with real-time sync across devices
 - Edit and delete message support with a 1-hour limit
 - Message replies and file/image message support
@@ -31,7 +31,8 @@ MK Chats is a FastAPI-based chat application featuring End-to-End Encryption (E2
 - Chat clear flow with background cleanup
 - Block and unblock contacts
 - CSP middleware for stronger browser-side script protections
-- Privacy Policy and Terms and Conditions pages
+- Privacy Policy and Terms and Conditions pages with integrated in-app viewer for logged-in users
+- Real-time screen sharing during video calls with camera toggle support
 
 ## Project Structure
 

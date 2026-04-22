@@ -284,6 +284,118 @@ async function initLocalStream(mode = 'audio') {
     return true;
 }
 
+async function toggleScreenShare() {
+    if (isScreenSharing) {
+        stopScreenShare();
+    } else {
+        if (currentCallMode !== 'video') {
+            alert("Screenshare is only available during video calls.");
+            return;
+        }
+        await startScreenShare();
+    }
+}
+
+async function startScreenShare() {
+    if (!peerConnection) return;
+    try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        isScreenSharing = true;
+        updateScreenShareButtonUI();
+
+        const screenTrack = screenStream.getVideoTracks()[0];
+        
+        // Handle when user clicks "Stop Sharing" from browser UI
+        screenTrack.onended = () => {
+            stopScreenShare();
+        };
+
+        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+            sender.replaceTrack(screenTrack);
+        } else {
+            peerConnection.addTrack(screenTrack, screenStream);
+            if (currentCallMode === 'video') {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit("webrtc_offer", {
+                    receiver_id: currentCallPeerId,
+                    offer,
+                    call_id: currentCallLogId,
+                    call_type: 'video'
+                });
+            }
+        }
+
+        // Preview screenshare in local video
+        if (localVideoEl) {
+            localVideoEl.srcObject = screenStream;
+            localVideoEl.play().catch(() => {});
+        }
+
+    } catch (err) {
+        console.error("Error starting screenshare:", err);
+    }
+}
+
+function stopScreenShare() {
+    if (!isScreenSharing) return;
+
+    if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+    }
+    isScreenSharing = false;
+    updateScreenShareButtonUI();
+
+    if (peerConnection) {
+        const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+        
+        // Revert to camera if localStream has video tracks
+        if (localStream && localStream.getVideoTracks().length > 0) {
+            const cameraTrack = localStream.getVideoTracks()[0];
+            if (videoSender) {
+                videoSender.replaceTrack(cameraTrack);
+            }
+            if (localVideoEl) {
+                localVideoEl.srcObject = localStream;
+            }
+        } else {
+            // No camera, just remove the video track or replace with null
+            if (videoSender) {
+                // If the other side expects video, replacing with null might cause issues in some implementations
+                // But here we can just stop sending video if we don't have a camera
+                videoSender.replaceTrack(null);
+            }
+            if (localVideoEl) {
+                localVideoEl.srcObject = null;
+            }
+            
+            // If it was audio mode before, revert UI
+            // (Optional: depending on how you want the UX to behave)
+        }
+    }
+    
+    syncLocalVideoPreview();
+}
+
+function updateScreenShareButtonUI() {
+    const btn = document.getElementById('screenShareBtn');
+    if (!btn) return;
+    
+    if (isScreenSharing) {
+        btn.classList.add('text-indigo-400', 'bg-indigo-500/20');
+        btn.classList.remove('text-on-surface');
+        btn.title = "Stop sharing";
+        btn.innerHTML = '<span class="material-symbols-outlined">stop_screen_share</span>';
+    } else {
+        btn.classList.remove('text-indigo-400', 'bg-indigo-500/20');
+        btn.classList.add('text-on-surface');
+        btn.title = "Share screen";
+        btn.innerHTML = '<span class="material-symbols-outlined">present_to_all</span>';
+    }
+}
+
 function cleanupWebRTC() {
     if (document.pictureInPictureElement) {
         try {
@@ -298,6 +410,12 @@ function cleanupWebRTC() {
         localStream.getTracks().forEach(t => t.stop());
         localStream = null;
     }
+    if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+        screenStream = null;
+        isScreenSharing = false;
+    }
+    updateScreenShareButtonUI();
     remoteStream = null;
     audioEl.srcObject = null;
     if (remoteVideoEl) remoteVideoEl.srcObject = null;
@@ -677,6 +795,8 @@ let activeHistoryLoadToken = 0;
 let currentReplyToId = null;
 let currentCallState = 'idle';
 let currentCallPeerId = null;
+let isScreenSharing = false;
+let screenStream = null;
 let callTimerIntervalId = null;
 let callStartedAt = null;
 let callRingTimeoutId = null;
@@ -889,6 +1009,47 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const legalModal = document.getElementById('legalContentModal');
+    const legalContent = document.getElementById('legalContentModalContent');
+    const legalBody = document.getElementById('legalModalBody');
+    const legalTitle = document.getElementById('legalModalTitle');
+
+    function showLegalModal(type) {
+        const sourceId = type === 'privacy' ? 'privacy-content-source' : 'terms-content-source';
+        const title = type === 'privacy' ? 'Privacy Policy' : 'Terms of Service';
+        const content = document.getElementById(sourceId).innerHTML;
+
+        legalTitle.innerText = title;
+        legalBody.innerHTML = content;
+
+        legalModal.classList.remove('hidden');
+        legalModal.classList.add('flex');
+        setTimeout(() => {
+            legalModal.classList.remove('opacity-0');
+            legalContent.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeLegalModal() {
+        legalModal.classList.add('opacity-0');
+        legalContent.classList.add('scale-95');
+        setTimeout(() => {
+            legalModal.classList.remove('flex');
+            legalModal.classList.add('hidden');
+        }, 300);
+    }
+    
+    // Attach to window to ensure global accessibility for onclick handlers
+    window.closeLegalModal = closeLegalModal;
+    window.showLegalModal = showLegalModal;
+
+    document.getElementById('viewPrivacyBtn')?.addEventListener('click', () => showLegalModal('privacy'));
+    document.getElementById('viewTermsBtn')?.addEventListener('click', () => showLegalModal('terms'));
+    document.getElementById('closeLegalModalBtn')?.addEventListener('click', closeLegalModal);
+    legalModal?.addEventListener('click', (e) => {
+        if (e.target === legalModal) closeLegalModal();
+    });
 
     const form = document.getElementById('profileForm');
     if (form) {
@@ -2004,7 +2165,7 @@ function appendMessageUI(msg, plainText, plainFileData = null) {
             }
         }
 
-        const replyBg = isMe ? 'bg-kin_surf hover:bg-kin_surf_highest w-full' : 'bg-kin_surf_target hover:bg-kin_surf_highest/50 w-full';
+        const replyBg = isMe ? 'bg-kin_surf hover:bg-kin_surf_highest w-full' : 'bg-kin_surf_lowest hover:bg-kin_surf_highest/50 w-full';
         const replyBorder = isMe ? 'border-kin_on_surface/50' : 'border-kin_tertiary';
         const replyLabelText = isMe ? 'text-kin_primary' : 'text-kin_tertiary';
         const replyBodyText = isMe ? 'text-kin_on_surface' : 'text-kin_on_surface_variant';
@@ -2306,6 +2467,27 @@ async function clearChat() {
     }
 }
 
+async function clearCallHistory() {
+    const result = await showModal({
+        title: "Clear Call History",
+        description: activeContactId 
+            ? `Clear call history with this contact?` 
+            : `Clear your entire call history?`
+    });
+
+    if (result) {
+        try {
+            const url = activeContactId 
+                ? `/api/calls/clear?contact_id=${activeContactId}` 
+                : '/api/calls/clear';
+            const res = await fetch(url, { method: 'POST' });
+            if (res.ok) {
+                loadCallHistory(activeContactId);
+            }
+        } catch (e) { }
+    }
+}
+
 function updateActionsVisibility(container, createdAt) {
     const buttons = container.querySelector('.action-buttons');
     if (!buttons) return;
@@ -2498,6 +2680,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const closeCallHistoryBtn = document.getElementById("closeCallHistoryBtn");
         if (closeCallHistoryBtn) closeCallHistoryBtn.addEventListener("click", closeCallHistoryModal);
 
+        const clearCallHistoryBtn = document.getElementById("clearCallHistoryBtn");
+        if (clearCallHistoryBtn) clearCallHistoryBtn.addEventListener("click", clearCallHistory);
+
         const endCallBtn = document.getElementById("endCallBtn");
         if (endCallBtn) {
             endCallBtn.addEventListener("click", () => {
@@ -2519,6 +2704,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const isMuted = !localStream.getAudioTracks()[0].enabled;
                     setMuteButtonState(isMuted);
                 }
+            });
+        }
+
+        const screenShareBtn = document.getElementById("screenShareBtn");
+        if (screenShareBtn) {
+            screenShareBtn.addEventListener("click", () => {
+                toggleScreenShare();
             });
         }
 
@@ -2958,6 +3150,12 @@ function updateCallMediaBadge(mode = 'audio') {
         upgradeBtn.classList.toggle('opacity-40', hasVideo);
         upgradeBtn.classList.toggle('cursor-not-allowed', hasVideo);
         upgradeBtn.title = hasVideo ? 'Video enabled' : 'Turn on video';
+    }
+    const screenBtn = document.getElementById('screenShareBtn');
+    if (screenBtn) {
+        const isVideoCall = normalizedMode === 'video';
+        screenBtn.classList.toggle('hidden', !isVideoCall);
+        screenBtn.title = isVideoCall ? (isScreenSharing ? 'Stop sharing' : 'Share screen') : '';
     }
 }
 

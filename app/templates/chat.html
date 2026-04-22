@@ -267,7 +267,7 @@
 
 <!-- Action Menu Modal -->
 <div id="actionMenuModal"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-kin_surf_target/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-200">
     <div class="glass-panel max-w-[280px] w-full p-6 text-center transform scale-95 transition-transform duration-200"
         id="actionMenuContent">
         <h3 class="font-manrope text-sm font-bold text-kin_on_surface mb-6 tracking-wide">Message Actions</h3>
@@ -292,7 +292,7 @@
 
 <!-- Profile Update Modal (Stitch Alignment) -->
 <div id="profileModal"
-    class="fixed inset-0 bg-kin_surf_target/80 backdrop-blur-md hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+    class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
     <div class="glass-card w-[95vw] md:max-w-2xl p-0 transform scale-95 transition-all outline-none max-h-[95vh] overflow-hidden rounded-[2.5rem] ghost-border flex flex-col"
         id="profileModalContent">
 
@@ -404,82 +404,105 @@
             </div>
 
             <!-- Security Protocol Section -->
-            <div class="pt-6 border-t border-white/5">
-                <button type="button" id="togglePasswordBtn"
-                    class="font-manrope text-[10px] font-black text-indigo-300 hover:text-indigo-400 transition-colors flex items-center gap-2 uppercase tracking-widest group">
-                    <span
-                        class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">shield_lock</span>
-                    Change Password
-                </button>
+            <div class="pt-6 border-t border-white/5 space-y-8">
+                <div>
+                    <button type="button" id="togglePasswordBtn"
+                        class="font-manrope text-[10px] font-black text-indigo-300 hover:text-indigo-400 transition-colors flex items-center gap-2 uppercase tracking-widest group">
+                        <span
+                            class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">shield_lock</span>
+                        Change Password
+                    </button>
 
-                <div id="passwordSection" class="hidden mt-6 animate-in slide-in-from-top-4 duration-300">
-                    <div class="bg-surface-container-lowest/50 p-6 rounded-3xl border border-indigo-500/10 space-y-4">
-                        <div class="space-y-4 max-w-xl">
-                            <div class="space-y-2">
-                                <label
-                                    class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Current
-                                    Password</label>
-                                <div class="relative">
-                                    <input type="password" id="oldPassword"
-                                        class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
-                                        placeholder="••••••••••••">
-                                    <button type="button"
-                                        class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
-                                        data-password-toggle="oldPassword">
-                                        <span
-                                            class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
-                                            data-password-toggle-show>visibility</span>
-                                        <span
-                                            class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
-                                            data-password-toggle-hide>visibility_off</span>
-                                    </button>
+                    <div id="passwordSection" class="hidden mt-6 animate-in slide-in-from-top-4 duration-300">
+                        <div
+                            class="bg-surface-container-lowest/50 p-6 rounded-3xl border border-indigo-500/10 space-y-4">
+                            <div class="space-y-4 max-w-xl">
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Current
+                                        Password</label>
+                                    <div class="relative">
+                                        <input type="password" id="oldPassword"
+                                            class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                            placeholder="••••••••••••">
+                                        <button type="button"
+                                            class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
+                                            data-password-toggle="oldPassword">
+                                            <span
+                                                class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
+                                                data-password-toggle-show>visibility</span>
+                                            <span
+                                                class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
+                                                data-password-toggle-hide>visibility_off</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label
-                                    class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">New
-                                    Password</label>
-                                <div class="relative">
-                                    <input type="password" id="newPassword"
-                                        class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
-                                        placeholder="Min. 12 characters">
-                                    <button type="button"
-                                        class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
-                                        data-password-toggle="newPassword">
-                                        <span
-                                            class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
-                                            data-password-toggle-show>visibility</span>
-                                        <span
-                                            class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
-                                            data-password-toggle-hide>visibility_off</span>
-                                    </button>
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">New
+                                        Password</label>
+                                    <div class="relative">
+                                        <input type="password" id="newPassword"
+                                            class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                            placeholder="Min. 12 characters">
+                                        <button type="button"
+                                            class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
+                                            data-password-toggle="newPassword">
+                                            <span
+                                                class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
+                                                data-password-toggle-show>visibility</span>
+                                            <span
+                                                class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
+                                                data-password-toggle-hide>visibility_off</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label
-                                    class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Confirm
-                                    New Password</label>
-                                <div class="relative">
-                                    <input type="password" id="confirmNewPassword"
-                                        class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
-                                        placeholder="Repeat new password">
-                                    <button type="button"
-                                        class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
-                                        data-password-toggle="confirmNewPassword">
-                                        <span
-                                            class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
-                                            data-password-toggle-show>visibility</span>
-                                        <span
-                                            class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
-                                            data-password-toggle-hide>visibility_off</span>
-                                    </button>
+                                <div class="space-y-2">
+                                    <label
+                                        class="block text-[10px] font-semibold text-outline tracking-widest uppercase ml-1">Confirm
+                                        New Password</label>
+                                    <div class="relative">
+                                        <input type="password" id="confirmNewPassword"
+                                            class="profile-edit-input w-full border border-white/5 rounded-xl px-4 pr-12 py-3.5 text-on-surface focus:border-indigo-500/40 focus:ring-0 transition-all outline-none text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+                                            placeholder="Repeat new password">
+                                        <button type="button"
+                                            class="password-toggle-btn absolute right-4 top-1/2 -translate-y-1/2"
+                                            data-password-toggle="confirmNewPassword">
+                                            <span
+                                                class="material-symbols-outlined password-toggle-icon text-outline hover:text-on-surface text-lg"
+                                                data-password-toggle-show>visibility</span>
+                                            <span
+                                                class="material-symbols-outlined password-toggle-icon is-hidden text-outline hover:text-on-surface text-lg"
+                                                data-password-toggle-hide>visibility_off</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-surface-container-lowest/30 p-6 rounded-3xl border border-white/5">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="material-symbols-outlined text-slate-400">gavel</span>
+                        <h3 class="text-lg font-bold font-manrope">Legal & Privacy</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <button type="button" id="viewPrivacyBtn"
+                            class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-slate-300 transition-all border border-white/5">
+                            <span class="material-symbols-outlined text-lg">privacy_tip</span>
+                            Privacy Policy
+                        </button>
+                        <button type="button" id="viewTermsBtn"
+                            class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-slate-300 transition-all border border-white/5">
+                            <span class="material-symbols-outlined text-lg">description</span>
+                            Terms of Service
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
+
 
         <!-- Fixed Footer Actions -->
         <div class="p-8 pt-0 flex gap-4">
@@ -494,7 +517,7 @@
 
 <!-- Contact Profile Modal (Stitch Alignment) -->
 <div id="contactProfileModal"
-    class="fixed inset-0 bg-kin_surf_target/80 backdrop-blur-xl hidden items-center justify-center z-[70] p-4 opacity-0 transition-opacity duration-300">
+    class="fixed inset-0 bg-black/60 backdrop-blur-xl hidden items-center justify-center z-[70] p-4 opacity-0 transition-opacity duration-300">
     <div class="glass-card w-full max-w-lg rounded-[2.5rem] overflow-hidden ghost-border flex flex-col transform scale-95 transition-all text-left"
         id="contactProfileModalContent">
 
@@ -582,10 +605,17 @@
                 <p class="text-xs text-on-surface-variant uppercase tracking-widest mt-1" id="callHistorySubtitle">
                     Recent calls</p>
             </div>
-            <button id="closeCallHistoryBtn"
-                class="w-10 h-10 rounded-full hover:bg-white/5 transition-colors text-slate-400 hover:text-white">
-                <span class="material-symbols-outlined">close</span>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="clearCallHistoryBtn"
+                    class="p-2 hover:bg-red-500/10 rounded-xl transition-all text-slate-400 hover:text-red-400"
+                    title="Clear history">
+                    <span class="material-symbols-outlined">delete_sweep</span>
+                </button>
+                <button id="closeCallHistoryBtn"
+                    class="w-10 h-10 rounded-full hover:bg-white/5 transition-colors text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
         </div>
         <div id="callHistoryList" class="max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar">
             <div class="text-sm text-on-surface-variant text-center py-8">Loading call history...</div>
@@ -701,6 +731,11 @@
             title="Speaker">
             <span class="material-symbols-outlined">volume_up</span>
         </button>
+        <button id="screenShareBtn"
+            class="w-10 h-10 rounded-xl hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors hidden"
+            title="Share screen">
+            <span class="material-symbols-outlined">present_to_all</span>
+        </button>
         <div id="callMediaBadge"
             class="min-w-[74px] h-10 px-3 rounded-xl bg-surface-container-highest flex items-center justify-center text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">
             Audio
@@ -711,6 +746,36 @@
             <span class="material-symbols-outlined text-xl">call_end</span>
         </button>
     </div>
+</div>
+
+<div id="legalContentModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center z-[110] p-4 opacity-0 transition-opacity duration-300"
+    style="z-index: 9999;">
+    <div class="glass-card w-[95vw] md:max-w-3xl p-0 transform scale-95 transition-all outline-none overflow-hidden rounded-[2.5rem] ghost-border flex flex-col relative"
+        id="legalContentModalContent" style="height: 85vh; max-height: 85vh;">
+
+        <button id="closeLegalModalBtn" onclick="closeLegalModal()"
+            class="absolute top-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-md transition-all text-white/90 hover:text-kin_primary z-30 shadow-xl border border-white/10 group">
+            <span class="material-symbols-outlined text-2xl transition-transform group-hover:rotate-90">close</span>
+        </button>
+
+        <div class="p-8 pb-4 border-b border-white/5">
+            <h2 class="text-2xl font-extrabold font-manrope tracking-tight text-on-surface pr-16" id="legalModalTitle">
+                Policy</h2>
+        </div>
+
+        <div class="flex-1 p-8 pt-4 space-y-6 custom-scrollbar font-inter text-sm leading-relaxed" id="legalModalBody"
+            style="overflow-y: auto; height: 100%;">
+            <!-- Content injected here -->
+        </div>
+    </div>
+</div>
+
+<div id="privacy-content-source" class="hidden">
+    {% include 'partials/privacy_content.html' %}
+</div>
+<div id="terms-content-source" class="hidden">
+    {% include 'partials/terms_content.html' %}
 </div>
 
 <!-- Scripts for WebCrypto and UI -->

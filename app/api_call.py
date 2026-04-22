@@ -17,6 +17,13 @@ def get_call_history(
     user = deps.get_current_user(request, db)
     limit = min(limit, 100)
 
+    # Check for clears
+    # 1. Global clear (contact_id is NULL)
+    global_clear = db.query(models.CallClear).filter(
+        models.CallClear.user_id == user.id,
+        models.CallClear.contact_id.is_(None)
+    ).order_by(models.CallClear.cleared_at.desc()).first()
+
     query = db.query(models.CallLog).filter(
         or_(
             models.CallLog.initiator_id == user.id,
@@ -24,7 +31,19 @@ def get_call_history(
         )
     )
 
+    if global_clear:
+        query = query.filter(models.CallLog.started_at > global_clear.cleared_at)
+
     if contact_id is not None:
+        # Check for specific contact clear
+        contact_clear = db.query(models.CallClear).filter(
+            models.CallClear.user_id == user.id,
+            models.CallClear.contact_id == contact_id
+        ).order_by(models.CallClear.cleared_at.desc()).first()
+
+        if contact_clear:
+            query = query.filter(models.CallLog.started_at > contact_clear.cleared_at)
+
         query = query.filter(
             or_(
                 and_(
@@ -41,6 +60,26 @@ def get_call_history(
     return query.order_by(
         models.CallLog.started_at.desc()
     ).limit(limit).offset(offset).all()
+
+
+def clear_call_history(
+    request: Request,
+    db: deps.db_session,
+    contact_id: int | None = None
+):
+    user = deps.get_current_user(request, db)
+    now_utc = datetime.now(timezone.utc)
+
+    # We add a new record to mark the clear point
+    clear_record = models.CallClear(
+        user_id=user.id,
+        contact_id=contact_id,
+        cleared_at=now_utc
+    )
+    db.add(clear_record)
+    db.commit()
+
+    return {"msg": "Call history cleared"}
 
 
 def create_call_log(
