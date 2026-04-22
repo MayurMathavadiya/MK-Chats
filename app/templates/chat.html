@@ -107,11 +107,14 @@
                     </button>
                     <h2 class="manrope text-2xl font-bold tracking-tight truncate flex-1">Messages</h2>
                 </div>
-                <div class="relative">
-                    <span
-                        class="material-symbols-outlined text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 text-xl">search</span>
-                    <input type="text" id="contactSearch" placeholder="Search conversations..."
-                        class="w-full bg-kin_surf_highest border-none rounded-xl py-3 pl-10 pr-4 text-sm text-on-surface placeholder:text-slate-500 focus:ring-1 focus:ring-kin_primary/20 transition-all" />
+                <div class="flex items-center bg-kin_surf_highest rounded-2xl shadow-inner group transition-all">
+                    <input type="text" id="contactSearch" placeholder="Search conversations..." autocomplete="off"
+                        style="padding-left: 1rem;"
+                        class="flex-1 bg-transparent border-none py-3.5 pr-4 text-sm text-on-surface placeholder:text-slate-500 focus:ring-0 outline-none" />
+                    <button id="executeSearchBtn"
+                        class="w-12 h-11 flex items-center justify-center text-slate-500 hover:text-kin_primary hover:bg-kin_primary/10 transition-all active:scale-95 rounded-r-2xl border-l border-white/5">
+                        <span class="material-symbols-outlined text-xl">search</span>
+                    </button>
                 </div>
             </div>
 

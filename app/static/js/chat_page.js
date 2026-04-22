@@ -26,7 +26,7 @@ function initDesktopNotifications() {
         document.addEventListener('click', async () => {
             try {
                 await Notification.requestPermission();
-            } catch (e) {}
+            } catch (e) { }
         }, { once: true, capture: true });
     }
 }
@@ -67,7 +67,7 @@ function showDesktopNotification({ title, body, tag, icon, onClick } = {}) {
                 // Allow a small tick for focus to propagate
                 setTimeout(() => {
                     try { window.focus(); } catch (e) { }
-                    try { onClick(); } catch (e) {}
+                    try { onClick(); } catch (e) { }
                     try { notif.close(); } catch (e) { }
                 }, 0);
             };
@@ -139,14 +139,14 @@ function focusAndOpenChat(userId) {
             if (reContact) {
                 const name = `${reContact.first_name || ''} ${reContact.last_name || ''}`.trim() || `User ${Number(userId)}`;
                 selectUser(
-                    Number(reContact.id), 
-                    name, 
-                    reContact.public_key, 
-                    reContact.mobile_number, 
-                    reContact.profile_pic, 
-                    Boolean(reContact.blocked_by_me), 
+                    Number(reContact.id),
+                    name,
+                    reContact.public_key,
+                    reContact.mobile_number,
+                    reContact.profile_pic,
+                    Boolean(reContact.blocked_by_me),
                     Boolean(reContact.blocked_me)
-                ).catch(() => {});
+                ).catch(() => { });
             }
         });
         return;
@@ -161,7 +161,7 @@ function focusAndOpenChat(userId) {
         contact.profile_pic || null,
         Boolean(contact.blocked_by_me),
         Boolean(contact.blocked_me)
-    ).catch(() => {});
+    ).catch(() => { });
 }
 
 function shouldNotifyForIncomingMessage(msg) {
@@ -304,7 +304,7 @@ async function startScreenShare() {
         updateScreenShareButtonUI();
 
         const screenTrack = screenStream.getVideoTracks()[0];
-        
+
         // Handle when user clicks "Stop Sharing" from browser UI
         screenTrack.onended = () => {
             stopScreenShare();
@@ -330,7 +330,7 @@ async function startScreenShare() {
         // Preview screenshare in local video
         if (localVideoEl) {
             localVideoEl.srcObject = screenStream;
-            localVideoEl.play().catch(() => {});
+            localVideoEl.play().catch(() => { });
         }
 
     } catch (err) {
@@ -350,7 +350,7 @@ function stopScreenShare() {
 
     if (peerConnection) {
         const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-        
+
         // Revert to camera if localStream has video tracks
         if (localStream && localStream.getVideoTracks().length > 0) {
             const cameraTrack = localStream.getVideoTracks()[0];
@@ -370,19 +370,19 @@ function stopScreenShare() {
             if (localVideoEl) {
                 localVideoEl.srcObject = null;
             }
-            
+
             // If it was audio mode before, revert UI
             // (Optional: depending on how you want the UX to behave)
         }
     }
-    
+
     syncLocalVideoPreview();
 }
 
 function updateScreenShareButtonUI() {
     const btn = document.getElementById('screenShareBtn');
     if (!btn) return;
-    
+
     if (isScreenSharing) {
         btn.classList.add('text-indigo-400', 'bg-indigo-500/20');
         btn.classList.remove('text-on-surface');
@@ -555,17 +555,17 @@ function createPeerConnection(remoteUserId) {
                     remoteVideoEl.srcObject = remoteStream;
                 }
                 // Try playing through video element first (often more reliable sync)
-                remoteVideoEl.play().catch(() => {});
+                remoteVideoEl.play().catch(() => { });
             }
             audioEl.srcObject = remoteStream;
-            audioEl.play().catch(() => {});
+            audioEl.play().catch(() => { });
         }
 
         if (event.track.kind === 'video') {
             if (remoteVideoEl && remoteVideoEl.srcObject !== remoteStream) {
                 remoteVideoEl.srcObject = remoteStream;
             }
-            remoteVideoEl.play().catch(() => {});
+            remoteVideoEl.play().catch(() => { });
 
             // Mute the backup audioEl if video is active to avoid double-audio/echo
             audioEl.muted = true;
@@ -638,7 +638,7 @@ function setupWebRTCSocketListeners() {
         if (currentCallState !== 'idle' && Number(currentCallPeerId) !== Number(data.sender_id)) {
             socket.emit("webrtc_end", { receiver_id: data.sender_id, call_id: data.call_id, reason: "busy" });
             if (data.call_id) {
-                patchCallLog('missed', data.call_type || 'audio', data.call_id).catch(() => {});
+                patchCallLog('missed', data.call_type || 'audio', data.call_id).catch(() => { });
             }
             return;
         }
@@ -681,7 +681,7 @@ function setupWebRTCSocketListeners() {
             currentCallState = 'idle';
             currentCallPeerId = null;
             if (currentCallLogId) {
-                patchCallLog('rejected', currentCallMode, currentCallLogId).catch(() => {});
+                patchCallLog('rejected', currentCallMode, currentCallLogId).catch(() => { });
             }
             socket.emit("webrtc_end", { receiver_id: data.sender_id, call_id: currentCallLogId, reason: 'rejected' });
             cleanupWebRTC();
@@ -1039,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
             legalModal.classList.add('hidden');
         }, 300);
     }
-    
+
     // Attach to window to ensure global accessibility for onclick handlers
     window.closeLegalModal = closeLegalModal;
     window.showLegalModal = showLegalModal;
@@ -1490,9 +1490,6 @@ async function initRealtime() {
         socket.emit('request_presence');
         updateCurrentUserPresenceUI(true);
         rebuildPresenceDotCache();
-        if (activeContactId) {
-            await loadMessageHistory(activeContactId);
-        }
     });
 
     socket.on('error', async (msg) => {
@@ -1528,7 +1525,7 @@ async function initRealtime() {
 
     socket.on('receive_message', async (msg) => {
         if (Number(msg.receiver_id) === Number(currentUserId) && Number(msg.sender_id) !== Number(currentUserId)) {
-            notifyIncomingMessage(msg).catch(() => {});
+            notifyIncomingMessage(msg).catch(() => { });
         }
         if ((Number(msg.sender_id) === Number(activeContactId) && Number(msg.receiver_id) === Number(currentUserId)) ||
             (Number(msg.sender_id) === Number(currentUserId) && Number(msg.receiver_id) === Number(activeContactId))) {
@@ -2094,29 +2091,37 @@ async function loadContacts() {
     }
 }
 
-let searchTimeout = null;
 function setupSearch() {
     const searchInput = document.getElementById('contactSearch');
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        const query = e.target.value.trim();
-        searchTimeout = setTimeout(async () => {
-            const listDiv = document.getElementById('contact-list');
-            if (query.length === 0) {
-                listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8 animate-pulse">Loading contacts...</div>';
-                await loadContacts();
-                return;
-            }
+    const searchBtn = document.getElementById('executeSearchBtn');
+    if (!searchInput || !searchBtn) return;
 
-            try {
-                listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8">Searching...</div>';
-                const res = await fetch('/api/contacts?query=' + encodeURIComponent(query));
-                if (res.ok) {
-                    const results = (await res.json()).map(normalizeContactData);
-                    await renderContactList(results);
-                }
-            } catch (err) { }
-        }, 300);
+    const performSearch = async () => {
+        const query = searchInput.value.trim();
+        const listDiv = document.getElementById('contact-list');
+
+        if (query.length === 0) {
+            listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8 animate-pulse">Loading contacts...</div>';
+            await loadContacts();
+            return;
+        }
+
+        try {
+            listDiv.innerHTML = '<div class="text-center text-gray-500 text-sm mt-8">Searching...</div>';
+            const res = await fetch('/api/contacts?query=' + encodeURIComponent(query));
+            if (res.ok) {
+                const results = (await res.json()).map(normalizeContactData);
+                await renderContactList(results);
+            }
+        } catch (err) { }
+    };
+
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            performSearch();
+        }
     });
 }
 
@@ -2470,15 +2475,15 @@ async function clearChat() {
 async function clearCallHistory() {
     const result = await showModal({
         title: "Clear Call History",
-        description: activeContactId 
-            ? `Clear call history with this contact?` 
+        description: activeContactId
+            ? `Clear call history with this contact?`
             : `Clear your entire call history?`
     });
 
     if (result) {
         try {
-            const url = activeContactId 
-                ? `/api/calls/clear?contact_id=${activeContactId}` 
+            const url = activeContactId
+                ? `/api/calls/clear?contact_id=${activeContactId}`
                 : '/api/calls/clear';
             const res = await fetch(url, { method: 'POST' });
             if (res.ok) {
@@ -2689,7 +2694,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 hideActiveCallOverlay();
                 if (currentCallPeerId && socket) socket.emit("webrtc_end", { receiver_id: currentCallPeerId, call_id: currentCallLogId, reason: 'ended' });
                 if (currentCallLogId) {
-                    patchCallLog('ended', currentCallMode, currentCallLogId).catch(() => {});
+                    patchCallLog('ended', currentCallMode, currentCallLogId).catch(() => { });
                 }
                 cleanupWebRTC();
                 loadCallHistory(activeContactId);
@@ -2982,13 +2987,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     // We launch these in parallel so the UI does not wait on socket setup.
 
     // Crypto is needed for decryption, but it usually initializes quickly.
-    const cryptoPromise = initCrypto().catch(() => {});
+    const cryptoPromise = initCrypto().catch(() => { });
 
     // Notifications don't block anything.
     initDesktopNotifications();
 
     // Socket setup can fail independently without blocking the rest of the page.
-    const realtimePromise = initRealtime().catch(() => {});
+    const realtimePromise = initRealtime().catch(() => { });
 
 
     // Search setup is fast.
@@ -2996,7 +3001,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Load contacts immediately. We'll wait for crypto inside loadContacts if needed, 
     // but at least we'll clear the "Syncing" message as soon as the fetch completes.
-    const contactsPromise = loadContacts().catch(() => {});
+    const contactsPromise = loadContacts().catch(() => { });
 
     // Wait for critical data for session restoration, but don't block the UI.
     Promise.allSettled([cryptoPromise, contactsPromise, realtimePromise]).then(() => {
@@ -3166,7 +3171,7 @@ function syncLocalVideoPreview() {
             localVideoEl.srcObject = localStream;
             localVideoEl.style.transform = "scaleX(-1)"; // Mirror effect for local preview
             localVideoEl.classList.remove('hidden');
-            localVideoEl.play().catch(() => {});
+            localVideoEl.play().catch(() => { });
         } else {
             localVideoEl.classList.add('hidden');
             localVideoEl.srcObject = null;
@@ -3363,7 +3368,7 @@ function scheduleCallRingTimeout(peerId) {
             socket.emit("webrtc_end", { receiver_id: peerId, call_id: currentCallLogId, reason: "missed" });
         }
         if (currentCallLogId) {
-            patchCallLog('missed', currentCallMode, currentCallLogId).catch(() => {});
+            patchCallLog('missed', currentCallMode, currentCallLogId).catch(() => { });
         }
         cleanupWebRTC();
         hideIncomingCallOverlay();

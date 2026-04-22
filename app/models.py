@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime
+from sqlalchemy import Boolean, Column, ForeignKey, \
+    Integer, String, Text, DateTime
 
 from app.core.database import Base
 
@@ -113,6 +114,8 @@ class CallLog(Base):
     answered_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
     duration_seconds = Column(Integer, nullable=False, default=0)
+
+
 class CallClear(Base):
     __tablename__ = "call_clears"
 
