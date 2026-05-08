@@ -24,7 +24,7 @@ MK Chats is a FastAPI-based chat application featuring End-to-End Encryption (E2
 - Real-time presence updates and typing indicators
 - WebRTC signaling for audio/video calls and real-time screen sharing via Socket.IO
 - Read receipts with real-time sync across devices
-- Edit and delete message support with a 1-hour limit
+- Edit and delete message support (1-hour client-side limit in current UI)
 - Message replies and file/image message support
 - Contact list with latest message, unread counts, and search
 - Call history for audio and video calls
@@ -150,6 +150,7 @@ Useful routes:
 - `GET /api/calls/history`
 - `POST /api/calls`
 - `PATCH /api/calls/{call_id}`
+- `POST /api/calls/clear` (optional `contact_id` query param to clear for one contact; omit to clear all)
 
 ## Socket.IO Events
 
