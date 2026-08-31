@@ -1,3 +1,4 @@
+https://github.com/MayurMathavadiya/chat-app/blob/main/app/static/branding/mk-chats-logo.svg
 # MK Chats
 
 MK Chats is a FastAPI-based chat application featuring End-to-End Encryption (E2EE), server-rendered pages, REST APIs, real-time messaging via Socket.IO, and WebRTC signaling for audio/video calls. The project includes secure authentication, profile management, contact search, message history with background cleanup, blocking, and real-time indicators for presence and typing.
