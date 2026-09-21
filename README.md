@@ -508,3 +508,15 @@ https://github.com/MayurMathavadiya
 <p align="center">
   Built with ❤️ using FastAPI, Python, Socket.IO, WebRTC, Redis and PostgreSQL.
 </p>
+
+---
+
+## Star History
+
+<a href="https://www.star-history.com/?type=date&repos=MayurMathavadiya%2FMK-Chats">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=MayurMathavadiya/MK-Chats&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=MayurMathavadiya/MK-Chats&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=MayurMathavadiya/MK-Chats&type=date&legend=top-left" />
+ </picture>
+</a>
