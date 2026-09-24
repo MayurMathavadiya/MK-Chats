@@ -752,11 +752,3 @@ https://github.com/MayurMathavadiya
   </picture>
 </a>
 ```
-
-### One thing I'd change from your current README
-
-Your GitHub repository currently still has the old **License** section saying *“Add your preferred open-source license...”* at the bottom.
-
-Delete that entire section. The new README above deliberately has **no `LICENSE` section**.
-
-Also, because you specifically want people to **raise issues and contribute**, the new README makes that very clear without claiming that everyone automatically has legal permission to reuse the code.
